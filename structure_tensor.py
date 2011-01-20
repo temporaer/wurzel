@@ -31,8 +31,8 @@ def hessian(img, size=3):
     Dxz = grad(Dx, 2)
 
     Dyz = grad(Dy, 2)
-    for m in "Dxx Dyy Dzz Dxy Dxz Dyz".split():
-        vars()[m] = ND.uniform_filter(vars()[m], size)
+    #for m in "Dxx Dyy Dzz Dxy Dxz Dyz".split():
+    #    vars()[m] = ND.uniform_filter(vars()[m], size)
     return {"Dxx": Dxx, "Dyy": Dyy, "Dzz": Dzz, "Dxy": Dxy, "Dxz": Dxz, "Dyz": Dyz}
 
 def eig3x3(hessian):

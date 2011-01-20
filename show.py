@@ -1,10 +1,11 @@
 # vim:ts=4:sw=4:sts=4:et
+#import matplotlib.pyplot as plt
 #import cPickle
 #import sys
 import numpy as np
 #import matplotlib.pyplot as plt
 #from scipy.io.numpyio import fwrite, fread
-#from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter
 
 from enthought.mayavi import mlab
 #from enthought.mayavi.modules.scalar_cut_plane import ScalarCutPlane
@@ -126,11 +127,11 @@ class DatasetProcessor(object):
         print "show data, shape=",D.shape, D.flags
         src = mlab.pipeline.scalar_field(D)
         #src.image_data.spacing = (1.0, 1.0, 256.0/120.0)
-        mlab.pipeline.volume(src, vmin=D.min()+0.1*D.ptp(),vmax=D.max()-0.1*D.ptp())
+        #mlab.pipeline.volume(src, vmin=D.min()+0.1*D.ptp(),vmax=D.max()-0.1*D.ptp())
 
         #mlab.contour3d(D)
         #mlab.pipeline.volume(src, vmin=D.min()+0.2*D.ptp(),vmax=D.max()-0.2*D.ptp())
-        #mlab.pipeline.iso_surface(src, contours=[D.min()+0.20*D.ptp(), ], opacity=1.0, colormap="bone")
+        mlab.pipeline.iso_surface(src, contours=[D.min()+0.15*D.ptp(), ], opacity=0.5, colormap="bone")
         #mlab.pipeline.iso_surface(src, contours=[D.max()-0.2*D.ptp(), ], opacity=0.2)
         #mlab.pipeline.image_plane_widget(src,
         #                        plane_orientation='z_axes',
@@ -162,14 +163,29 @@ def load_lambdas():
     with open("lambdas.pickle") as f:
         return cPickle.load(f)
 
-def select_struct(l1,l2,l3):
-    absl1 = np.abs(l1)
-    A  = absl1 < absl1.min() + 0.1*absl1.ptp()
-    D  = l3-l2
-    print "Selected ", np.sum(A), "of", np.prod(A.shape)
-    A *= D < D.min()+0.1*D.ptp()
-    print "Selected ", np.sum(A), "of", np.prod(A.shape)
-    return A
+def select_struct(l3,l2,l1): # renumerated according to sato et al: l3 is smallest
+    A           = -((l3<l2) * (l2<0))
+    lmin23      = -np.maximum(l2,l3)
+    lmin23[A]   = 0
+
+    lgmean23    = np.sqrt(l2*l3)
+    lgmean23[A] = 0
+
+    g23         = 0.5
+    l23         = np.abs(l3) * (l2/l3)**g23
+    l23[A]      = 0
+
+    alpha       = 0.25
+    g12         = 0.5
+    l2a         = np.abs(l2)
+    l123        = np.zeros(l23.shape)
+    B           = l1 <= 0
+    l123[B]     = ((1+l1/l2a)**g12)[B]
+    B           = (l2a/alpha>l1) * (l1 > 0)
+    l123[B]     = ((1-alpha * l1/l2a)**g12)[B]
+    l123       *= l23
+
+    return l123
 
 if __name__ == "__main__":
     dp = DatasetProcessor("/home/local/l_schulz/tmp/build-itk/InsightApplications-3.20.0/build/bla.mhd")
@@ -178,16 +194,14 @@ if __name__ == "__main__":
     for i in xrange(len(x)):
         D[i,:,:] -= x[i]
     if True:
+        D = gaussian_filter(D, 2.1)
         l1,l2,l3 = get_ev(D)
         save_lambdas([l1,l2,l3])
     else:
         l1,l2,l3 = load_lambdas()
     D -= D.min()
-    #S = select_struct(l1,l2,l3)
-    #D[-S] = 1
-    #D[ S] = 0
-    D = l3
-    dp.D = D
+    S = select_struct(l1,l2,l3)
+    dp.D = S
     #plt.matshow(D.sum(axis=0))
     #plt.matshow(D.sum(axis=1))
     #plt.matshow(D.sum(axis=2))
