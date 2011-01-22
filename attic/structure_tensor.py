@@ -3,6 +3,7 @@ import scipy.ndimage as ND
 import numpy as np
 import os
 from scipy.weave import inline, converters
+import matplotlib.pyplot as plt
 
 ## Image structure tensor.
 def structure2D(img, size=3):
@@ -31,9 +32,11 @@ def hessian(img, size=3):
     Dxz = grad(Dx, 2)
 
     Dyz = grad(Dy, 2)
-    #for m in "Dxx Dyy Dzz Dxy Dxz Dyz".split():
-    #    vars()[m] = ND.uniform_filter(vars()[m], size)
-    return {"Dxx": Dxx, "Dyy": Dyy, "Dzz": Dzz, "Dxy": Dxy, "Dxz": Dxz, "Dyz": Dyz}
+    D = {"Dxx": Dxx, "Dyy": Dyy, "Dzz": Dzz, "Dxy": Dxy, "Dxz": Dxz, "Dyz": Dyz}
+    if size>0:
+        for k,v in D.items():
+            D[k] = ND.gaussian_filter(v, size)
+    return D
 
 def eig3x3(hessian):
     nx,ny,nz = hessian["Dxx"].shape
@@ -101,7 +104,6 @@ def eig3x3(hessian):
 
 if __name__ == "__main__":
     import Image as I
-    import matplotlib.pyplot as plt
     x = I.open("%s/Bilder/DSC01542.JPG" % os.environ["HOME"])
     x = np.array(x.convert("L"))
     a,b,c = structure2D(x,9)
