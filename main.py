@@ -61,6 +61,8 @@ if __name__ == "__main__":
     print "Gathering..."
     mec.block=True
     res = mec.gather("res")
+    import pdb
+    pdb.set_trace()
     x = reduce(np.maximum, res).astype("float32")
     np.save("res.npy", x)
     print "Done"
