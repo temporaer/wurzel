@@ -41,6 +41,7 @@ def eig3x3(hessian):
       using ublas::trans;
       typedef ublas::bounded_matrix<double,3,3,ublas::column_major> mat;
       ublas::bounded_vector<double,3> lambda;
+      std::vector<double> work(34*3); // the 34*width is from syev.hpp
 
       //typedef ublas::matrix<double,ublas::column_major> mat;
       //ublas::vector<double> lambda(3);
@@ -57,7 +58,8 @@ def eig3x3(hessian):
               A(0,2) = Dxz(i,j,k);
               A(1,2) = Dyz(i,j,k);
 
-              lapack::syev('N','U',A,lambda,lapack::minimal_workspace());
+              lapack::syev('N','U',A,lambda,lapack::optimal_workspace());
+              //lapack::syev('N','U',A,lambda,lapack::workspace(work));
               sort(lambda.begin(),lambda.end());
 
               lambda1(i,j,k) = lambda(0);
@@ -72,8 +74,10 @@ def eig3x3(hessian):
     variables.extend(hessian.keys())
     map(lambda x:V.__setitem__(x[0],x[1]), hessian.items())
     inline(code, variables,
+                 verbose=2,
                  compiler="gcc",
                  extra_compile_args =['-O3 -fopenmp'],
+                 #extra_compile_args =['-O3'],
                  extra_link_args=['-lgomp'],
                  include_dirs=["%s/pool/include/boost-numeric-bindings"%os.environ["HOME"]],
                  headers=[
@@ -87,6 +91,7 @@ def eig3x3(hessian):
                           '<boost/numeric/ublas/vector.hpp>',
                           '<boost/numeric/ublas/io.hpp>',
                           '<iostream>',
+                          '<vector>',
                           '<cmath>'],
                  type_converters=converters.blitz,
                  libraries=["lapack"])

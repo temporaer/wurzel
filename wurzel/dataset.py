@@ -13,15 +13,14 @@ class dataset(object):
         picklename = datafile.replace(".dat",".pickle")
         if usepickled and os.path.exists(picklename):
             self.load(picklename)
-        else:
-            with open(datafile) as fd:
-                self.D = np.fromfile(file=fd, dtype=np.uint8).reshape((256,256,120) ).astype("float32")/255.0
-            if crop:
-                self.D = self.D[50:200,50:200,10:80]
-            self.median_filter()
-            self.upsample(upsample)
-            self.D -= self.D.min()
-            self.save(picklename)
+            return
+        with open(datafile) as fd:
+            self.D = np.fromfile(file=fd, dtype=np.uint8).reshape((256,256,120) ).astype("float32")/255.0
+        if crop:
+            self.D = self.D[50:200,50:200,10:80]
+        self.median_filter()
+        self.upsample(upsample)
+        self.save(picklename)
     def median_filter(self):
         print "Median-Filtering..."
         D  = self.D
@@ -39,7 +38,7 @@ class dataset(object):
         if method == "zoom":
             self.D = zoom(self.D, [1,1,256.0/120.0 * 100.0/100.0])
         elif method == "resample":
-            self.D = resample(self.D, 120 * (256.0/120.0 * 131.0/100.0), axis=2, window=10)
+            self.D = resample(self.D, 120 * (256.0/120.0 * 100.0/100.0), axis=2, window=10)
         elif method == None:
             pass
         else:
