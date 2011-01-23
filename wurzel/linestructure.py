@@ -24,7 +24,7 @@ def get_curve_3D(l3,l2,l1, alpha=0.25,g23=0.5,g12=0.5): # renumerated according 
 
     A           = (l3<l2) * (l2<l1) * (l1 <= 0)
     B           = (l3<l2) * (l2<0) * (0<l1) * (l1<l2a/alpha)
-    l123        = np.zeros(A.shape)
+    l123        = np.zeros(A.shape, dtype="float32")
     l123[A]     = (factA*factB)[A]
     l123[B]     = (factA*factC)[B]
     cnan(l123)

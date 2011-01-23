@@ -1,4 +1,5 @@
 # vim:ts=4:sw=4:sts=4:et:ai
+import os
 import numpy as np
 import scipy.ndimage as nd
 from scipy.weave import inline, converters
@@ -74,6 +75,7 @@ def eig3x3(hessian):
                  compiler="gcc",
                  extra_compile_args =['-O3 -fopenmp'],
                  extra_link_args=['-lgomp'],
+                 include_dirs=["%s/pool/include/boost-numeric-bindings"%os.environ["HOME"]],
                  headers=[
                           '<boost/mpl/or.hpp>',
                           '<boost/numeric/ublas/fwd.hpp>',
