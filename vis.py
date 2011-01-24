@@ -16,7 +16,7 @@ if __name__ == "__main__":
   #D = reduce(np.maximum,[D0 , D1 , D2 , D3])
 
   Do = dataset("data/L2_22aug.dat", upsample="zoom", crop=False,usepickled=True).D
-  Dr = np.load("data/res.npy").astype("float32")
+  Dr = np.load("data/neu.npy").astype("float32")
   #dmin = Dr.min()
   #dptp = Dr.ptp()
   #minv = dmin+0.15*dptp

@@ -2,10 +2,13 @@
 import numpy as np
 import numpy.random as rnd
 import pydot
+import matplotlib.pyplot as plt
 
-alpha0 = 5
-Lambda = 1
-gamma  = 0.2
+def rotmat(a):
+    ca = np.cos(a)
+    sa = np.sin(a)
+    return np.array([[ca,-sa],
+                     [sa,ca]])
 
 class edge2dgenerator(object):
     def __init__(self, kappa, minlen):
@@ -19,6 +22,7 @@ class edge2dgenerator(object):
         length = self.minlen+rnd.uniform()
 
         n = edge2Dnode(parent.depth+1, newname,angle,length)
+        n.pos = n.position(parent.pos)
         return n
 
 class datum(object):
@@ -32,17 +36,19 @@ class tree_process(object):
         self.Lambda = Lambda
         self.gamma  = gamma
     def alpha(self,n):
-        return Lambda**n.depth * alpha0
+        return self.Lambda**n.depth * self.alpha0
     def sift(self, n, d):
         b = rnd.uniform() < 1.0/(self.alpha(n)+1)
         if b:
             n.data.append(d)
             n.lendata += 1
+            n.sample(d)
             return
         N = [x.lennodes + x.lendata for x in n.subnodes]
-        N.append(gamma)
+        N.append(self.gamma)
         N = np.array(N).astype("float")
         N /= sum(N)
+        #print "  "*n.depth, "prob: ",  N, " x=",1.0/(self.alpha(n)+1)
         s = rnd.multinomial(1,N,1)[0]
         res = np.where(s)[0]
         if res == len(n.subnodes):
@@ -86,6 +92,8 @@ class edge2Dnode(node):
         node.__init__(self,depth, name)
         self.angle  = angle
         self.length = length
+        self.width  = 0.1
+        self.pos    = np.zeros(2)
     def position(self,ppos):
         pos = ppos + self.length * np.array((np.cos(self.angle), np.sin(self.angle)))
         return pos
@@ -98,23 +106,35 @@ class edge2Dnode(node):
             g.add_node(n2)
             g.add_edge(pydot.Edge(root,n2))
             n.dot(g,n2,pos)
+    def sample(self, d):
+        distfromline = rnd.normal(0,self.width)
+        lenonline    = rnd.uniform(0,self.length)
+        d.pos = self.pos + np.dot(rotmat(self.angle),np.array((lenonline,distfromline)))
 
 
-def gentree(name,kappa=0.5,minlen=1,samples=30,alpha0=10,Lambda=.5,gamma=.2):
-    gen = edge2dgenerator(8,1)
+def gentree(name,kappa=6,minlen=1,samples=5000,alpha0=15,Lambda=.5,gamma=.5):
+    gen = edge2dgenerator(kappa,minlen)
 
     tp = tree_process(gen,alpha0,Lambda,gamma)
 
     N = edge2Dnode(0,[],0,1)
+    L = []
     for i in xrange(samples):
-        tp.sift(N,datum(i))
+        L.append(datum(i))
+        tp.sift(N,L[-1])
     print N
+
+    x = [a.pos[0] for a in L]
+    y = [a.pos[1] for a in L]
+    plt.plot(x,y, ".")
 
     G = pydot.Dot('Tree', graph_type="digraph")
     root = pydot.Node("root")
     G.add_node(root)
     N.dot(G,root,np.zeros(2))
     G.write_png(name,prog='neato')
+
+    plt.show()
 
 if __name__ == "__main__":
     gentree("G.png")
