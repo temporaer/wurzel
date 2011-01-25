@@ -28,6 +28,7 @@ class edge2dgenerator(object):
 class datum(object):
     def __init__(self, id):
         self.id = id
+        self.pos = None
 
 class tree_process(object):
     def __init__(self,gen, alpha0, Lambda, gamma):
@@ -92,7 +93,7 @@ class edge2Dnode(node):
         node.__init__(self,depth, name)
         self.angle  = angle
         self.length = length
-        self.width  = 0.1
+        self.width  = 0.01
         self.pos    = np.zeros(2)
     def position(self,ppos):
         pos = ppos + self.length * np.array((np.cos(self.angle), np.sin(self.angle)))
@@ -109,10 +110,10 @@ class edge2Dnode(node):
     def sample(self, d):
         distfromline = rnd.normal(0,self.width)
         lenonline    = rnd.uniform(0,self.length)
-        d.pos = self.pos + np.dot(rotmat(self.angle),np.array((lenonline,distfromline)))
+        d.pos = self.pos + np.dot(rotmat(np.pi + self.angle),np.array((lenonline,distfromline)))
 
 
-def gentree(name,kappa=6,minlen=1,samples=5000,alpha0=15,Lambda=.5,gamma=.5):
+def gentree(name,kappa=3,minlen=1,samples=100,alpha0=5,Lambda=.5,gamma=.25):
     gen = edge2dgenerator(kappa,minlen)
 
     tp = tree_process(gen,alpha0,Lambda,gamma)
