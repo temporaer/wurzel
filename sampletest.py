@@ -113,7 +113,7 @@ class edge2Dnode(node):
         d.pos = self.pos + np.dot(rotmat(np.pi + self.angle),np.array((lenonline,distfromline)))
 
 
-def gentree(name,kappa=3,minlen=1,samples=100,alpha0=5,Lambda=.5,gamma=.25):
+def gentree(name,kappa=3,minlen=1,samples=1000,alpha0=5,Lambda=.5,gamma=.25):
     gen = edge2dgenerator(kappa,minlen)
 
     tp = tree_process(gen,alpha0,Lambda,gamma)
@@ -125,15 +125,16 @@ def gentree(name,kappa=3,minlen=1,samples=100,alpha0=5,Lambda=.5,gamma=.25):
         tp.sift(N,L[-1])
     print N
 
+    #np.save("G.txt",np.array([a.pos for a in L]))
     x = [a.pos[0] for a in L]
     y = [a.pos[1] for a in L]
     plt.plot(x,y, ".")
 
-    G = pydot.Dot('Tree', graph_type="digraph")
-    root = pydot.Node("root")
-    G.add_node(root)
-    N.dot(G,root,np.zeros(2))
-    G.write_png(name,prog='neato')
+    #G = pydot.Dot('Tree', graph_type="digraph")
+    #root = pydot.Node("root")
+    #G.add_node(root)
+    #N.dot(G,root,np.zeros(2))
+    #G.write_png(name,prog='neato')
 
     plt.show()
 

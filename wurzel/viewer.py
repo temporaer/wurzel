@@ -17,8 +17,10 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
     if not (cm == "Spectral") or True:
         ctf = ColorTransferFunction()
         ctf.range = R
+        ctf.add_rgb_point(mind, 1,1,1)
         ctf.add_rgb_point(R[0], 1,1,1)
         ctf.add_rgb_point(R[1], 0,0,0)
+        ctf.add_rgb_point(mind+ptpd, 0,0,0)
         v._volume_property.set_color(ctf)
         v._ctf = ctf
         v.update_ctf = True
@@ -27,11 +29,12 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
     otf = PiecewiseFunction()
     otf.add_point(mind, 0)
     otf.add_point(R[0], 0)
-    otf.add_point(R[0]+0.1*ptpd, 0.1)
-    otf.add_point(R[0]+0.2*ptpd, 0.3)
-    otf.add_point(R[0]+0.3*ptpd, 0.5)
-    otf.add_point(R[0]+0.4*ptpd, 0.7)
-    otf.add_point(R[1], 1)
+    #otf.add_point(R[0]+0.1*ptpd, 0.1)
+    #otf.add_point(R[0]+0.2*ptpd, 0.3)
+    #otf.add_point(R[0]+0.3*ptpd, 0.5)
+    otf.add_point(R[0]+0.4*ptpd, 1.0)
+    otf.add_point(R[1], 1.0)
+    otf.add_point(mind+ptpd, 1.0)
     v._otf = otf
     v._volume_property.set_scalar_opacity(otf)
     v.update_ctf = True
