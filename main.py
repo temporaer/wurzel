@@ -49,10 +49,10 @@ if __name__ == "__main__":
     #print mec.push(dict(D=D))
 
     print "Scattering sigmas"
-    s = 1.5
-    sigma0 = 1.5
+    s = 1.1
+    sigma0 = 1.1
     sigmas = []
-    sigmas.extend([sigma0 * s**i for i in xrange(1,5)])
+    sigmas.extend([sigma0 * s**i for i in xrange(1,4)])
     mec.scatter('sigmas',   sigmas)
     print mec.execute("print sigmas")
     print "Executing..."
@@ -61,8 +61,9 @@ if __name__ == "__main__":
     print "Gathering..."
     mec.block=True
     res = mec.gather("res")
-    import pdb
-    pdb.set_trace()
+    #import pdb; pdb.set_trace()
     x = reduce(np.maximum, res).astype("float32")
     np.save("res.npy", x)
+    #os.system("scp res.npy l_schulz@gitta:checkout/git/wurzel/data/neu.npy")
+    #os.execl("/usr/bin/ssh", "ssh", "-X", "l_schulz@gitta","cd checkout/git/wurzel; ipython -wthread vis.py")
     print "Done"
