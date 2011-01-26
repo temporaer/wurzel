@@ -32,7 +32,7 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
     #otf.add_point(R[0]+0.1*ptpd, 0.1)
     #otf.add_point(R[0]+0.2*ptpd, 0.3)
     #otf.add_point(R[0]+0.3*ptpd, 0.5)
-    otf.add_point(R[0]+0.4*ptpd, 1.0)
+    otf.add_point(R[0]+0.4*ptpd, 0.7)
     otf.add_point(R[1], 1.0)
     otf.add_point(mind+ptpd, 1.0)
     v._otf = otf
