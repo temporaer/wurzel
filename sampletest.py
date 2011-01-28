@@ -26,12 +26,16 @@ class edge2dgenerator(object):
         newname = [i for i in parent.name]
         newname.append(parent.lennodes)
 
-        # TODO sample width of edge (=sigma) somehow
-        angle  = rnd.vonmises(parent.angle, self.kappa)
-        length = rnd.gamma(3,1)
+        diff = parent.pos - parent.parent.pos
+        diff /= np.linalg.norm(diff)
+        pos = rnd.normal(parent.pos + diff, 2)
 
-        n = edge2Dnode(parent.depth+1, newname,angle,length)
-        n.pos = n.position(parent.pos)
+        #diff   = pos-parent.pos
+        #length = np.linalg.norm(diff)
+        #diff  /= length
+        #angle  = np.arccos(diff[0])
+
+        n = edge2Dnode(parent.depth+1, newname,pos,parent)
         return n
 
 class datum(object):
@@ -167,12 +171,11 @@ class drawablenode(node):
             n.dot(g,n2)
 
 class edge2Dnode(drawablenode):
-    def __init__(self, depth, name, angle, length):
+    def __init__(self, depth, name, pos,parent=None):
         drawablenode.__init__(self,depth, name)
-        self.angle  = angle
-        self.length = length
         self.width  = 0.1
-        self.pos    = np.zeros(2)
+        self.pos    = pos
+        self.parent = parent
 
     def get_likelihood(self, d):
         pos = d.pos.copy()
@@ -182,9 +185,6 @@ class edge2Dnode(drawablenode):
         if pos[0]<0 or pos[0]>self.length: return 0
         return norm.pdf(pos[1],0,self.width)/self.length
 
-    def position(self,ppos):
-        pos = ppos + self.length * np.array((np.cos(self.angle), np.sin(self.angle)))
-        return pos
     def dot(self, g, root, ppos):
         for n in self.subnodes:
             pos = self.position(ppos)
@@ -195,22 +195,15 @@ class edge2Dnode(drawablenode):
             g.add_edge(pydot.Edge(root,n2))
             n.dot(g,n2,pos)
     def sample(self, d):
-        #u = rnd.uniform(self.length,self.length+1)
-        u = rnd.uniform(0,self.length+0.5)
-        parentpos = np.dot(rotmat(np.pi + self.angle),np.array([self.length,0])) + self.pos
+        """" sample a data point for this edge """
+        parentpos   = self.parent.pos
         d.parentpos = parentpos
-        if u < self.length:
-            """ gerades stueck auf der strecke """
-            distfromline = rnd.normal(0,self.width)
-            lenonline    = rnd.uniform(0,self.length)
-            d.pos = self.pos + np.dot(rotmat(np.pi + self.angle),np.array((lenonline,distfromline)))
-            d.color = 0
-        else:
-            """ "hinter" self """
-            a = rnd.uniform(-0.5*np.pi,0.5*np.pi) + self.angle
-            l = abs(rnd.normal(0, self.width))
-            d.pos = self.pos + np.dot(rotmat(a),np.array([l,0]))
-            d.color = 2
+        diff        = self.pos - parentpos
+        length      = np.linalg.norm(diff)
+        angle       = np.arctan2(diff[1],diff[0])
+        d.pos       = np.dot(rotmat(angle), [rnd.normal(length/2,length/4),
+                                             rnd.normal(0,self.width)]) + parentpos
+        d.ownpos    = self.pos
 
 def gentree(name,kappa=3,minlen=1,samples=2000,alpha0=5,Lambda=.5,gamma=.25):
     gen = edge2dgenerator(kappa,minlen)
@@ -218,7 +211,13 @@ def gentree(name,kappa=3,minlen=1,samples=2000,alpha0=5,Lambda=.5,gamma=.25):
     hp = hyperparam(alpha0,Lambda,gamma)
     tp = tree_process(gen,hp)
 
-    N = edge2Dnode(0,[],0,1)
+    start0 = np.zeros(2)
+    start1 = start0 + np.ones(2)*0.1
+    #N = edge2Dnode(0,[],0,1.0)
+    virtual_grandparent = edge2Dnode(-2,[],start0)
+    virtual_parent = edge2Dnode(-1,[],start1,virtual_grandparent)
+    N = gen(virtual_parent)
+
     L = []
     for i in xrange(samples):
         L.append(datum(i))
@@ -226,17 +225,14 @@ def gentree(name,kappa=3,minlen=1,samples=2000,alpha0=5,Lambda=.5,gamma=.25):
     print N
 
     #np.save("G.txt",np.array([a.pos for a in L]))
-    x = [a.pos[0] for a in L if a.color==0]
-    y = [a.pos[1] for a in L if a.color==0]
+    x = [a.pos[0] for a in L]
+    y = [a.pos[1] for a in L]
     plt.plot(x,y, ".b")
-    x = [a.pos[0] for a in L if a.color==1]
-    y = [a.pos[1] for a in L if a.color==1]
-    plt.plot(x,y, ".g")
-    x = [a.pos[0] for a in L if a.color==2]
-    y = [a.pos[1] for a in L if a.color==2]
-    plt.plot(x,y, ".r")
     x = [a.parentpos[0] for a in L]
     y = [a.parentpos[1] for a in L]
+    plt.plot(x,y, "*c")
+    x = [a.ownpos[0] for a in L]
+    y = [a.ownpos[1] for a in L]
     plt.plot(x,y, "*c")
 
     #G = pydot.Dot('Tree', graph_type="digraph")
