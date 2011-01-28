@@ -3,7 +3,14 @@ import numpy as np
 import numpy.random as rnd
 import pydot
 import matplotlib.pyplot as plt
-from scipy.stats.distributions import norm
+from scipy.stats.distributions import norm, gamma
+
+def rejection_sample(proposal_sampler,proposal_pdf,target,k):
+    while True:
+		g = proposal_sampler()
+		u = rnd.uniform()
+		if u < target(g)/(k*proposal_pdf(g)):
+			return g
 
 def rotmat(a):
     ca = np.cos(a)
@@ -19,8 +26,9 @@ class edge2dgenerator(object):
         newname = [i for i in parent.name]
         newname.append(parent.lennodes)
 
+        # TODO sample width of edge (=sigma) somehow
         angle  = rnd.vonmises(parent.angle, self.kappa)
-        length = self.minlen+rnd.uniform()
+        length = rnd.gamma(3,1)
 
         n = edge2Dnode(parent.depth+1, newname,angle,length)
         n.pos = n.position(parent.pos)
@@ -163,12 +171,13 @@ class edge2Dnode(drawablenode):
         drawablenode.__init__(self,depth, name)
         self.angle  = angle
         self.length = length
-        self.width  = 0.01
+        self.width  = 0.1
         self.pos    = np.zeros(2)
 
     def get_likelihood(self, d):
         pos = d.pos.copy()
-        pos -= self.pos
+        pos -= self.pos # TODO: rotate around _parent_, not self
+        raise NotImplementedError
         pos = np.dot(rotmat(-self.angle),pos)
         if pos[0]<0 or pos[0]>self.length: return 0
         return norm.pdf(pos[1],0,self.width)/self.length
@@ -186,11 +195,24 @@ class edge2Dnode(drawablenode):
             g.add_edge(pydot.Edge(root,n2))
             n.dot(g,n2,pos)
     def sample(self, d):
-        distfromline = rnd.normal(0,self.width)
-        lenonline    = rnd.uniform(0,self.length)
-        d.pos = self.pos + np.dot(rotmat(np.pi + self.angle),np.array((lenonline,distfromline)))
+        #u = rnd.uniform(self.length,self.length+1)
+        u = rnd.uniform(0,self.length+0.5)
+        parentpos = np.dot(rotmat(np.pi + self.angle),np.array([self.length,0])) + self.pos
+        d.parentpos = parentpos
+        if u < self.length:
+            """ gerades stueck auf der strecke """
+            distfromline = rnd.normal(0,self.width)
+            lenonline    = rnd.uniform(0,self.length)
+            d.pos = self.pos + np.dot(rotmat(np.pi + self.angle),np.array((lenonline,distfromline)))
+            d.color = 0
+        else:
+            """ "hinter" self """
+            a = rnd.uniform(-0.5*np.pi,0.5*np.pi) + self.angle
+            l = abs(rnd.normal(0, self.width))
+            d.pos = self.pos + np.dot(rotmat(a),np.array([l,0]))
+            d.color = 2
 
-def gentree(name,kappa=3,minlen=1,samples=1000,alpha0=5,Lambda=.5,gamma=.25):
+def gentree(name,kappa=3,minlen=1,samples=2000,alpha0=5,Lambda=.5,gamma=.25):
     gen = edge2dgenerator(kappa,minlen)
 
     hp = hyperparam(alpha0,Lambda,gamma)
@@ -204,9 +226,18 @@ def gentree(name,kappa=3,minlen=1,samples=1000,alpha0=5,Lambda=.5,gamma=.25):
     print N
 
     #np.save("G.txt",np.array([a.pos for a in L]))
-    x = [a.pos[0] for a in L]
-    y = [a.pos[1] for a in L]
-    plt.plot(x,y, ".")
+    x = [a.pos[0] for a in L if a.color==0]
+    y = [a.pos[1] for a in L if a.color==0]
+    plt.plot(x,y, ".b")
+    x = [a.pos[0] for a in L if a.color==1]
+    y = [a.pos[1] for a in L if a.color==1]
+    plt.plot(x,y, ".g")
+    x = [a.pos[0] for a in L if a.color==2]
+    y = [a.pos[1] for a in L if a.color==2]
+    plt.plot(x,y, ".r")
+    x = [a.parentpos[0] for a in L]
+    y = [a.parentpos[1] for a in L]
+    plt.plot(x,y, "*c")
 
     #G = pydot.Dot('Tree', graph_type="digraph")
     #root = pydot.Node("root")
