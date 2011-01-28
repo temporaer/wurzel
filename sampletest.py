@@ -26,14 +26,12 @@ class edge2dgenerator(object):
         newname = [i for i in parent.name]
         newname.append(parent.lennodes)
 
-        diff = parent.pos - parent.parent.pos
-        diff /= np.linalg.norm(diff)
-        pos = rnd.normal(parent.pos + diff, 2)
+        diff    = parent.pos - parent.parent.pos
+        diffang = np.arctan2(diff[1],diff[0])
+        angle   = rnd.vonmises(diffang, self.kappa)
+        length  = rnd.gamma(3,scale=2)
 
-        #diff   = pos-parent.pos
-        #length = np.linalg.norm(diff)
-        #diff  /= length
-        #angle  = np.arccos(diff[0])
+        pos = parent.pos + np.dot(rotmat(angle), [length,0])
 
         n = edge2Dnode(parent.depth+1, newname,pos,parent)
         return n
@@ -187,7 +185,7 @@ class edge2Dnode(drawablenode):
 
     def dot(self, g, root, ppos):
         for n in self.subnodes:
-            pos = self.position(ppos)
+            pos = self.pos
             pos2 = pos
             color = "red" if len(n.data)>0 else "black"
             n2 = pydot.Node(n.namestr(), label="%d"%len(n.data), pos="%2.2f, %2.2f!"%(pos2[0],pos2[1]),color=color)
@@ -235,11 +233,11 @@ def gentree(name,kappa=3,minlen=1,samples=2000,alpha0=5,Lambda=.5,gamma=.25):
     y = [a.ownpos[1] for a in L]
     plt.plot(x,y, "*c")
 
-    #G = pydot.Dot('Tree', graph_type="digraph")
-    #root = pydot.Node("root")
-    #G.add_node(root)
-    #N.dot(G,root,np.zeros(2))
-    #G.write_png(name,prog='neato')
+    G = pydot.Dot('Tree', graph_type="digraph")
+    root = pydot.Node("root")
+    G.add_node(root)
+    N.dot(G,root,np.zeros(2))
+    G.write_png(name,prog='neato')
 
     plt.show()
 
