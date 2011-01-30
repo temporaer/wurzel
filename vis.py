@@ -36,7 +36,7 @@ def mkimg(fig,name):
     scene.camera.clipping_range = [152.81708807155087, 736.19580241679205]
     scene.camera.compute_view_plane_normal()
     scene.render()
-    mlab.savefig(name+"-3.png", magnification=3)
+    mlab.savefig(name+"-3.png",magnification=1)
     scene.camera.position = [128.5, 591.45266609081978, 128.5]
     scene.camera.focal_point = [128.5, 128.5, 128.5]
     scene.camera.view_angle = 30.0
@@ -44,19 +44,8 @@ def mkimg(fig,name):
     scene.camera.clipping_range = [204.59813942991155, 789.28445608218215]
     scene.camera.compute_view_plane_normal()
     scene.render()
-    mlab.savefig(name+"-4.png", magnification=3)
+    mlab.savefig(name+"-4.png",magnification=1)
 
-def dump_uint8(D, vmin, vmax):
-    dmin = D.min()
-    dptp = D.ptp()
-    vmin = dmin + vmin * dptp
-    vmax = dmin + vmax * dptp
-
-    D[D<vmin] = vmin
-    D[D>vmax] = vmax
-    D        -= D.min()
-    D        *= 255.0 / D.max()
-    D.astype("uint8").tofile("dump.dat")
 
 if __name__ == "__main__":
   offscreen = False
@@ -66,16 +55,13 @@ if __name__ == "__main__":
     if s == "-d": dump     = True
   if offscreen:
     mlab.options.offscreen = True
-  fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1))
-  fig.scene.anti_aliasing_frames=0
+  fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(1024,896))
+  fig.scene.anti_aliasing_frames=8
   mlab.clf()
 
-  Draw = dataset("data/L2_22aug.dat", upsample="zoom", crop=False,usepickled=True).D
-  #Draw = dataset("dump.dat", upsample=None, crop=False,usepickled=False).D
-  Dsato = np.load("data/neu.npy").astype("float32")
-  if dump:
-    dump_uint8(Dsato, 0.02, 0.2)
-    sys.exit()
+  Draw  = dataset("data/L2_22aug.dat", upsample="zoom", crop=False,usepickled=True).D
+  Ddist = dataset("dijkstra/paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
+  Dsato = np.load("res.npy").astype("float32")
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
   #minv = dmin+0.15*dptp
@@ -83,9 +69,15 @@ if __name__ == "__main__":
   #L, nf = label(Dsato)
   #print "Number of connected components: ", nf
 
-  viewer.show_iso(Draw, 0.20 , "bone", 1.0)   # need 0.2 to get rid of noise
+  viewer.show_iso(Ddist, 0.007 , "RdGy", 0.7)  
+  #viewer.show_iso(Ddist, 0.019 , "RdGy", 0.2)
+  #viewer.show_volume2(Ddist, "bone", 0.007,0.029)
   if offscreen:
-    mkimg(fig, "raw")
+    mkimg(fig, "path-traces")
+
+  viewer.show_iso(Draw, 0.20 , "bone", 0.2)   # need 0.2 to get rid of noise
+  if offscreen:
+    mkimg(fig, "path-traces-plus-raw")
     mlab.clf()
 
   #viewer.show_volume(Draw, "bone", 0.13,0.3)   # 0.13, 0.3 works well
@@ -93,9 +85,7 @@ if __name__ == "__main__":
   #  mkimg(fig, "raw")
   #  mlab.clf()
 
-  #from scipy.ndimage.interpolation import zoom
-  #Dsato = zoom(Dsato,2)
-  #viewer.show_iso(Dsato, 0.05 , "Spectral", 1.0)  
+  #viewer.show_iso(Dsato, 0.07 , "Spectral", 0.2)  
   #if offscreen:
   # mkimg(fig, "sato-iso")
   # mlab.clf()

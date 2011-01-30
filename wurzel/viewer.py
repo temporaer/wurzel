@@ -2,6 +2,49 @@
 from enthought.mayavi import mlab
 from enthought.tvtk.util.ctf import ColorTransferFunction
 
+def show_volume2(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
+    print "Show volume"
+    D -= D.min()
+
+    src = mlab.pipeline.scalar_field(D)
+    mind = D.min()
+    ptpd = D.ptp()
+    R = (mind+minfact*ptpd, mind+maxfact*ptpd)
+
+
+    v = mlab.pipeline.volume(src, vmin=mind+minfact*ptpd,vmax=mind+maxfact*ptpd)
+
+    ptpR = R[1]-R[0]
+    if not (cm == "Spectral") or True:
+        ctf = ColorTransferFunction()
+        ctf.range = R
+        ctf.add_rgb_point(mind, 0,0,0)
+        ctf.add_rgb_point(R[0], 0,0,0)
+        ctf.add_rgb_point(R[0]+0.25*ptpR, 0.500,0.500,0.500)
+        ctf.add_rgb_point(R[0]+0.50*ptpR, 0.750,0.750,0.750)
+        ctf.add_rgb_point(R[0]+0.75*ptpR, 0.875,0.875,0.875)
+        ctf.add_rgb_point(R[1]          , 0.0,0.0,0.0)
+        ctf.add_rgb_point(mind+ptpd, 1,1,1)
+        v._volume_property.set_color(ctf)
+        v._ctf = ctf
+        v.update_ctf = True
+
+    from enthought.tvtk.util.ctf import PiecewiseFunction
+    otf = PiecewiseFunction()
+    otf.add_point(mind, 1.0)
+    otf.add_point(R[0], 1.0)
+    #otf.add_point(R[0]+0.25*ptpR, 0.5)
+    #otf.add_point(R[0]+0.50*ptpR, 0.25)
+    otf.add_point(R[0]+0.90*ptpR, 0.800)
+    otf.add_point(R[0]+0.95*ptpR, 0.500)
+    otf.add_point(R[1], 0.0)
+    otf.add_point(mind+ptpd, 0.0)
+    v._otf = otf
+    v._volume_property.set_scalar_opacity(otf)
+    v.update_ctf = True
+
+    
+    print "done"
 def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
     print "Show volume"
     D -= D.min()
@@ -50,4 +93,7 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True):
     #mlab.pipeline.volume(src, vmin=D.min()+0.2*D.ptp(),vmax=D.max()-0.2*D.ptp())
     mlab.pipeline.iso_surface(src, contours=[D.min()+fact*D.ptp(), ], opacity=opacity, colormap=cm)
     #mlab.pipeline.iso_surface(src, contours=[D.max()-0.2*D.ptp(), ], opacity=0.2)
+    #from enthought.mayavi.modules.streamline import Streamline
+    #mlab.add_module(s)
     print "done"
+

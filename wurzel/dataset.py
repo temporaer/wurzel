@@ -5,7 +5,7 @@ import cPickle
 from scipy.ndimage import gaussian_filter
 
 class dataset(object):
-    def __init__(self,datafile,crop=False,usepickled=True,upsample=None):
+    def __init__(self,datafile,crop=False,usepickled=True,upsample=None,dtype=np.uint8,medianfilt=True,dz=120):
         if not isinstance(datafile,str):
             self.D = datafile
             return
@@ -13,14 +13,15 @@ class dataset(object):
         picklename = datafile.replace(".dat",".pickle")
         if usepickled and os.path.exists(picklename):
             self.load(picklename)
-            return
-        with open(datafile) as fd:
-            self.D = np.fromfile(file=fd, dtype=np.uint8).reshape((256,256,120) ).astype("float32")/255.0
+        else:
+            with open(datafile) as fd:
+                self.D = np.fromfile(file=fd, dtype=dtype).reshape((256,256,dz) ).astype("float32")/255.0
+            if medianfilt:
+                self.median_filter()
+            self.upsample(upsample)
+            self.save(picklename)
         if crop:
             self.D = self.D[50:200,50:200,10:80]
-        self.median_filter()
-        self.upsample(upsample)
-        self.save(picklename)
     def median_filter(self):
         print "Median-Filtering..."
         D  = self.D
