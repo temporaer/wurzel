@@ -46,10 +46,13 @@ def mkimg(fig,name):
     scene.render()
     mlab.savefig(name+"-4.png",magnification=1)
 
+
 if __name__ == "__main__":
   offscreen = False
+  dump      = False
   for s in sys.argv[1:]:
     if s == "-o": offscreen = True
+    if s == "-d": dump     = True
   if offscreen:
     mlab.options.offscreen = True
   fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(1024,896))
