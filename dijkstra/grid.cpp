@@ -133,16 +133,16 @@ int main(int argc, char* argv[]) {
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
   bool read_p=false, read_d=false;
-  if(fs::exists("p_map.dat")){
+  if(fs::exists("data/p_map.dat")){
 	  std::cout << "Reading predecessor map from file..."<<std::endl;
-	  std::ifstream ifs("p_map.dat");
+	  std::ifstream ifs("data/p_map.dat");
 	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
 		  ifs.read((char*)&p_map[*vi], sizeof(vertex_descriptor));
 	  read_p = true;
   }
-  if(fs::exists("d_map.dat")){
+  if(fs::exists("data/d_map.dat")){
 	  std::cout << "Reading distance map from file..."<<std::endl;
-	  std::ifstream ifs("d_map.dat");
+	  std::ifstream ifs("data/d_map.dat");
 	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
 		  ifs.read((char*)&d_map[*vi], sizeof(double));
 	  read_d = true;
@@ -155,12 +155,12 @@ int main(int argc, char* argv[]) {
 			  .distance_map(d_map)
 			  );
 	  if(1){
-		  std::ofstream ofs("d_map.dat");
+		  std::ofstream ofs("data/d_map.dat");
 		  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
 			  ofs.write((char*)&d_map[*vi], sizeof(double));
 	  }
 	  if(1){
-		  std::ofstream ofs("p_map.dat");
+		  std::ofstream ofs("data/p_map.dat");
 		  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
 			  ofs.write((char*)&p_map[*vi], sizeof(vertex_descriptor));
 	  }
@@ -168,8 +168,8 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Determining scaling factors..." <<std::endl;
   float minp=10000000, maxp=-10000000, meanp=0;
-  std::ofstream of_dist("dist.dat", std::ios::out | std::ios::binary);
-  std::ofstream of_paths("paths.dat", std::ios::out | std::ios::binary);
+  std::ofstream of_dist("data/dist.dat", std::ios::out | std::ios::binary);
+  std::ofstream of_paths("data/paths.dat", std::ios::out | std::ios::binary);
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  //std::cout << (*vi)[0]<<","<<(*vi)[1]<<","<<(*vi)[2]<<std::endl;
 	  float f = d_map[*vi];
