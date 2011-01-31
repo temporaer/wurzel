@@ -20,7 +20,9 @@
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
+#include "boost/filesystem.hpp"
 using namespace boost::accumulators;
+namespace fs = boost::filesystem;
 
 
 #define DIMENSIONS 3
@@ -115,32 +117,59 @@ int main(int argc, char* argv[]) {
   std::fill(paths, paths+256*256*256, (unsigned char) 0);
   array_type B(paths,boost::extents[256][256][256]);
 
-
   // Define a 3x5x7 grid_graph where the second dimension doesn't wrap
   boost::array<vidx_t, 3> lengths = { { 256, 256, 256 } };
   boost::array<vidx_t, 3> strunk  = { { 109, 129,  24 } };
   graph_t graph(lengths, false); // no dim is wrapped
 
   Traits::vertex_descriptor first_vertex = vertex((vidx_t)0, graph);
+  Traits::vertex_iterator vi, vend;
 
-  shared_array_property_map<vertex_descriptor,
-                            property_map<graph_t, vertex_index_t>::const_type>
-                            p_map(num_vertices(graph), get(vertex_index, graph)); 
-  shared_array_property_map<double,
-                            property_map<graph_t, vertex_index_t>::const_type>
-                            d_map(num_vertices(graph), get(vertex_index, graph)); 
+  typedef shared_array_property_map<vertex_descriptor,
+                            property_map<graph_t, vertex_index_t>::const_type> predecessor_map_t;
+  predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
+  typedef shared_array_property_map<double,
+                            property_map<graph_t, vertex_index_t>::const_type> distance_map_t;
+  distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
-  std::cout << "Running Dijkstra..." <<std::endl;
-  dijkstra_shortest_paths(graph, strunk
-		  ,predecessor_map(p_map)
-		  .distance_map(d_map)
-		  );
+  bool read_p=false, read_d=false;
+  if(fs::exists("p_map.dat")){
+	  std::cout << "Reading predecessor map from file..."<<std::endl;
+	  std::ifstream ifs("p_map.dat");
+	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
+		  ifs.read((char*)&p_map[*vi], sizeof(vertex_descriptor));
+	  read_p = true;
+  }
+  if(fs::exists("d_map.dat")){
+	  std::cout << "Reading distance map from file..."<<std::endl;
+	  std::ifstream ifs("d_map.dat");
+	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
+		  ifs.read((char*)&d_map[*vi], sizeof(double));
+	  read_d = true;
+  }
+
+  if(!read_p || !read_d){
+	  std::cout << "Running Dijkstra..." <<std::endl;
+	  dijkstra_shortest_paths(graph, strunk
+			  ,predecessor_map(p_map)
+			  .distance_map(d_map)
+			  );
+	  if(1){
+		  std::ofstream ofs("d_map.dat");
+		  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
+			  ofs.write((char*)&d_map[*vi], sizeof(double));
+	  }
+	  if(1){
+		  std::ofstream ofs("p_map.dat");
+		  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
+			  ofs.write((char*)&p_map[*vi], sizeof(vertex_descriptor));
+	  }
+  }
 
   std::cout << "Determining scaling factors..." <<std::endl;
   float minp=10000000, maxp=-10000000, meanp=0;
   std::ofstream of_dist("dist.dat", std::ios::out | std::ios::binary);
   std::ofstream of_paths("paths.dat", std::ios::out | std::ios::binary);
-  Traits::vertex_iterator vi, vend;
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  //std::cout << (*vi)[0]<<","<<(*vi)[1]<<","<<(*vi)[2]<<std::endl;
 	  float f = d_map[*vi];
@@ -150,8 +179,9 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << "Tracing paths..." <<std::endl;
-  double start_threshold       = 0.3*255;
-  double total_len_perc_thresh = 0.09;
+  double start_threshold       = 0.2*255;
+  //double total_len_perc_thresh = 0.09;
+  double total_len_perc_thresh = 1.00;
 
   Traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   accumulator_set< double, features< tag::min, tag::mean, tag::max > > pathlens;
@@ -171,7 +201,8 @@ int main(int argc, char* argv[]) {
 		  cnt++;
 		  v = p_map[v];
 	  }
-	  pathlens(total_dist/cnt);
+	  if(cnt>0)
+		  pathlens(total_dist/cnt);
   }
   std::cout << "Pathlen stats: "<< min(pathlens)<<" "<<mean(pathlens)<<" "<<max(pathlens)<<std::endl;
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
@@ -190,7 +221,7 @@ int main(int argc, char* argv[]) {
 		  cnt++;
 		  v = p_map[v];
 	  }
-	  if(total_dist/cnt > max(pathlens)*0.75)
+	  if(total_dist/cnt > max(pathlens)*0.05)
 		  continue;
 	  v = *vi;
 	  while(1){ 
