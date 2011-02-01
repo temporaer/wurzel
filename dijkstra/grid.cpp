@@ -38,16 +38,28 @@ typedef shared_array_property_map<double,
 array_type* g_dat;
 
 template<class T>
-struct vox2arr{
+struct const_vox2arr{
 	const T& A;
-	vox2arr(const T& a):A(a){}
+	const_vox2arr(const T& a):A(a){}
 	const typename T::element& operator[](const voxel_vertex_descriptor&v)const{
 		return A[v[0]][v[1]][v[2]];
 	}
 };
 
 template<class T>
-vox2arr<T> make_vox2arr(const T& t){ return vox2arr<T>(t); }
+struct vox2arr{
+	mutable T& A;
+	vox2arr(T& a):A(a){}
+	typename T::element& operator[](const voxel_vertex_descriptor&v)const{
+		return A[v[0]][v[1]][v[2]];
+	}
+};
+
+template<class T>
+vox2arr<T> make_vox2arr(T& t){ return vox2arr<T>(t); }
+
+template<class T>
+const_vox2arr<T> make_vox2arr(const T& t){ return const_vox2arr<T>(t); }
 
 // map from edges to weights
 voxel_edge_weight_map::reference 
@@ -148,18 +160,38 @@ void paths2adjlist(voxelgraph_t& vg, wurzelgraph_t& wg, predecessor_map_t& p_map
 	std::cout <<"done."<<std::endl;
 }
 
+template<class T, class U, class V>
+void rank_op(voxelgraph_t& vg, const T& rankmap, const U& valuemap, const V& tracesmap){
+	voxel_vertex_iterator vi, vend;
+	voxel_edge_iterator ei, eend;
+	for (tie(vi, vend) = vertices(vg); vi != vend; ++vi){
+		if(!tracesmap[*vi]) continue;
+		voxelg_traits::out_edge_iterator oei,oeend;
+		tie(oei,oeend) = out_edges(*vi,vg);
+		unsigned int order = 0;
+		double myval = valuemap[*vi];
+		for(;oei!=oeend;++oei)
+		    if(valuemap[target(*oei,vg)] > myval)
+		        order++;
+		rankmap[*vi] = 255 - 40 * order;
+	}
+}
 void erode_tree(wurzelgraph_t& wg){
 	std::cout <<"Eroding tree (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
 	bool modified=true;
 	wurzel_vertex_iterator vi,vii, vend, vend2, next;
 	wurzel_in_edge_iterator ei,eend;
+	property_map<wurzelgraph_t,marked_vertex_t>::type mv_map = get(marked_vertex, wg);
 	while(modified){
 		std::cout <<"."<<std::flush;
 		modified = false;
 		tie(vi, vend) = vertices(wg);
+		for (; vi != vend; vi++)
+			mv_map[*vi] = out_degree(*vi,wg)==0;
+		tie(vi, vend) = vertices(wg);
 		for (next=vi; vi != vend; vi=next){
 			next++;
-			if(out_degree(*vi,wg)!=0)
+			if(!mv_map[*vi])
 				continue;
 			// go up from leaf to find next fork
 			tie(ei,eend) = in_edges(*vi,wg);
@@ -168,7 +200,7 @@ void erode_tree(wurzelgraph_t& wg){
 				continue;
 			wurzel_vertex_descriptor pred = source(*ei,wg);
 			unsigned int cnt = 0;
-			static const unsigned int minlen = 10;
+			static const unsigned int minlen = 5;
 			while(cnt++<minlen){
 				if(out_degree(pred,wg)>1)
 					break;
@@ -186,6 +218,33 @@ void erode_tree(wurzelgraph_t& wg){
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
 
+void merge_deg2_nodes(wurzelgraph_t& wg){
+	std::cout <<"Removing deg2nodes (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
+	wurzel_vertex_iterator wi,wend,next;
+	wurzel_in_edge_iterator ei,eend;
+	wurzelg_traits::adjacency_iterator      ai,aend;
+	wurzelgraph_t::inv_adjacency_iterator  iai,iaend;
+	property_map<wurzelgraph_t,path_orientation_t>::type po_map = get(path_orientation, wg);
+	bool changed = true;
+	while(changed){
+		changed = false;
+		tie(wi, wend) = vertices(wg);
+		for (next=wi; wi != wend;wi=next) {
+			next++;
+			if(out_degree(*wi,wg) != 1)
+				continue;
+			if(in_degree(*wi,wg) != 1)
+				continue;
+			tie(ai,aend)   = adjacent_vertices(*wi,wg);
+			tie(iai,iaend) = inv_adjacent_vertices(*wi,wg);
+			clear_vertex(*wi,wg);
+			remove_vertex(*wi,wg);
+			add_edge(*iai,*ai,wg);
+			changed = true;
+		}
+	}
+	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
+}
 void merge_nodes(wurzelgraph_t& wg){
 	std::cout << "Merging nodes..."<<std::flush;
 	// determine local orientations
@@ -235,6 +294,35 @@ void merge_nodes(wurzelgraph_t& wg){
 	std::cout << "done."<<std::endl;
 }
 
+template<class T>
+void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
+	wurzel_edge_iterator ei,eend;
+	tie(ei, eend) = edges(wg);
+	std::ofstream ofs(name.c_str());
+	for (; ei != eend; ei++){
+		unsigned int  v = vidx_map[source(*ei,wg)];
+		unsigned int  w = vidx_map[target(*ei,wg)];
+		//ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<w[0]<<" "<<w[1]<<" "<<w[2]<<std::endl;
+		ofs << v <<" "<< w <<std::endl;
+	}
+	ofs.close();
+}
+template<class T>
+void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
+	wurzel_vertex_iterator vi,vii, vend, vend2, next;
+	wurzel_in_edge_iterator ei,eend;
+	tie(vi, vend) = vertices(wg);
+	std::ofstream ofs(name.c_str());
+	unsigned int idx=0;
+	for (; vi != vend; vi++){
+		voxel_vertex_descriptor  v = get(vertex_name,wg)[*vi];
+		vidx_map[*vi] = idx++;
+		unsigned int deg = out_degree(*vi,wg);
+		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<deg<<std::endl;
+	}
+	ofs.close();
+}
+
 int main(int argc, char* argv[]) {
   std::ifstream dat0("../data/L2_22aug-upsampled.dat", std::ios::in | std::ios::binary);
   unsigned char* data0 = new unsigned char[XYZ];
@@ -252,6 +340,10 @@ int main(int argc, char* argv[]) {
   unsigned char* paths = new unsigned char[XYZ];
   std::fill(paths, paths+XYZ, (unsigned char) 0);
   array_type B(paths,boost::extents[X][Y][Z]);
+
+  unsigned char* ranks = new unsigned char[XYZ];
+  std::fill(ranks, ranks+XYZ, (unsigned char) 0);
+  array_type Ranks(ranks,boost::extents[X][Y][Z]);
 
   // Define a 3x5x7 grid_graph where the second dimension doesn't wrap
   boost::array<vidx_t, 3> lengths = { { 256, 256, 256 } };
@@ -271,7 +363,7 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Tracing paths..." <<std::endl;
   double start_threshold       = 0.2*255;
-  double total_len_perc_thresh = 1.00;
+  //double total_len_perc_thresh = 1.00;
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t pathlens;
@@ -318,10 +410,14 @@ int main(int argc, char* argv[]) {
 		  v = p_map[v];
 	  }
   }
+  
+  // find local ranks
+  rank_op(graph,make_vox2arr(Ranks),make_vox2arr(A),make_vox2arr(B));
+
   wurzelgraph_t wgraph;
   paths2adjlist(graph,wgraph,p_map,make_vox2arr(B));
   erode_tree(wgraph);
-  merge_nodes(wgraph);
+  //merge_deg2_nodes(wgraph);
 
   // fill B again with eroded graph
   std::fill(paths, paths+XYZ, (unsigned char) 0); // == B
@@ -331,5 +427,9 @@ int main(int argc, char* argv[]) {
 	  B[w[0]][w[1]][w[2]] = 40 * out_degree(*wi,wgraph);
   }
 
+  std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
+  print_wurzel_vertices("data/vertices.txt",wgraph,idx_map);
+  print_wurzel_edges("data/edges.txt",wgraph,idx_map);
   write_voxelgrid<unsigned char>("data/paths.dat",graph,make_vox2arr(B));
+  write_voxelgrid<unsigned char>("data/ranks.dat",graph,make_vox2arr(Ranks));
 }

@@ -13,6 +13,7 @@ typedef unsigned int eidx_t;
 typedef grid_graph<DIMENSIONS,vidx_t,eidx_t> voxelgraph_t;
 typedef graph_traits<voxelgraph_t> voxelg_traits;
 typedef voxelg_traits::edge_descriptor voxel_edge_descriptor;
+typedef voxelg_traits::edge_iterator   voxel_edge_iterator;
 typedef voxelg_traits::vertex_descriptor voxel_vertex_descriptor;
 typedef voxelg_traits::vertex_iterator   voxel_vertex_iterator;
 
