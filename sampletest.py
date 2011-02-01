@@ -3,7 +3,7 @@ import numpy as np
 import numpy.random as rnd
 import pydot
 import matplotlib.pyplot as plt
-from scipy.stats.distributions import norm, gamma
+from scipy.stats.distributions import norm, gamma, halfnorm, vonmises
 
 def rejection_sample(proposal_sampler,proposal_pdf,target,k):
     while True:
@@ -18,23 +18,43 @@ def rotmat(a):
     return np.array([[ca,-sa],
                      [sa,ca]])
 
-class edge2dgenerator(object):
-    def __init__(self, kappa, minlen):
-        self.kappa = kappa
-        self.minlen = minlen
+class edge2d_base_distrib(object):
+    def __init__(self,length_a0,length_b0,angle_kappa):
+        self.length_a0 = length_a0
+        self.length_b0 = length_b0
+        self.angle_kappa = angle_kappa
     def __call__(self, parent):
+        """ sample from prior """
         newname = [i for i in parent.name]
         newname.append(parent.lennodes)
 
-        diff    = parent.pos - parent.parent.pos
-        diffang = np.arctan2(diff[1],diff[0])
-        angle   = rnd.vonmises(diffang, self.kappa)
-        length  = rnd.gamma(3,scale=2)
+        angle   = rnd.vonmises(parent.angle, self.angle_kappa)
+        length  = rnd.gamma(self.length_a0,scale=self.length_b0)
 
-        pos = parent.pos + np.dot(rotmat(angle), [length,0])
+        n = edge2Dnode(parent.depth+1, newname,length,angle,parent)
 
-        n = edge2Dnode(parent.depth+1, newname,pos,parent)
         return n
+    def adjust(self, node):
+        """ sample from posterior """
+        D  = np.vstack([d.pos for d in node.data ])
+        D -= node.pos
+        D  = np.dot(rotmat(node.angle-np.pi), D)
+        assert D.shape[1] == len(node.data)
+
+        # determine posterior of length given prior and data
+        aN = self.length_a0 + D.shape[1]/2.0
+        bN = self.length_b0 + D.shape[1]/2.0 * np.var(D[0,:])
+        node.length = rnd.gamma(aN,scale=bN)
+
+        # determine posterior of angle given prior and data
+        x_ang = np.arctan(D[1,:])
+        R1 = self.angle_kappa * np.cos(node.parent.angle) + np.sum(np.cos(x_ang))
+        R2 = self.angle_kappa * np.sin(node.parent.angle) + np.sum(np.sin(x_ang))
+        mu = np.arctan(R2/R1)
+        Rn = R1 / np.cos(mu)
+        node.angle = vonmises.rvs(Rn,loc=mu)
+
+        node.update_position()
 
 class datum(object):
     def __init__(self, id):
@@ -49,9 +69,9 @@ class hyperparam(object):
         self.gamma  = gamma
 
 class tree_sampler(object):
-    def __init__(self,hp,gen):
+    def __init__(self,hp,base_distrib):
         self.hp = hp
-        self.gen = gen
+        self.base_distrib = base_distrib
     def generate(self,data, root):
         for d in data:
             d.node = root
@@ -74,8 +94,11 @@ class tree_sampler(object):
         root.update_lengths()
     def __sample_sticks(self,root):
         pass
-    def __sample_nodes(self,root):
-        pass
+    def __sample_nodes(self,node):
+        self.base_distrib.adjust(node)
+
+        for n in node.subnodes:
+            self.__sample_nodes(n)
     def __find_node(self,u,n):
         if u < n.nu: return n
         u = (u-n.nu)/(1-n.nu)
@@ -169,11 +192,17 @@ class drawablenode(node):
             n.dot(g,n2)
 
 class edge2Dnode(drawablenode):
-    def __init__(self, depth, name, pos,parent=None):
+    def __init__(self, depth, name, length,angle,parent=None):
         drawablenode.__init__(self,depth, name)
         self.width  = 0.1
-        self.pos    = pos
+        self.length = length
+        self.angle  = angle
         self.parent = parent
+        if parent.__class__ == edge2Dnode:
+            self.update_position()
+        else:
+            self.pos = parent
+        self.vonmisesscale = 3
 
     def get_likelihood(self, d):
         pos = d.pos.copy()
@@ -182,6 +211,9 @@ class edge2Dnode(drawablenode):
         pos = np.dot(rotmat(-self.angle),pos)
         if pos[0]<0 or pos[0]>self.length: return 0
         return norm.pdf(pos[1],0,self.width)/self.length
+
+    def update_position(self):
+        self.pos = self.parent.pos + 3.0/4.0 * np.dot(rotmat(self.angle), [self.length,0])
 
     def dot(self, g, root, ppos):
         for n in self.subnodes:
@@ -192,28 +224,22 @@ class edge2Dnode(drawablenode):
             g.add_node(n2)
             g.add_edge(pydot.Edge(root,n2))
             n.dot(g,n2,pos)
+
     def sample(self, d):
         """" sample a data point for this edge """
         parentpos   = self.parent.pos
         d.parentpos = parentpos
-        diff        = self.pos - parentpos
-        length      = np.linalg.norm(diff)
-        angle       = np.arctan2(diff[1],diff[0])
-        d.pos       = np.dot(rotmat(angle), [rnd.normal(length/2,length/4),
-                                             rnd.normal(0,self.width)]) + parentpos
+        d.pos       = np.dot(rotmat(self.angle), [halfnorm.rvs(scale=self.length),
+                                             np.tan(vonmises.rvs(self.vonmisesscale,loc=0))]) + parentpos
         d.ownpos    = self.pos
 
-def gentree(name,kappa=3,minlen=1,samples=2000,alpha0=5,Lambda=.5,gamma=.25):
-    gen = edge2dgenerator(kappa,minlen)
+def gentree(name,kappa=3,samples=2000,alpha0=5,Lambda=.5,gamma=.25):
+    gen = edge2d_base_distrib(3,1,kappa)
 
     hp = hyperparam(alpha0,Lambda,gamma)
     tp = tree_process(gen,hp)
 
-    start0 = np.zeros(2)
-    start1 = start0 + np.ones(2)*0.1
-    #N = edge2Dnode(0,[],0,1.0)
-    virtual_grandparent = edge2Dnode(-2,[],start0)
-    virtual_parent = edge2Dnode(-1,[],start1,virtual_grandparent)
+    virtual_parent = edge2Dnode(-1,[],1,0,np.zeros(2))
     N = gen(virtual_parent)
 
     L = []
