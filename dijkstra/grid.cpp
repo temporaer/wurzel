@@ -9,6 +9,8 @@
 
 #include <algorithm>
 #include <iostream>
+#include <vector>
+#include <iterator>
 #include <fstream>
 #include <map>
 #include <boost/tuple/tuple.hpp>
@@ -161,6 +163,7 @@ void erode_tree(wurzelgraph_t& wg){
 				continue;
 			// go up from leaf to find next fork
 			tie(ei,eend) = in_edges(*vi,wg);
+			voxel_vertex_descriptor v = get(vertex_name,wg)[*vi];
 			if(ei==eend)
 				continue;
 			wurzel_vertex_descriptor pred = source(*ei,wg);
@@ -175,6 +178,7 @@ void erode_tree(wurzelgraph_t& wg){
 			}
 			if(cnt >= minlen)
 				continue;
+			clear_vertex(*vi,wg);
 			remove_vertex(*vi,wg);
 			modified=true;
 		}
@@ -182,6 +186,54 @@ void erode_tree(wurzelgraph_t& wg){
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
 
+void merge_nodes(wurzelgraph_t& wg){
+	std::cout << "Merging nodes..."<<std::flush;
+	// determine local orientations
+	wurzel_vertex_iterator wi,wend;
+	wurzel_in_edge_iterator ei,eend;
+	wurzelg_traits::adjacency_iterator      ai,aend;
+	wurzelgraph_t::inv_adjacency_iterator  iai,iaend;
+	property_map<wurzelgraph_t,path_orientation_t>::type po_map = get(path_orientation_t(), wg);
+	for (tie(wi, wend) = vertices(wg); wi != wend; ++wi) {
+		po_map[*wi] = ublas::zero_matrix<double>(3,3);
+	}
+	typedef std::vector<wurzel_vertex_descriptor> wd_vec_t;
+	wd_vec_t neighbors, neighbors2;
+	for (tie(wi, wend) = vertices(wg); wi != wend; ++wi) {
+		// search forward
+		tie(ai,aend) = adjacent_vertices(*wi,wg);
+		std::copy(ai,aend,std::back_inserter(neighbors));
+		for(wd_vec_t::iterator it=neighbors.begin();it!=neighbors.end();++it){
+			tie(ai,aend) = adjacent_vertices(*it,wg);
+			std::copy(ai,aend,std::back_inserter(neighbors2));
+		}
+		neighbors.clear();
+		// search back
+		tie(iai,iaend) = inv_adjacent_vertices(*wi,wg);
+		std::copy(iai,iaend,std::back_inserter(neighbors));
+		for(wd_vec_t::iterator it=neighbors.begin();it!=neighbors.end();++it){
+			tie(iai,iaend) = inv_adjacent_vertices(*it,wg);
+			std::copy(iai,iaend,std::back_inserter(neighbors2));
+		}
+
+		// now add coordinates of neighbors to covariance matrix at wi
+		covmat_t& cov = po_map[*wi];
+		for(wd_vec_t::iterator it=neighbors2.begin();it!=neighbors2.end();++it){
+			wurzel_vertex_descriptor w = *it;
+			voxel_vertex_descriptor  v = get(vertex_name,wg)[w];
+			cov(0,0) += v[0]*v[0];
+			cov(0,1) += v[0]*v[1];
+			cov(0,2) += v[0]*v[2];
+			cov(1,1) += v[1]*v[1];
+			cov(1,2) += v[1]*v[2];
+			cov(2,2) += v[2]*v[2];
+		}
+		cov(1,0) = cov(0,1);
+		cov(2,0) = cov(0,2);
+		cov(2,1) = cov(1,2);
+	}
+	std::cout << "done."<<std::endl;
+}
 
 int main(int argc, char* argv[]) {
   std::ifstream dat0("../data/L2_22aug-upsampled.dat", std::ios::in | std::ios::binary);
@@ -260,22 +312,23 @@ int main(int argc, char* argv[]) {
 		  continue;
 	  v = *vi;
 	  while(1){ 
+		  B[v[0]][v[1]][v[2]] = 255;
 		  if(boost::get(vertex_index,graph,v) == strunk_idx)
 			  break;
-		  B[v[0]][v[1]][v[2]] = 255;
 		  v = p_map[v];
 	  }
   }
   wurzelgraph_t wgraph;
   paths2adjlist(graph,wgraph,p_map,make_vox2arr(B));
   erode_tree(wgraph);
+  merge_nodes(wgraph);
 
   // fill B again with eroded graph
   std::fill(paths, paths+XYZ, (unsigned char) 0); // == B
   wurzel_vertex_iterator wi,wend;
   for (tie(wi, wend) = vertices(wgraph); wi != wend; ++wi) {
 	  voxel_vertex_descriptor w = get(vertex_name,wgraph)[*wi];
-	  B[w[0]][w[1]][w[2]] = 255;
+	  B[w[0]][w[1]][w[2]] = 40 * out_degree(*wi,wgraph);
   }
 
   write_voxelgrid<unsigned char>("data/paths.dat",graph,make_vox2arr(B));
