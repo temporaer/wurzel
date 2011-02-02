@@ -1,4 +1,5 @@
 # vim:ts=4:sw=4:sts=4:et:ai
+import numpy as np
 from enthought.mayavi import mlab
 from enthought.tvtk.util.ctf import ColorTransferFunction
 
@@ -91,9 +92,40 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True):
     src = mlab.pipeline.scalar_field(D)
     #mlab.contour3d(D)
     #mlab.pipeline.volume(src, vmin=D.min()+0.2*D.ptp(),vmax=D.max()-0.2*D.ptp())
-    mlab.pipeline.iso_surface(src, contours=[D.min()+fact*D.ptp(), ], opacity=opacity, colormap=cm)
+    if fact.__class__ == float:
+        mlab.pipeline.iso_surface(src, contours=[D.min()+fact*D.ptp(), ], opacity=opacity, colormap=cm)
+    else:
+        for i in fact:
+            mlab.pipeline.iso_surface(src, contours=[D.min()+i*D.ptp(), ], opacity=opacity, colormap=cm)
     #mlab.pipeline.iso_surface(src, contours=[D.max()-0.2*D.ptp(), ], opacity=0.2)
     #from enthought.mayavi.modules.streamline import Streamline
     #mlab.add_module(s)
     print "done"
 
+def show_points(fn,fne=None,cm="Blues",mode="2dtriangle"):
+    L = []
+    S = []
+    print "Show Point3D"
+    with open(fn) as f:
+        for line in f.readlines():
+            line = [int(x) for x in line.split()]
+            if len(line)!=4:
+                continue
+            L.append(line[:-1])
+            S.append(line[-1])
+    L = np.vstack(L)
+    pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.8,colormap=cm,scale_mode="none",resolution="20",mode=mode)
+    print "Done."
+    if None==fne: return
+    print "Show Edges3D"
+    L = []
+    with open(fne) as f:
+        for line in f.readlines():
+            line = [int(x) for x in line.split()]
+            L.append(line)
+        L = np.vstack(L)
+        pts.mlab_source.dataset.lines = L
+        tube = mlab.pipeline.tube(pts,tube_radius=0.1)
+        #tube.filter.vary_radius = 'vary_radius_by_scalar'
+        mlab.pipeline.surface(tube,color=(0.8,0.8,0.8))
+    print "Done."

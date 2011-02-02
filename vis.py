@@ -60,7 +60,8 @@ if __name__ == "__main__":
   mlab.clf()
 
   Draw  = dataset("data/L2_22aug.dat", upsample="zoom", crop=False,usepickled=True).D
-  Ddist = dataset("dijkstra/data/paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
+  #Ddist = dataset("dijkstra/data/paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
+  Ddist = dataset("dijkstra/data/ranks.dat", dz=256, dtype="uint8", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   Dsato = np.load("res.npy").astype("float32")
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
@@ -69,16 +70,20 @@ if __name__ == "__main__":
   #L, nf = label(Dsato)
   #print "Number of connected components: ", nf
 
-  viewer.show_iso(Ddist, 0.007 , "RdGy", 0.7)  
-  #viewer.show_iso(Ddist, 0.019 , "RdGy", 0.2)
-  #viewer.show_volume2(Ddist, "bone", 0.007,0.029)
-  if offscreen:
-    mkimg(fig, "path-traces")
+  viewer.show_points("dijkstra/data/ranks.txt",cm="Spectral", mode="sphere")
+  viewer.show_points("dijkstra/data/vertices.txt", "dijkstra/data/edges.txt")
+  #viewer.show_iso(Ddist, 0.007 , "RdGy", 0.7)  
+  #viewer.show_iso(255.-Ddist, 1./26., "jet", 0.7)  
+  #viewer.show_iso(255-Ddist, [1/26.,2/26.], "RdGy", 0.2)
+  #viewer.show_iso(Ddist, 0.05, "bone", 0.7)
+  #viewer.show_volume(Ddist/255.0, "bone", 25./26.,26./26.)
+  #if offscreen:
+  #  mkimg(fig, "path-traces")
 
   viewer.show_iso(Draw, 0.20 , "bone", 0.2)   # need 0.2 to get rid of noise
-  if offscreen:
-    mkimg(fig, "path-traces-plus-raw")
-    mlab.clf()
+  #if offscreen:
+  #  mkimg(fig, "path-traces-plus-raw")
+  #  mlab.clf()
 
   #viewer.show_volume(Draw, "bone", 0.13,0.3)   # 0.13, 0.3 works well
   #if offscreen:
