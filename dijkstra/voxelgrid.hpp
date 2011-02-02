@@ -1,7 +1,8 @@
 #ifndef __VOXELGRID_HPP__
 #define __VOXELGRID_HPP__
 
-#include <boost/graph/grid_graph.hpp>
+//#include <boost/graph/grid_graph.hpp>
+#include "grid_graph.hpp"
 
 #define DIMENSIONS 3
 using namespace boost;

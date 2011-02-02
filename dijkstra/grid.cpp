@@ -35,6 +35,27 @@ typedef shared_array_property_map<voxel_vertex_descriptor,
 typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
 
+
+std::ostream& 
+operator<<(std::ostream& o, const voxelg_traits::vertex_descriptor& vertex_to_print) {
+  o << "(" << vertex_to_print[0] << ", " << vertex_to_print[1] <<
+    ", " << vertex_to_print[2] << ")";
+  return o;
+}
+#define V(X) #X<<":"<<(X)<<"  "
+template<class G, class M>
+void print_neighbors(G& graph, voxelg_traits::vertex_descriptor v, const M& map){
+	std::cout<< "start vertex: "<<v<<std::endl;
+	std::cout << "   out-degree v: "<<out_degree(v,graph)<<std::endl;
+
+	voxelg_traits::out_edge_iterator oei, oeend;
+	unsigned int i=0;
+	for(tie(oei,oeend)=out_edges(v,graph);oei!=oeend;oei++){
+	    voxelg_traits::vertex_descriptor w = target(*oei, graph);
+		std::cout<<"   edge"<<(++i)<<": "<<v<<"  "<<w<<" map:"<<(int)map[w]<<std::endl;
+	}
+}
+
 array_type* g_dat;
 
 template<class T>
@@ -90,18 +111,18 @@ void write_voxelgrid(const std::string& name, voxelgraph_t& graph, const T& map)
 
 void find_shortest_paths(voxelgraph_t& graph, 
 		voxel_vertex_descriptor& strunk,
-		predecessor_map_t&p_map, distance_map_t& d_map){
+		predecessor_map_t&p_map, distance_map_t& d_map, bool force=false){
 
   voxel_vertex_iterator vi, vend;
   bool read_p=false, read_d=false;
-  if(fs::exists("data/p_map.dat")){
+  if(fs::exists("data/p_map.dat") && !force){
 	  std::cout << "Reading predecessor map from file..."<<std::endl;
 	  std::ifstream ifs("data/p_map.dat");
 	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
 		  ifs.read((char*)&p_map[*vi], sizeof(voxel_vertex_descriptor));
 	  read_p = true;
   }
-  if(fs::exists("data/d_map.dat")){
+  if(fs::exists("data/d_map.dat") && !force){
 	  std::cout << "Reading distance map from file..."<<std::endl;
 	  std::ifstream ifs("data/d_map.dat");
 	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
@@ -164,16 +185,25 @@ template<class T, class U, class V>
 void rank_op(voxelgraph_t& vg, const T& rankmap, const U& valuemap, const V& tracesmap){
 	voxel_vertex_iterator vi, vend;
 	voxel_edge_iterator ei, eend;
+	std::ofstream ofs("data/ranks.txt");
+	ofs << "0 0 0 0"<<std::endl;
+	voxelg_traits::out_edge_iterator oei,oeend;
 	for (tie(vi, vend) = vertices(vg); vi != vend; ++vi){
+		voxel_vertex_descriptor vd = *vi;
 		if(!tracesmap[*vi]) continue;
-		voxelg_traits::out_edge_iterator oei,oeend;
-		tie(oei,oeend) = out_edges(*vi,vg);
 		unsigned int order = 0;
 		double myval = valuemap[*vi];
+		tie(oei,oeend) = out_edges(*vi,vg);
 		for(;oei!=oeend;++oei)
-		    if(valuemap[target(*oei,vg)] > myval)
+		    if(valuemap[target(*oei,vg)] >= myval)
 		        order++;
-		rankmap[*vi] = 255 - 40 * order;
+		//rankmap[*vi] = 255 - 9 * order;
+		rankmap[*vi] = order;
+
+		if(order!=0)
+			continue;
+		voxel_vertex_descriptor v = *vi;
+		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<255<<std::endl;
 	}
 }
 void erode_tree(wurzelgraph_t& wg){
@@ -342,7 +372,7 @@ int main(int argc, char* argv[]) {
   array_type B(paths,boost::extents[X][Y][Z]);
 
   unsigned char* ranks = new unsigned char[XYZ];
-  std::fill(ranks, ranks+XYZ, (unsigned char) 0);
+  std::fill(ranks, ranks+XYZ, (unsigned char) 255);
   array_type Ranks(ranks,boost::extents[X][Y][Z]);
 
   // Define a 3x5x7 grid_graph where the second dimension doesn't wrap
@@ -356,7 +386,7 @@ int main(int argc, char* argv[]) {
   predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
-  find_shortest_paths(graph,strunk,p_map,d_map);
+  find_shortest_paths(graph,strunk,p_map,d_map,false);
 
   std::cout << "Determining scaling factors..." <<std::endl;
   stat_t s_allpaths = voxel_stats(graph,d_map);
@@ -420,12 +450,12 @@ int main(int argc, char* argv[]) {
   //merge_deg2_nodes(wgraph);
 
   // fill B again with eroded graph
-  std::fill(paths, paths+XYZ, (unsigned char) 0); // == B
-  wurzel_vertex_iterator wi,wend;
-  for (tie(wi, wend) = vertices(wgraph); wi != wend; ++wi) {
-	  voxel_vertex_descriptor w = get(vertex_name,wgraph)[*wi];
-	  B[w[0]][w[1]][w[2]] = 40 * out_degree(*wi,wgraph);
-  }
+  //std::fill(paths, paths+XYZ, (unsigned char) 0); // == B
+  //wurzel_vertex_iterator wi,wend;
+  //for (tie(wi, wend) = vertices(wgraph); wi != wend; ++wi) {
+  //    voxel_vertex_descriptor w = get(vertex_name,wgraph)[*wi];
+  //    B[w[0]][w[1]][w[2]] = 40 * out_degree(*wi,wgraph);
+  //}
 
   std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
   print_wurzel_vertices("data/vertices.txt",wgraph,idx_map);
