@@ -248,6 +248,37 @@ void erode_tree(wurzelgraph_t& wg){
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
 
+template<class T>
+void remove_nonmax_nodes(wurzelgraph_t& wg, const T& maxmap){
+	std::cout <<"Removing nonmaximum nodes (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
+	wurzel_vertex_iterator wi,wend,next;
+	wurzel_in_edge_iterator ei,eend;
+	wurzelg_traits::adjacency_iterator      ai,aend;
+	wurzelgraph_t::inv_adjacency_iterator  iai,iaend;
+	property_map<wurzelgraph_t,path_orientation_t>::type po_map = get(path_orientation, wg);
+	bool changed = true;
+	while(changed){
+		changed = false;
+		tie(wi, wend) = vertices(wg);
+		for (next=wi; wi != wend;wi=next) {
+			next++;
+			if(out_degree(*wi,wg) > 1)
+				continue;
+			if(in_degree(*wi,wg) < 1)
+				continue;
+			if(maxmap[get(vertex_name,wg)[*wi]]==0)
+				continue;
+			tie(ai,aend)   = adjacent_vertices(*wi,wg);
+			tie(iai,iaend) = inv_adjacent_vertices(*wi,wg);
+			clear_vertex(*wi,wg);
+			remove_vertex(*wi,wg);
+			if(iai!=iaend && ai!=aend)
+				add_edge(*iai,*ai,wg);
+			changed = true;
+		}
+	}
+	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
+}
 void merge_deg2_nodes(wurzelgraph_t& wg){
 	std::cout <<"Removing deg2nodes (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
 	wurzel_vertex_iterator wi,wend,next;
