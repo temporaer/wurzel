@@ -4,7 +4,7 @@ import numpy.random as rnd
 import pydot
 from progressbar import ProgressBar, Percentage, Bar, ETA, \
      RotatingMarker
-from scipy.stats.distributions import halfnorm, vonmises
+from scipy.stats.distributions import halfnorm, vonmises, gamma
 import matplotlib.pyplot as plt
 
 def rejection_sample(proposal_sampler,proposal_pdf,target,k):
@@ -31,7 +31,7 @@ class edge2d_base_distrib(object):
         newname.append(len(parent.subnodes))
 
         angle   = rnd.vonmises(parent.angle, self.angle_kappa)
-        length  = rnd.gamma(self.length_a0,scale=self.length_b0)
+        length  = gamma.rvs(self.length_a0,loc=1./self.length_b0)
 
         n = edge2Dnode(parent.depth+1, newname,length,angle,parent,nu,psi)
 
@@ -48,14 +48,14 @@ class edge2d_base_distrib(object):
         old_angle = node.angle
         # determine posterior of angle given prior and data
         x_ang = np.arctan2(D[1,:],D[0,:])
-        #R1 = self.angle_kappa * np.cos(node.parent.angle) + np.sum(np.cos(x_ang))
-        #R2 = self.angle_kappa * np.sin(node.parent.angle) + np.sum(np.sin(x_ang))
-        R1 =  np.sum(np.cos(x_ang))
-        R2 =  np.sum(np.sin(x_ang))
+        R1 = self.angle_kappa * np.cos(node.parent.angle) + np.sum(np.cos(x_ang))
+        R2 = self.angle_kappa * np.sin(node.parent.angle) + np.sum(np.sin(x_ang))
+        #R1 =  np.sum(np.cos(x_ang))
+        #R2 =  np.sum(np.sin(x_ang))
         mu = np.arctan2(R2,R1)
         Rn = R1 / np.cos(mu)
-        #node.angle = vonmises.rvs(Rn,loc=mu)
-        node.angle = mu
+        node.angle = vonmises.rvs(Rn,loc=mu)
+        #node.angle = mu
 
         X = D.copy()
 
@@ -65,12 +65,13 @@ class edge2d_base_distrib(object):
 
 
         # determine posterior of length given prior and data
-        #aN = self.length_a0 + D.shape[1]/2.0
-        #bN = self.length_b0 + D.shape[1]/2.0 * np.var(D[0,:])
-        aN =  D.shape[1]/2.0
-        bN =  D.shape[1]/2.0 * np.var(D[0,:])
-        #node.length = rnd.gamma(aN,scale=1.0/bN)
-        node.length = np.var(D[0,:])
+        aN = self.length_a0 + D.shape[1]/2.0
+        bN = self.length_b0 + D.shape[1]/2.0 * np.var(D[0,:])
+        #aN =  D.shape[1]/2.0
+        #bN =  D.shape[1]/2.0 * np.var(D[0,:])
+        #import ipdb; ipdb.set_trace()
+        node.length = gamma.rvs(aN,loc=1.0/bN)
+        #node.length = np.var(D[0,:])
 
         old_pos = node.pos.copy()
 
@@ -83,12 +84,11 @@ class edge2d_base_distrib(object):
             plt.plot(old_pos[0]-node.parent.pos[0],old_pos[1]-node.parent.pos[1],"*b")
             #plt.plot(node.parent.pos[0],node.parent.pos[1],"*r")
             plt.show()
-        #f()
-        #import ipdb; ipdb.set_trace()
 
         new=np.array([node.get_likelihood_angle(d) for d in node.data ])
         new=np.log(new).mean()
         print('old likelihood: %f     new likelihood: %f'%(old,new))
+        #f()
 
 class datum(object):
     def __init__(self, id):
