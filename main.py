@@ -24,14 +24,20 @@ def c3d(d, sigma):
     #comm.Send(S, dest=0, tag=77)
     return S.astype("float32")
 
-def loaddata(slave=True):
+def loaddata(fn,slave=True):
     print "Loading dataset"
-    D = dataset("data/L2_22aug.dat",crop=False,upsample="zoom",usepickled=slave)
+    D = dataset("%s.dat"%fn,crop=False,upsample="zoom",usepickled=slave)
     return D
 
 if __name__ == "__main__":
     from IPython.kernel import client
-    #D = loaddata(slave=False)
+    try:
+        filename = sys.argv[1]
+    except:
+        print "usage: ", sys.argv[0], "[filename]"
+        sys.exit()
+    basename = filename[:-4] # cut off ".dat"
+    #D = loaddata(basename,slave=False)
 
     mec = client.MultiEngineClient()
     mec.activate()
@@ -45,7 +51,7 @@ if __name__ == "__main__":
     print mec.execute("os.chdir(\"%s\")"%os.path.realpath("."))
     print mec.execute("from main import *")
     print mec.execute("from wurzel.dataset import dataset")
-    print mec.execute("D = loaddata()")
+    print mec.execute("D = loaddata('%s')"%basename)
     #print mec.push(dict(D=D))
 
     print "Scattering sigmas"
@@ -63,7 +69,9 @@ if __name__ == "__main__":
     res = mec.gather("res")
     #import pdb; pdb.set_trace()
     x = reduce(np.maximum, res).astype("float32")
+    x -= x.min(); x /= x.max()
     np.save("res.npy", x)
+    x.tofile(basename+".sato")
     #os.system("scp res.npy l_schulz@gitta:checkout/git/wurzel/data/neu.npy")
     #os.execl("/usr/bin/ssh", "ssh", "-X", "l_schulz@gitta","cd checkout/git/wurzel; ipython -wthread vis.py")
     print "Done"
