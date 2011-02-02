@@ -28,12 +28,14 @@
 using namespace boost::accumulators;
 namespace fs = boost::filesystem;
 
-typedef boost::multi_array_ref<unsigned char, 3> array_type;
+typedef boost::multi_array_ref<float, 3> float_grid;
+typedef boost::multi_array_ref<unsigned char, 3> uc_grid;
 
 typedef shared_array_property_map<voxel_vertex_descriptor,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> predecessor_map_t;
 typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
+#define SQR(X) ((X)*(X))
 
 
 std::ostream& 
@@ -56,7 +58,16 @@ void print_neighbors(G& graph, voxelg_traits::vertex_descriptor v, const M& map)
 	}
 }
 
-array_type* g_dat;
+template<class I>
+double voxdist(I a, I b){
+	double s = 0;
+	s += SQR(*a-*b); a++; b++;
+	s += SQR(*a-*b); a++; b++;
+	s += SQR(*a-*b); a++; b++;
+	return sqrt(s);
+}
+
+float_grid* g_sato;
 
 template<class T>
 struct const_vox2arr{
@@ -86,10 +97,11 @@ const_vox2arr<T> make_vox2arr(const T& t){ return const_vox2arr<T>(t); }
 voxel_edge_weight_map::reference 
 voxel_edge_weight_map::operator[](key_type e) const {
 	//double d = get(vertex_index, m_graph)[target(e,m_graph)];
+	voxel_vertex_descriptor s = source(e,m_graph);
 	voxel_vertex_descriptor v = target(e,m_graph);
-	array_type& a = *g_dat;
-	float f = exp(-(float)a[v[0]][v[1]][v[2]]/25.6f);
-	return f;
+	float_grid& a = *g_sato;
+	float f = exp(-(float)a[v[0]][v[1]][v[2]]*10.f);
+	return f * voxdist(s.begin(),v.begin());
 }
 
 static const unsigned int X=256,Y=256,Z=256,XYZ=X*Y*Z;
@@ -388,23 +400,23 @@ int main(int argc, char* argv[]) {
   std::ifstream dat0("../data/L2_22aug-upsampled.dat", std::ios::in | std::ios::binary);
   unsigned char* data0 = new unsigned char[XYZ];
   dat0.read((char*)data0,X*Y*Z);
-  array_type A0(data0,boost::extents[X][Y][Z]);
+  uc_grid A0(data0,boost::extents[X][Y][Z]);
   dat0.close();
 
-  std::ifstream dat("../data/L2_22aug-preproc.dat", std::ios::in | std::ios::binary);
-  unsigned char* data = new unsigned char[XYZ];
-  dat.read((char*)data,XYZ);
-  array_type A(data,boost::extents[X][Y][Z]);
-  g_dat = &A;
+  std::ifstream dat("../data/L2_22aug.sato", std::ios::in | std::ios::binary);
+  float* data = new float[XYZ];
+  dat.read((char*)data,XYZ*sizeof(*data));
+  float_grid A(data,boost::extents[X][Y][Z]);
+  g_sato = &A;
   dat.close();
 
   unsigned char* paths = new unsigned char[XYZ];
   std::fill(paths, paths+XYZ, (unsigned char) 0);
-  array_type B(paths,boost::extents[X][Y][Z]);
+  uc_grid B(paths,boost::extents[X][Y][Z]);
 
   unsigned char* ranks = new unsigned char[XYZ];
   std::fill(ranks, ranks+XYZ, (unsigned char) 255);
-  array_type Ranks(ranks,boost::extents[X][Y][Z]);
+  uc_grid Ranks(ranks,boost::extents[X][Y][Z]);
 
   // Define a 3x5x7 grid_graph where the second dimension doesn't wrap
   boost::array<vidx_t, 3> lengths = { { 256, 256, 256 } };
@@ -428,7 +440,7 @@ int main(int argc, char* argv[]) {
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t pathlens;
-  vox2arr<array_type> vox2raw(A0);
+  vox2arr<uc_grid> vox2raw(A0);
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  voxel_vertex_descriptor v = *vi;
 	  float val = vox2raw[v];
@@ -461,7 +473,7 @@ int main(int argc, char* argv[]) {
 		  cnt++;
 		  v = p_map[v];
 	  }
-	  if(total_dist/cnt > max(pathlens)*0.05)
+	  if(total_dist/cnt > max(pathlens)*0.15)
 		  continue;
 	  v = *vi;
 	  while(1){ 
@@ -477,7 +489,8 @@ int main(int argc, char* argv[]) {
 
   wurzelgraph_t wgraph;
   paths2adjlist(graph,wgraph,p_map,make_vox2arr(B));
-  erode_tree(wgraph);
+  remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
+  //erode_tree(wgraph);
   //merge_deg2_nodes(wgraph);
 
   // fill B again with eroded graph
