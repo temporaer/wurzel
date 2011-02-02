@@ -60,7 +60,7 @@ if __name__ == "__main__":
   mlab.clf()
 
   Draw  = dataset("data/L2_22aug.dat", upsample="zoom", crop=False,usepickled=True).D
-  Ddist = dataset("dijkstra/paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
+  Ddist = dataset("dijkstra/data/paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   Dsato = np.load("res.npy").astype("float32")
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
