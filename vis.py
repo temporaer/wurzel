@@ -71,12 +71,12 @@ if __name__ == "__main__":
   #print "Number of connected components: ", nf
 
   #viewer.show_points("dijkstra/data/ranks.txt",cm="Spectral", mode="sphere")
-  #viewer.show_points("dijkstra/data/vertices.txt", "dijkstra/data/edges.txt")
+  viewer.show_points("dijkstra/data/vertices.txt", "dijkstra/data/edges.txt")
   #viewer.show_iso(Ddist, 0.007 , "RdGy", 0.7)  
   #viewer.show_iso(255.-Ddist, 1./26., "jet", 0.7)  
   #viewer.show_iso(255-Ddist, [1/26.,2/26.], "RdGy", 0.2)
   #viewer.show_iso(Ddist, 0.05, "bone", 0.7)
-  viewer.show_volume(Ddist/255.0, "Spectral", 0.1, 0.9)
+  #viewer.show_volume(Ddist/255.0, "Spectral", 0.1, 0.9)
   #if offscreen:
   #  mkimg(fig, "path-traces")
 
