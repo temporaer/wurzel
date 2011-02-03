@@ -30,15 +30,15 @@ def loaddata(fn,slave=True):
     return D
 
 if __name__ == "__main__":
-    from IPython.kernel import client
     try:
         filename = sys.argv[1]
     except:
         print "usage: ", sys.argv[0], "[filename]"
         sys.exit()
     basename = filename[:-4] # cut off ".dat"
-    #D = loaddata(basename,slave=False)
+    D = loaddata(basename,slave=False)
 
+    from IPython.kernel import client
     mec = client.MultiEngineClient()
     mec.activate()
     mec.flush()

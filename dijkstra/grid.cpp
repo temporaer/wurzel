@@ -1,10 +1,6 @@
 //=======================================================================
-// Copyright 2009 Trustees of Indiana University.
-// Authors: Michael Hansen, Andrew Lumsdaine
-//
-// Distributed under the Boost Software License, Version 1.0. (See
-// accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt)
+// Copyright 2011 University of Bonn
+// Author: Hannes Schulz
 //=======================================================================
 
 #include <algorithm>
@@ -25,6 +21,10 @@
 #include "boost/filesystem.hpp"
 #include "voxelgrid.hpp"
 #include "wurzel_tree.hpp"
+
+#define SQR(X) ((X)*(X))
+#define V(X) #X<<":"<<(X)<<"  "
+
 using namespace boost::accumulators;
 namespace fs = boost::filesystem;
 
@@ -35,16 +35,20 @@ typedef shared_array_property_map<voxel_vertex_descriptor,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> predecessor_map_t;
 typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
-#define SQR(X) ((X)*(X))
+typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > stat_t;
 
 
+std::ostream& 
+operator<<(std::ostream& o, const stat_t& s) {
+	o << "min:"<<min(s)<<"  mean:"<<mean(s)<<"  max:"<<max(s);
+  return o;
+}
 std::ostream& 
 operator<<(std::ostream& o, const voxelg_traits::vertex_descriptor& vertex_to_print) {
   o << "(" << vertex_to_print[0] << ", " << vertex_to_print[1] <<
     ", " << vertex_to_print[2] << ")";
   return o;
 }
-#define V(X) #X<<":"<<(X)<<"  "
 template<class G, class M>
 void print_neighbors(G& graph, voxelg_traits::vertex_descriptor v, const M& map){
 	std::cout<< "start vertex: "<<v<<std::endl;
@@ -93,7 +97,7 @@ vox2arr<T> make_vox2arr(T& t){ return vox2arr<T>(t); }
 template<class T>
 const_vox2arr<T> make_vox2arr(const T& t){ return const_vox2arr<T>(t); }
 
-// map from edges to weights
+// map from edges to weights    __WEIGHT__
 voxel_edge_weight_map::reference 
 voxel_edge_weight_map::operator[](key_type e) const {
 	//double d = get(vertex_index, m_graph)[target(e,m_graph)];
@@ -155,7 +159,6 @@ void find_shortest_paths(voxelgraph_t& graph,
 	
 }
 
-typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > stat_t;
 template<class M>
 stat_t voxel_stats(voxelgraph_t& graph, const M& map){
 	stat_t acc;
@@ -398,19 +401,21 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 }
 
 int main(int argc, char* argv[]) {
-  std::ifstream dat0("../data/L2_22aug-upsampled.dat", std::ios::in | std::ios::binary);
-  unsigned char* data0 = new unsigned char[XYZ];
-  dat0.read((char*)data0,X*Y*Z);
-  uc_grid Raw(data0,boost::extents[X][Y][Z]);
-  dat0.close();
+  std::ifstream ifs_raw("../data/L2_22aug-upsampled.dat", std::ios::in | std::ios::binary);
+	if(!ifs_raw.is_open()) exit(1);
+  float* raw_ptr = new float[XYZ];
+  ifs_raw.read((char*)raw_ptr,XYZ*sizeof(*raw_ptr));
+  float_grid Raw(raw_ptr,boost::extents[X][Y][Z]);
+  ifs_raw.close();
 
-  std::ifstream dat("../data/L2_22aug.sato", std::ios::in | std::ios::binary);
-  //std::ifstream dat("../data/L2_22aug-preproc.dat", std::ios::in | std::ios::binary);
-  float* data = new float[XYZ];
-  dat.read((char*)data,XYZ*sizeof(*data));
-  float_grid Sato(data,boost::extents[X][Y][Z]);
+  std::ifstream ifs_sato("../data/L2_22aug.sato", std::ios::in | std::ios::binary);
+	if(!ifs_sato.is_open()) exit(1);
+  //std::ifstream ifs_sato("../data/L2_22aug-preproc.dat", std::ios::in | std::ios::binary);
+  float* sato_ptr = new float[XYZ];
+  ifs_sato.read((char*)sato_ptr,XYZ*sizeof(*sato_ptr));
+  float_grid Sato(sato_ptr,boost::extents[X][Y][Z]);
   g_sato = &Sato;
-  dat.close();
+  ifs_sato.close();
 
   unsigned char* paths = new unsigned char[XYZ];
   std::fill(paths, paths+XYZ, (unsigned char) 0);
@@ -428,31 +433,37 @@ int main(int argc, char* argv[]) {
   voxel_vertex_descriptor first_vertex = vertex((vidx_t)0, graph);
   voxel_vertex_iterator vi, vend;
 
+  stat_t s_raw = voxel_stats(graph, make_vox2arr(Raw));
   wurzel_vertex_iterator wi,wend;
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
       voxel_vertex_descriptor v = *vi;
       float& f = Sato[v[0]][v[1]][v[2]];
-	  f  = exp(-20.f * std::max(0.f,f-0.3f) );
+			f  = exp(-10.f * log(1.f+f)/log(2.f) );
+			//f  = 1.f-log(1.f+f)/log(2.f);
+
+      float& g = Raw[v[0]][v[1]][v[2]];
+			g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
   }
   stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
-  std::cout << V(min(s_sato)) << V(mean(s_sato)) << V(max(s_sato))<<std::endl;
+  std::cout << "Sato: " << s_sato <<std::endl;
 
   predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
   find_shortest_paths(graph,strunk,p_map,d_map,false);
+  std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
   std::cout << "Determining scaling factors..." <<std::endl;
   stat_t s_allpaths = voxel_stats(graph,d_map);
 
   std::cout << "Tracing paths..." <<std::endl;
-  double start_threshold       = 0.2*255;
+  double start_threshold       = 0.2;
   double total_len_perc_thresh = 0.50;
-  double avg_len_perc_thresh   = 0.25;
+  double avg_len_perc_thresh   = 0.15;
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t s_avg_pathlen, s_pathlen, s_cnt;
-  vox2arr<uc_grid> vox2raw(Raw);
+  vox2arr<float_grid> vox2raw(Raw);
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  voxel_vertex_descriptor v = *vi;
 	  float val = vox2raw[v];
@@ -472,8 +483,9 @@ int main(int argc, char* argv[]) {
 	  if(cnt>0)
 		  s_avg_pathlen(total_dist/cnt);
   }
-  std::cout << "Total   Pathlens: "<< min(    s_pathlen)<<" "<<mean(    s_pathlen)<<" "<<max(    s_pathlen)<<std::endl;
-  std::cout << "Average Pathlens: "<< min(s_avg_pathlen)<<" "<<mean(s_avg_pathlen)<<" "<<max(s_avg_pathlen)<<std::endl;
+  std::cout << "Total   Pathlens: "<< s_pathlen<<std::endl;
+  std::cout << "Average Pathlens: "<< s_avg_pathlen<<std::endl;
+  std::cout << "Hop     Pathlens: "<< s_cnt<<std::endl;
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  voxel_vertex_descriptor v = *vi;
 	  float val = Raw[v[0]][v[1]][v[2]];
