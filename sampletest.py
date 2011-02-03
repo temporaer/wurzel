@@ -2,8 +2,17 @@
 import numpy as np
 import numpy.random as rnd
 import pydot
+from progressbar import ProgressBar, Percentage, Bar, ETA, \
+     RotatingMarker
+from scipy.stats.distributions import halfnorm, vonmises, gamma
 import matplotlib.pyplot as plt
-from scipy.stats.distributions import norm
+
+def rejection_sample(proposal_sampler,proposal_pdf,target,k):
+    while True:
+		g = proposal_sampler()
+		u = rnd.uniform()
+		if u < target(g)/(k*proposal_pdf(g)):
+			return g
 
 def rotmat(a):
     ca = np.cos(a)
@@ -11,20 +20,75 @@ def rotmat(a):
     return np.array([[ca,-sa],
                      [sa,ca]])
 
-class edge2dgenerator(object):
-    def __init__(self, kappa, minlen):
-        self.kappa = kappa
-        self.minlen = minlen
-    def __call__(self, parent):
+class edge2d_base_distrib(object):
+    def __init__(self,length_a0,length_b0,angle_kappa):
+        self.length_a0 = length_a0
+        self.length_b0 = length_b0
+        self.angle_kappa = angle_kappa
+    def __call__(self, parent, psi=None, nu=None):
+        """ sample from prior """
         newname = [i for i in parent.name]
-        newname.append(parent.lennodes)
+        newname.append(len(parent.subnodes))
 
-        angle  = rnd.vonmises(parent.angle, self.kappa)
-        length = self.minlen+rnd.uniform()
+        angle   = rnd.vonmises(parent.angle, self.angle_kappa)
+        length  = gamma.rvs(self.length_a0,loc=1./self.length_b0)
 
-        n = edge2Dnode(parent.depth+1, newname,angle,length)
-        n.pos = n.position(parent.pos)
+        n = edge2Dnode(parent.depth+1, newname,length,angle,parent,nu,psi)
+
         return n
+    def adjust(self, node):
+        """ sample from posterior """
+        D  = np.vstack([d.pos for d in node.data ])
+        old=np.array([node.get_likelihood_angle(d) for d in node.data ])
+        old=np.log(old).mean()
+        #import ipdb as pdb; pdb.set_trace()
+        D -= node.parent.pos
+        D  = D.T
+
+        old_angle = node.angle
+        # determine posterior of angle given prior and data
+        x_ang = np.arctan2(D[1,:],D[0,:])
+        R1 = self.angle_kappa * np.cos(node.parent.angle) + np.sum(np.cos(x_ang))
+        R2 = self.angle_kappa * np.sin(node.parent.angle) + np.sum(np.sin(x_ang))
+        #R1 =  np.sum(np.cos(x_ang))
+        #R2 =  np.sum(np.sin(x_ang))
+        mu = np.arctan2(R2,R1)
+        Rn = R1 / np.cos(mu)
+        node.angle = vonmises.rvs(Rn,loc=mu)
+        #node.angle = mu
+
+        X = D.copy()
+
+        # rotate around newly drawn angle
+        D  = np.dot(rotmat(-node.angle), D)
+        assert D.shape[1] == len(node.data)
+
+
+        # determine posterior of length given prior and data
+        aN = self.length_a0 + D.shape[1]/2.0
+        bN = self.length_b0 + D.shape[1]/2.0 * np.var(D[0,:])
+        #aN =  D.shape[1]/2.0
+        #bN =  D.shape[1]/2.0 * np.var(D[0,:])
+        #import ipdb; ipdb.set_trace()
+        node.length = gamma.rvs(aN,loc=1.0/bN)
+        #node.length = np.var(D[0,:])
+
+        old_pos = node.pos.copy()
+
+        node.update_position()
+
+        def f():
+            plt.plot(X[0,:],X[1,:],".b")
+            #plt.plot(D[0,:],D[1,:],".r")
+            plt.plot(node.pos[0]-node.parent.pos[0],node.pos[1]-node.parent.pos[1],"*r")
+            plt.plot(old_pos[0]-node.parent.pos[0],old_pos[1]-node.parent.pos[1],"*b")
+            #plt.plot(node.parent.pos[0],node.parent.pos[1],"*r")
+            plt.show()
+
+        new=np.array([node.get_likelihood_angle(d) for d in node.data ])
+        new=np.log(new).mean()
+        print('old likelihood: %f     new likelihood: %f'%(old,new))
+        #f()
 
 class datum(object):
     def __init__(self, id):
@@ -38,61 +102,89 @@ class hyperparam(object):
         self.Lambda = Lambda
         self.gamma  = gamma
 
-class tree_sampler(object):
-    def __init__(self,hp,gen):
+class adams_tree(object):
+    def __init__(self,hp):
         self.hp = hp
-        self.gen = gen
+    def alpha(self,depth):
+        return self.hp.Lambda**depth * self.hp.alpha0
+
+class tree_sampler(adams_tree):
+    def __init__(self,hp,base_distrib):
+        adams_tree.__init__(self,hp)
+        self.base_distrib = base_distrib
+    def get_psi_nu(self, depth):
+        psi = rnd.beta(1,self.hp.gamma)
+        nu  = rnd.beta(1,self.alpha(depth))
+        return psi, nu
     def generate(self,data, root):
         for d in data:
             d.node = root
             root.add_data(d)
-        self.__sample_assignments(data,root)
+        for i in xrange(100):
+            self.__sample_assignments(data,root)
+            self.__sample_sticks(root)
+            self.__sample_nodes(root)
+    def clear_data(self, n):
+        del n.data[:]
+        for x in n.subnodes:
+            self.clear_data(x)
     def __sample_assignments(self,data,root):
-        for d in data:
+        self.clear_data(root)
+        widgets = ['Allocating: ', Percentage(), ' ', Bar(marker=RotatingMarker()), ' ', ETA()]
+        #pbar = ProgressBar(widgets=widgets, maxval=len(data)).start()
+        for idx, d in enumerate(data):
+            #pbar.update(idx)
             pslice = rnd.uniform(0,d.node.get_likelihood(d))
-            umin, umax = 0, 1
+            umin, umax = 0.0, 1.0
             while True:
                 u = rnd.uniform(umin,umax)
                 n = self.__find_node(u,root)
                 p = n.get_likelihood(d)
-                if p > pslice:
+                if p >= pslice:
                     d.node = n
                     n.add_data(d)
                     break
                 if n < d.node: umin = u
                 else:          umax = u
+        #pbar.finish()
         root.update_lengths()
-    def __sample_sticks(self,root):
-        pass
-    def __sample_nodes(self,root):
-        pass
+    def __sample_sticks(self,node):
+        node.nu = rnd.beta(node.lendata+1,node.lennodes+self.alpha(node.depth))
+        for idx, n in enumerate(node.subnodes):
+            n.psi = rnd.beta(node.lennodes+1, self.hp.gamma + np.sum([x.lennodes for x in node.subnodes[idx+1:]]))
+        for n in node.subnodes:
+            self.__sample_sticks(n)
+    def __sample_nodes(self,node):
+        if node.lendata > 0:
+            self.base_distrib.adjust(node)
+
+        for n in node.subnodes:
+            self.__sample_nodes(n)
     def __find_node(self,u,n):
         if u < n.nu: return n
         u = (u-n.nu)/(1-n.nu)
-        while u<1-np.prod(lambda x:1-x, n.psi):
+        while u > 1.0-np.prod([1.0-s.psi for s in n.subnodes]) or len(n.subnodes)==0:
             # draw a new psi-stick
-            n.psi.append(rnd.beta(1,self.hp.gamma))
-            n.subnodes.append(self.gen(n))
+            psi,nu = self.get_psi_nu(n.depth+1)
+            n.subnodes.append(self.base_distrib(n,psi=psi,nu=nu))
         e = [0]
-        for x in n.psi:
-            e = (1-(1-e[-1])*(1-x))
+        for x in n.subnodes:
+            e.append( (1-(1-e[-1])*(1-x.psi)) )
         for idx,ei in enumerate(e):
             if ei > u:
-                u = (u-ei)/(e[idx+1]-ei)
-                n = n.subnodes[idx]
+                u = (u-e[idx-1])/(ei-e[idx-1])
+                m = n.subnodes[idx-1]
                 break
-        self.__find_node(u,n)
+        return self.__find_node(u,m)
 
 
 
-class tree_process(object):
+class tree_process(adams_tree):
     def __init__(self,gen, hp):
+        adams_tree.__init__(self,hp)
         self.gen  = gen
-        self.hp   = hp
-    def alpha(self,n):
-        return self.hp.Lambda**n.depth * self.hp.alpha0
     def sift(self, n, d):
-        b = rnd.uniform() < 1.0/(self.alpha(n)+1)
+        b = rnd.uniform() < 1.0/(self.alpha(n.depth)+1)
         if b:
             n.add_data(d)
             n.sample(d)
@@ -112,19 +204,17 @@ class tree_process(object):
         n.lennodes += 1
 
 class node(object):
-	def __init__(self, depth,name):
+	def __init__(self, depth,name,nu=None,psi=None):
         self.data     = []
         self.subnodes = []
         self.depth    =  depth
         self.name     =  name
-        self.nu       = 0
-        self.psi      = []
+        self.nu       =  nu
+        self.psi      =  psi
         self.lendata  =  0
         self.lennodes =  0
     def __lt__(self,other):
         return self.name < other.name
-    def update_nu_psi(self):
-        pass
     def add_data(self,d):
         self.data.append(d)
         self.lendata += 1
@@ -135,8 +225,8 @@ class node(object):
         self.lennodes = sum([x.lendata+x.lennodes for x in self.subnodes])
 
 class drawablenode(node):
-	def __init__(self, depth, name):
-        node.__init__(self,depth,name)
+	def __init__(self, depth, name,nu=None,psi=None):
+        node.__init__(self,depth,name,nu,psi)
     def namestr(self):
         return "N" + ".".join(map(str,self.name))
     def __str__(self):
@@ -145,77 +235,124 @@ class drawablenode(node):
         for n in self.subnodes:
             s += str(n)
         return s
-    def dot(self, g, root):
-        for d in self.data:
-            n = pydot.Node(str(d.id))
-            n.set_style('filled')
-            n.set_fillcolor('red')
-            g.add_node(n)
-            g.add_edge(pydot.Edge(root,n))
-        for n in self.subnodes:
-            n2 = pydot.Node(n.namestr(), label="XXX")
-            g.add_node(n2)
-            g.add_edge(pydot.Edge(root,n2))
-            n.dot(g,n2)
+    #def dot(self, g, root):
+    #    for d in self.data:
+    #        n = pydot.Node(str(d.id))
+    #        n.set_style('filled')
+    #        n.set_fillcolor('red')
+    #        g.add_node(n)
+    #        g.add_edge(pydot.Edge(root,n))
+    #    for n in self.subnodes:
+    #        n2 = pydot.Node(n.namestr(), label="XXX")
+    #        g.add_node(n2)
+    #        g.add_edge(pydot.Edge(root,n2))
+    #        n.dot(g,n2)
 
 class edge2Dnode(drawablenode):
-    def __init__(self, depth, name, angle, length):
-        drawablenode.__init__(self,depth, name)
-        self.angle  = angle
+    def __init__(self, depth, name, length,angle,parent=None,nu=None,psi=None):
+        drawablenode.__init__(self,depth, name,nu,psi)
+        self.width  = 0.1
         self.length = length
-        self.width  = 0.01
-        self.pos    = np.zeros(2)
+        self.angle  = angle
+        self.parent = parent
+        if parent.__class__ == edge2Dnode:
+            self.update_position()
+        else:
+            self.pos = parent
+        self.vonmisesscale = 100
 
     def get_likelihood(self, d):
-        pos = d.pos.copy()
-        pos -= self.pos
-        pos = np.dot(rotmat(-self.angle),pos)
-        if pos[0]<0 or pos[0]>self.length: return 0
-        return norm.pdf(pos[1],0,self.width)/self.length
+        """" sample a data point for this edge """
+        pos = d.pos - self.parent.pos
+        pos = np.dot(rotmat(-self.angle), pos)
+        lik = halfnorm.pdf(pos[0],scale=self.length) * \
+              vonmises.pdf(np.arctan2(pos[1],pos[0]),self.vonmisesscale,loc=self.angle)
+        #assert lik!=0.0
+        return lik
 
-    def position(self,ppos):
-        pos = ppos + self.length * np.array((np.cos(self.angle), np.sin(self.angle)))
-        return pos
-    def dot(self, g, root, ppos):
+    def get_likelihood_angle(self, d):
+        """" sample a data point for this edge """
+        pos = d.pos - self.parent.pos
+        lik = vonmises.pdf(np.arctan2(pos[1],pos[0]),self.vonmisesscale,loc=self.angle)
+        return lik
+    def update_position(self):
+        self.pos = self.parent.pos + 3.0/4.0 * np.dot(rotmat(self.angle), [self.length,0])
+
+    def dot(self, g, parent=None):
+        pos = self.pos
+        color = "red" if len(self.data)>0 else "black"
+        me  = pydot.Node(self.namestr(), label="%d"%len(self.data), pos="%2.2f, %2.2f!"%(pos[0],pos[1]),color=color)
+        g.add_node(me)
+        if parent:
+            g.add_edge(pydot.Edge(parent,me))
+        for d in self.data:
+            dn = pydot.Node(str(d.id), label="X", pos="%2.2f, %2.2f!"%(d.pos[0],d.pos[1]),color="green")
+            g.add_node(dn)
+            g.add_edge(pydot.Edge(me,dn,color="gray"))
+
         for n in self.subnodes:
-            pos = self.position(ppos)
-            pos2 = pos
-            color = "red" if len(n.data)>0 else "black"
-            n2 = pydot.Node(n.namestr(), label="%d"%len(n.data), pos="%2.2f, %2.2f!"%(pos2[0],pos2[1]),color=color)
-            g.add_node(n2)
-            g.add_edge(pydot.Edge(root,n2))
-            n.dot(g,n2,pos)
-    def sample(self, d):
-        distfromline = rnd.normal(0,self.width)
-        lenonline    = rnd.uniform(0,self.length)
-        d.pos = self.pos + np.dot(rotmat(np.pi + self.angle),np.array((lenonline,distfromline)))
+            if n.lennodes>0:
+                n.dot(g,me)
 
-def gentree(name,kappa=3,minlen=1,samples=1000,alpha0=5,Lambda=.5,gamma=.25):
-    gen = edge2dgenerator(kappa,minlen)
+    def sample(self, d):
+        """" sample a data point for this edge """
+        parentpos   = self.parent.pos
+        d.parentpos = parentpos
+        d.pos       = np.dot(rotmat(self.angle), [halfnorm.rvs(scale=self.length),
+                                            np.tan(vonmises.rvs(self.vonmisesscale,loc=0))]) + parentpos
+        #d.pos       = np.dot(rotmat(self.angle), [halfnorm.rvs(scale=self.length),
+                                             #0]) + parentpos
+        d.ownpos    = self.pos
+
+def plot_tree(name,N):
+    G = pydot.Dot('Tree', graph_type="digraph")
+    N.dot(G)
+    G.write_png(name,prog='neato')
+
+def gentree(name,kappa=8,samples=100,alpha0=5,Lambda=.5,gamma=.25):
+    base_distrib = edge2d_base_distrib(3,1,kappa)
 
     hp = hyperparam(alpha0,Lambda,gamma)
-    tp = tree_process(gen,hp)
+    tp = tree_process(base_distrib,hp)
 
-    N = edge2Dnode(0,[],0,1)
+    virtual_parent = edge2Dnode(-1,[],1,0,np.zeros(2))
+    N = base_distrib(virtual_parent)
+
     L = []
     for i in xrange(samples):
         L.append(datum(i))
         tp.sift(N,L[-1])
-    print N
 
+    #import matplotlib.pyplot as plt
     #np.save("G.txt",np.array([a.pos for a in L]))
-    x = [a.pos[0] for a in L]
-    y = [a.pos[1] for a in L]
-    plt.plot(x,y, ".")
+    #x = [a.pos[0] for a in L]
+    #y = [a.pos[1] for a in L]
+    #plt.plot(x,y, ".b")
+    #x = [a.parentpos[0] for a in L]
+    #y = [a.parentpos[1] for a in L]
+    #plt.plot(x,y, "*c")
+    #x = [a.ownpos[0] for a in L]
+    #y = [a.ownpos[1] for a in L]
+    #plt.plot(x,y, "*c")
+    #plt.axis('equal')
 
-    #G = pydot.Dot('Tree', graph_type="digraph")
-    #root = pydot.Node("root")
-    #G.add_node(root)
-    #N.dot(G,root,np.zeros(2))
-    #G.write_png(name,prog='neato')
+    plot_tree("G.png", N)
 
-    plt.show()
+
+    #plt.show()
+
+    return N, L, hp, base_distrib, virtual_parent
+
+def test_inference():
+    N,data,hp,base_distrib,virtual_parent = gentree("G.png")
+    ts = tree_sampler(hp,base_distrib)
+    psi,nu = ts.get_psi_nu(0)
+    N2 = base_distrib(virtual_parent,nu=nu)
+    ts.generate(data,N2)
+    plot_tree("H.png", N2)
+
 
 if __name__ == "__main__":
-    gentree("G.png")
+    #gentree("G.png")
+    test_inference()
 
