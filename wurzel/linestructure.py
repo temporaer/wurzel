@@ -6,8 +6,11 @@ def cnan(x):
         import pdb
         pdb.set_trace()
 
-def get_curve_3D(l3,l2,l1, alpha=0.25,g23=0.5,g12=0.5): # renumerated according to sato et al: l3 is smallest
+def get_curve_3D(eig, alpha=0.25,g23=0.5,g12=0.5): # renumerated according to sato et al: l3 is smallest
     print "Finding 3D curvilinear structures..."
+    l3 = eig["lambda1"]
+    l2 = eig["lambda2"]
+    l1 = eig["lambda3"]
     gc.collect()
     #alpha       = 0.25      # 0.0: cannot deal well with curved lines. Sato: 0.25
     #g23         = 0.5       # Sato: robust btw. 0.5,1.0. sharpness of

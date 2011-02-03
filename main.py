@@ -16,8 +16,8 @@ def c3d(d, sigma):
     print "c3d with sigma", sigma
     d = d.get_smoothed(sigma)
     gc.collect()
-    l1,l2,l3 = img3dops.get_ev_of_hessian(d.D)
-    S = linestructure.get_curve_3D(l1,l2,l3,0.25,0.5,0.5)
+    eig = img3dops.get_ev_of_hessian(d.D)
+    S = linestructure.get_curve_3D(eig,0.25,0.5,0.5)
     S *= sigma**2
     #print "Saving S"
     #np.save("data/S-%02.01d.npy"%sigma, S)

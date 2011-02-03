@@ -29,9 +29,13 @@ def hessian(img, sigma=-1):
 
 def eig3x3(hessian):
     nx,ny,nz = hessian["Dxx"].shape
-    lambda1  = np.empty(hessian["Dxx"].shape)
-    lambda2  = np.empty(hessian["Dxx"].shape)
-    lambda3  = np.empty(hessian["Dxx"].shape)
+    lambda1  = np.empty(hessian["Dxx"].shape,dtype="float32")
+    lambda2  = np.empty(hessian["Dxx"].shape,dtype="float32")
+    lambda3  = np.empty(hessian["Dxx"].shape,dtype="float32")
+
+    ev10     = np.empty(hessian["Dxx"].shape,dtype="float32")
+    ev11     = np.empty(hessian["Dxx"].shape,dtype="float32")
+    ev12     = np.empty(hessian["Dxx"].shape,dtype="float32")
     code = """
       #line 37 "structure_tensor.py"
       namespace ublas = boost::numeric::ublas;
@@ -58,19 +62,22 @@ def eig3x3(hessian):
               A(0,2) = Dxz(i,j,k);
               A(1,2) = Dyz(i,j,k);
 
-              lapack::syev('N','U',A,lambda,lapack::optimal_workspace());
+              lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
               //lapack::syev('N','U',A,lambda,lapack::workspace(work));
               sort(lambda.begin(),lambda.end());
 
-              lambda1(i,j,k) = lambda(0);
+              lambda1(i,j,k) = lambda(0);  // eigenvalues in ascending order
               lambda2(i,j,k) = lambda(1);
               lambda3(i,j,k) = lambda(2);
+              ev10(i,j,k)    = A(0,0);
+              ev11(i,j,k)    = A(0,1);
+              ev12(i,j,k)    = A(0,2);
             }
           }
         }
         """
     V = vars()
-    variables = "nx ny nz lambda1 lambda2 lambda3".split()
+    variables = "nx ny nz lambda1 lambda2 lambda3 ev10 ev11 ev12".split()
     variables.extend(hessian.keys())
     map(lambda x:V.__setitem__(x[0],x[1]), hessian.items())
     inline(code, variables,
@@ -95,12 +102,12 @@ def eig3x3(hessian):
                           '<cmath>'],
                  type_converters=converters.blitz,
                  libraries=["lapack"])
-    return lambda1, lambda2, lambda3
+    return {"lambda1":lambda1,"lambda2": lambda2, "lambda3":lambda3, "ev10": ev10, "ev11": ev11, "ev12": ev12}
 
 def get_ev_of_hessian(D,sigma=-1):
     print "Calculating Hessian"
     res = hessian(D, sigma)
     print "Calculating Symev"
-    l1,l2,l3 = eig3x3(res)
+    eig = eig3x3(res)
     print "done"
-    return l1,l2,l3
+    return eig
