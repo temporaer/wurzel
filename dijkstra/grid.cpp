@@ -63,7 +63,7 @@ double voxdist(I a, I b){
 	double s = 0;
 	s += SQR(*a-*b); a++; b++;
 	s += SQR(*a-*b); a++; b++;
-	s += SQR(*a-*b); a++; b++;
+	s += SQR(*a-*b); 
 	return sqrt(s);
 }
 
@@ -100,7 +100,8 @@ voxel_edge_weight_map::operator[](key_type e) const {
 	voxel_vertex_descriptor s = source(e,m_graph);
 	voxel_vertex_descriptor v = target(e,m_graph);
 	float_grid& a = *g_sato;
-	float f = exp(-(float)a[v[0]][v[1]][v[2]]*10.f);
+	//double f = exp(-a[v[0]][v[1]][v[2]]);
+	double f = a[v[0]][v[1]][v[2]];
 	return f * voxdist(s.begin(),v.begin());
 }
 
@@ -207,7 +208,7 @@ void rank_op(voxelgraph_t& vg, const T& rankmap, const U& valuemap, const V& tra
 		double myval = valuemap[*vi];
 		tie(oei,oeend) = out_edges(*vi,vg);
 		for(;oei!=oeend;++oei)
-		    if(valuemap[target(*oei,vg)] >= myval)
+		    if(valuemap[target(*oei,vg)] <= myval)
 		        order++;
 		//rankmap[*vi] = 255 - 9 * order;
 		rankmap[*vi] = order;
@@ -400,19 +401,20 @@ int main(int argc, char* argv[]) {
   std::ifstream dat0("../data/L2_22aug-upsampled.dat", std::ios::in | std::ios::binary);
   unsigned char* data0 = new unsigned char[XYZ];
   dat0.read((char*)data0,X*Y*Z);
-  uc_grid A0(data0,boost::extents[X][Y][Z]);
+  uc_grid Raw(data0,boost::extents[X][Y][Z]);
   dat0.close();
 
   std::ifstream dat("../data/L2_22aug.sato", std::ios::in | std::ios::binary);
+  //std::ifstream dat("../data/L2_22aug-preproc.dat", std::ios::in | std::ios::binary);
   float* data = new float[XYZ];
   dat.read((char*)data,XYZ*sizeof(*data));
-  float_grid A(data,boost::extents[X][Y][Z]);
-  g_sato = &A;
+  float_grid Sato(data,boost::extents[X][Y][Z]);
+  g_sato = &Sato;
   dat.close();
 
   unsigned char* paths = new unsigned char[XYZ];
   std::fill(paths, paths+XYZ, (unsigned char) 0);
-  uc_grid B(paths,boost::extents[X][Y][Z]);
+  uc_grid Paths(paths,boost::extents[X][Y][Z]);
 
   unsigned char* ranks = new unsigned char[XYZ];
   std::fill(ranks, ranks+XYZ, (unsigned char) 255);
@@ -426,6 +428,15 @@ int main(int argc, char* argv[]) {
   voxel_vertex_descriptor first_vertex = vertex((vidx_t)0, graph);
   voxel_vertex_iterator vi, vend;
 
+  wurzel_vertex_iterator wi,wend;
+  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
+      voxel_vertex_descriptor v = *vi;
+      float& f = Sato[v[0]][v[1]][v[2]];
+	  f  = exp(-20.f * std::max(0.f,f-0.3f) );
+  }
+  stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
+  std::cout << V(min(s_sato)) << V(mean(s_sato)) << V(max(s_sato))<<std::endl;
+
   predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
@@ -436,11 +447,12 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Tracing paths..." <<std::endl;
   double start_threshold       = 0.2*255;
-  //double total_len_perc_thresh = 1.00;
+  double total_len_perc_thresh = 0.50;
+  double avg_len_perc_thresh   = 0.25;
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
-  stat_t pathlens;
-  vox2arr<uc_grid> vox2raw(A0);
+  stat_t s_avg_pathlen, s_pathlen, s_cnt;
+  vox2arr<uc_grid> vox2raw(Raw);
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  voxel_vertex_descriptor v = *vi;
 	  float val = vox2raw[v];
@@ -455,16 +467,21 @@ int main(int argc, char* argv[]) {
 		  cnt++;
 		  v = p_map[v];
 	  }
+	  s_cnt(cnt);
+	  s_pathlen(total_dist);
 	  if(cnt>0)
-		  pathlens(total_dist/cnt);
+		  s_avg_pathlen(total_dist/cnt);
   }
-  std::cout << "Pathlen stats: "<< min(pathlens)<<" "<<mean(pathlens)<<" "<<max(pathlens)<<std::endl;
+  std::cout << "Total   Pathlens: "<< min(    s_pathlen)<<" "<<mean(    s_pathlen)<<" "<<max(    s_pathlen)<<std::endl;
+  std::cout << "Average Pathlens: "<< min(s_avg_pathlen)<<" "<<mean(s_avg_pathlen)<<" "<<max(s_avg_pathlen)<<std::endl;
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  voxel_vertex_descriptor v = *vi;
-	  float val = A0[v[0]][v[1]][v[2]];
+	  float val = Raw[v[0]][v[1]][v[2]];
 	  if(val<start_threshold)
 		  continue;
 	  float total_dist   = d_map[*vi];
+	  if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
+		  continue;
 	  v = *vi;
 	  unsigned int cnt = 0;
 	  while(1){ 
@@ -473,11 +490,11 @@ int main(int argc, char* argv[]) {
 		  cnt++;
 		  v = p_map[v];
 	  }
-	  if(total_dist/cnt > max(pathlens)*0.15)
+	  if(total_dist/cnt > max(s_avg_pathlen)*avg_len_perc_thresh)
 		  continue;
 	  v = *vi;
 	  while(1){ 
-		  B[v[0]][v[1]][v[2]] = 255;
+		  Paths[v[0]][v[1]][v[2]] = 255.f * (cnt-- - min(s_cnt))/(max(s_cnt)-min(s_cnt));
 		  if(boost::get(vertex_index,graph,v) == strunk_idx)
 			  break;
 		  v = p_map[v];
@@ -485,25 +502,17 @@ int main(int argc, char* argv[]) {
   }
   
   // find local ranks
-  rank_op(graph,make_vox2arr(Ranks),make_vox2arr(A),make_vox2arr(B));
+  rank_op(graph,make_vox2arr(Ranks),make_vox2arr(Sato),make_vox2arr(Paths));
 
   wurzelgraph_t wgraph;
-  paths2adjlist(graph,wgraph,p_map,make_vox2arr(B));
+  paths2adjlist(graph,wgraph,p_map,make_vox2arr(Paths));
   remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
   //erode_tree(wgraph);
   //merge_deg2_nodes(wgraph);
 
-  // fill B again with eroded graph
-  //std::fill(paths, paths+XYZ, (unsigned char) 0); // == B
-  //wurzel_vertex_iterator wi,wend;
-  //for (tie(wi, wend) = vertices(wgraph); wi != wend; ++wi) {
-  //    voxel_vertex_descriptor w = get(vertex_name,wgraph)[*wi];
-  //    B[w[0]][w[1]][w[2]] = 40 * out_degree(*wi,wgraph);
-  //}
-
   std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
   print_wurzel_vertices("data/vertices.txt",wgraph,idx_map);
   print_wurzel_edges("data/edges.txt",wgraph,idx_map);
-  write_voxelgrid<unsigned char>("data/paths.dat",graph,make_vox2arr(B));
+  write_voxelgrid<unsigned char>("data/paths.dat",graph,make_vox2arr(Paths));
   write_voxelgrid<unsigned char>("data/ranks.dat",graph,make_vox2arr(Ranks));
 }
