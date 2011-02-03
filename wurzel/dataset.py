@@ -37,9 +37,9 @@ class dataset(object):
         #print "mm: 100 x 100 x 131"
         #print "Dims:", self.D.shape
         if method == "zoom":
-            self.D = zoom(self.D, [1,1,256.0/120.0 * 100.0/100.0])
+            self.D = zoom(self.D, [1,1,256.0/120.0 * 100.0/100.0]).astype("float32")
         elif method == "resample":
-            self.D = resample(self.D, 120 * (256.0/120.0 * 100.0/100.0), axis=2, window=10)
+            self.D = resample(self.D, 120 * (256.0/120.0 * 100.0/100.0), axis=2, window=10).astype("float32")
         elif method == None:
             pass
         else:
@@ -55,3 +55,5 @@ class dataset(object):
     def save(self, datafile):
         with open(datafile,"wb") as f:
             cPickle.dump(self.D, f, cPickle.HIGHEST_PROTOCOL)
+        upsname = datafile.replace(".pickle","-upsampled.dat")
+        self.D.tofile(upsname)
