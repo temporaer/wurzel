@@ -58,7 +58,7 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
 
     v = mlab.pipeline.volume(src, vmin=mind+minfact*ptpd,vmax=mind+maxfact*ptpd)
 
-    if not (cm == "Spectral") or True:
+    if not (cm == "Spectral"):
         ctf = ColorTransferFunction()
         ctf.range = R
         ctf.add_rgb_point(mind, 1,1,1)
@@ -76,7 +76,7 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
     #otf.add_point(R[0]+0.1*ptpd, 0.1)
     #otf.add_point(R[0]+0.2*ptpd, 0.3)
     #otf.add_point(R[0]+0.3*ptpd, 0.5)
-    otf.add_point(R[0]+0.4*ptpd, 0.7)
+    otf.add_point(R[0]+0.2*ptpd, 0.7)
     otf.add_point(R[1], 1.0)
     otf.add_point(mind+ptpd, 1.0)
     v._otf = otf
