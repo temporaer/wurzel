@@ -59,10 +59,10 @@ if __name__ == "__main__":
   fig.scene.anti_aliasing_frames=8
   mlab.clf()
 
-  Draw  = dataset("data/L2_22aug.dat", upsample="zoom", crop=False,usepickled=True).D
-  Ddist = dataset("dijkstra/data/paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
+  #Draw  = dataset("data/L2_22aug.dat", upsample="zoom", crop=False,usepickled=True).D
+  #Ddist = dataset("dijkstra/data/paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset("dijkstra/data/ranks.dat", dz=256, dtype="uint8", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  Dsato = np.load("res.npy").astype("float32")
+  Dsato  = dataset("data/L2_22aug.sato", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
   #minv = dmin+0.15*dptp
@@ -71,7 +71,7 @@ if __name__ == "__main__":
   #print "Number of connected components: ", nf
 
   #viewer.show_points("dijkstra/data/ranks.txt",cm="Spectral", mode="sphere")
-  viewer.show_points("dijkstra/data/vertices.txt", "dijkstra/data/edges.txt")
+  #viewer.show_points("dijkstra/data/vertices.txt", "dijkstra/data/edges.txt")
   #viewer.show_iso(Ddist, 0.007 , "RdGy", 0.7)  
   #viewer.show_iso(255.-Ddist, 1./26., "jet", 0.7)  
   #viewer.show_iso(255-Ddist, [1/26.,2/26.], "RdGy", 0.2)
@@ -90,7 +90,7 @@ if __name__ == "__main__":
   #  mkimg(fig, "raw")
   #  mlab.clf()
 
-  #viewer.show_iso(Dsato, 0.07 , "Spectral", 0.2)  
+  viewer.show_iso(Dsato, 0.07 , "Spectral", 0.2)  
   #if offscreen:
   # mkimg(fig, "sato-iso")
   # mlab.clf()

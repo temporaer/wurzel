@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     print "Scattering sigmas"
     s = 1.1
-    sigma0 = 1.1
+    sigma0 = 1.3
     sigmas = []
     sigmas.extend([sigma0 * s**i for i in xrange(1,4)])
     mec.scatter('sigmas',   sigmas)
