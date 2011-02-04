@@ -62,8 +62,8 @@ def eig3x3(hessian):
               A(0,2) = Dxz(i,j,k);
               A(1,2) = Dyz(i,j,k);
 
-              //lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
-              lapack::syev('N','U',A,lambda,lapack::workspace(work));
+              lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
+              //lapack::syev('N','U',A,lambda,lapack::workspace(work));
               sort(lambda.begin(),lambda.end());
 
               lambda1(i,j,k) = lambda(0);  // eigenvalues in ascending order
@@ -102,6 +102,9 @@ def eig3x3(hessian):
                           '<cmath>'],
                  type_converters=converters.blitz,
                  libraries=["lapack"])
+    assert np.isnan(ev10).sum()==0
+    assert np.isnan(ev11).sum()==0
+    assert np.isnan(ev12).sum()==0
     return {"lambda1":lambda1,"lambda2": lambda2, "lambda3":lambda3, "ev10": ev10, "ev11": ev11, "ev12": ev12}
 
 def get_ev_of_hessian(D,sigma=-1):
