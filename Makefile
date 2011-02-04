@@ -1,3 +1,4 @@
+.PHONY: dijkstraf dijkstra all sato vis
 all: sato vis
 sato:
 	python -O main.py data/L2_17aug.dat
