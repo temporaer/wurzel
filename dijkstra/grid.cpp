@@ -450,17 +450,19 @@ int main(int argc, char* argv[]) {
   voxel_vertex_iterator vi, vend;
 
   wurzel_vertex_iterator wi,wend;
+  stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
       voxel_vertex_descriptor v = *vi;
       float& f = Sato[v[0]][v[1]][v[2]];
-	  //f = std::max(0.f, f-0.3f) * 1.f/0.7f;
-	  //f  = exp(-10.f * log(1.f+f)/log(2.f) );
-	  f  = exp(-10.f * f );
+			//f = std::max(0.f, f-0.3f) * 1.f/0.7f;
+			//f  = exp(-10.f * log(1.f+f)/log(2.f) );
+			f  = exp(-10.f * f );
+
+      float& g = Raw[v[0]][v[1]][v[2]];
+			g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
   }
   stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
-  stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
   std::cout << "Sato: " << s_sato <<std::endl;
-  std::cout << "Raw: " << s_raw <<std::endl;
 
   predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
@@ -472,9 +474,9 @@ int main(int argc, char* argv[]) {
   stat_t s_allpaths = voxel_stats(graph,d_map);
 
   std::cout << "Tracing paths..." <<std::endl;
-  double start_threshold       = min(s_raw) + 0.1*(max(s_raw)-min(s_raw));
+  double start_threshold       = 0.2;
   double total_len_perc_thresh = 0.09;
-  double avg_len_perc_thresh   = 0.05;
+  double avg_len_perc_thresh   = 0.55;
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t s_avg_pathlen, s_pathlen, s_cnt;
