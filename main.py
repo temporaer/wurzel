@@ -22,7 +22,12 @@ def c3d(d, sigma):
     #print "Saving S"
     #np.save("data/S-%02.01d.npy"%sigma, S)
     #comm.Send(S, dest=0, tag=77)
-    return S.astype("float32")
+    res = {}
+    res["sato"] = S.astype("float32")
+    res["ev10"] = eig["ev10"]
+    res["ev11"] = eig["ev11"]
+    res["ev12"] = eig["ev12"]
+    return res
 
 def loaddata(fn,slave=True):
     print "Loading dataset"
@@ -38,40 +43,71 @@ if __name__ == "__main__":
     basename = filename[:-4] # cut off ".dat"
     #D = loaddata(basename,slave=False)
 
-    from IPython.kernel import client
-    mec = client.MultiEngineClient()
-    mec.activate()
-    mec.flush()
-    print "running on ids ", mec.get_ids()
-
-    print "Importing on remote systems"
-    mec.block = True
-    print mec.execute("import os")
-    print mec.execute("os.system('rm -f /tmp/*.so')")
-    print mec.execute("os.chdir(\"%s\")"%os.path.realpath("."))
-    print mec.execute("from main import *")
-    print mec.execute("from wurzel.dataset import dataset")
-    print mec.execute("D = loaddata('%s')"%basename)
-    #print mec.push(dict(D=D))
-
-    print "Scattering sigmas"
     s = 1.1
-    sigma0 = 0.9
+    sigma0 = 1.0
     sigmas = []
-    sigmas.extend([sigma0 * s**i for i in xrange(1,5)])
-    mec.scatter('sigmas',   sigmas)
-    print mec.execute("print sigmas")
-    print "Executing..."
-    print mec.execute("res = [c3d(D,s) for s in sigmas]")
+    sigmas.extend([sigma0 * s**i for i in xrange(0,4)])
 
-    print "Gathering..."
-    mec.block=True
-    res = mec.gather("res")
+    use_ip = False
+    if use_ip:
+        from IPython.kernel import client
+        mec = client.MultiEngineClient()
+        mec.activate()
+        mec.flush()
+        print "running on ids ", mec.get_ids()
+
+        print "Importing on remote systems"
+        mec.block = True
+        print mec.execute("import os")
+        print mec.execute("os.system('rm -f /tmp/*.so')")
+        print mec.execute("os.chdir(\"%s\")"%os.path.realpath("."))
+        print mec.execute("from main import *")
+        print mec.execute("from wurzel.dataset import dataset")
+        print mec.execute("D = loaddata('%s')"%basename)
+        #print mec.push(dict(D=D))
+
+        print "Scattering sigmas"
+        mec.scatter('sigmas',   sigmas)
+    cmdl = ["res = [c3d(D,s) for s in sigmas]",
+            "sato = [x['sato'] for x in res]",
+            "ev10 = [x['ev10'] for x in res]",
+            "ev11 = [x['ev11'] for x in res]",
+            "ev12 = [x['ev12'] for x in res]",]
+
+    print "Executing..."
+    if use_ip:
+        for c in cmdl:
+            print mec.execute(c)
+        print "Gathering..."
+        mec.block=True
+        sato = mec.gather("sato")
+        ev10 = mec.gather("ev10")
+        ev11 = mec.gather("ev11")
+        ev12 = mec.gather("ev12")
+    else:
+        D = loaddata(basename)
+        for c in cmdl:
+            print "Executing ", c
+            c = compile(c, '<string>', 'exec')
+            eval(c,globals(), locals())
+
+    print "Finding maxima"
     #import pdb; pdb.set_trace()
-    x = reduce(np.maximum, res).astype("float32")
+    for s in xrange(1,len(sigmas)):
+        arg = sato[0] < sato[s]
+        sato[0][arg] = sato[s][arg]
+        ev10[0][arg] = ev10[s][arg]
+        ev11[0][arg] = ev11[s][arg]
+        ev12[0][arg] = ev12[s][arg]
+    x = sato[0]
     x -= x.min(); x /= x.max()
+    print "Saving to ", basename+".sato", "range:", x.min(),x.max()
     np.save("res.npy", x)
     x.tofile(basename+".sato")
+    ev10[0].tofile(basename+".ev10")
+    ev11[0].tofile(basename+".ev11")
+    ev12[0].tofile(basename+".ev12")
+    
     #os.system("scp res.npy l_schulz@gitta:checkout/git/wurzel/data/neu.npy")
     #os.execl("/usr/bin/ssh", "ssh", "-X", "l_schulz@gitta","cd checkout/git/wurzel; ipython -wthread vis.py")
     print "Done"
