@@ -36,7 +36,7 @@ if __name__ == "__main__":
         print "usage: ", sys.argv[0], "[filename]"
         sys.exit()
     basename = filename[:-4] # cut off ".dat"
-    D = loaddata(basename,slave=False)
+    #D = loaddata(basename,slave=False)
 
     from IPython.kernel import client
     mec = client.MultiEngineClient()
@@ -56,9 +56,9 @@ if __name__ == "__main__":
 
     print "Scattering sigmas"
     s = 1.1
-    sigma0 = 1.3
+    sigma0 = 0.9
     sigmas = []
-    sigmas.extend([sigma0 * s**i for i in xrange(1,4)])
+    sigmas.extend([sigma0 * s**i for i in xrange(1,5)])
     mec.scatter('sigmas',   sigmas)
     print mec.execute("print sigmas")
     print "Executing..."
