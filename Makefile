@@ -1,7 +1,7 @@
 .PHONY: dijkstraf dijkstra all sato vis
 all: sato vis
 sato:
-	python -O main.py data/L2_17aug.dat
+	python -O main.py data/L2_22aug.dat
 dijkstraf:
 	make -C dijkstra runf
 dijkstra:
