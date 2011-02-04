@@ -119,8 +119,7 @@ class tree_sampler(adams_tree):
     def generate(self,data, root):
         for d in data:
             d.node = root
-            root.add_data(d)
-        for i in xrange(100):
+        for i in xrange(1):
             self.__sample_assignments(data,root)
             self.__sample_sticks(root)
             self.__sample_nodes(root)
@@ -281,7 +280,8 @@ class edge2Dnode(drawablenode):
     def dot(self, g, parent=None):
         pos = self.pos
         color = "red" if len(self.data)>0 else "black"
-        me  = pydot.Node(self.namestr(), label="%d"%len(self.data), pos="%2.2f, %2.2f!"%(pos[0],pos[1]),color=color)
+        #me  = pydot.Node(self.namestr(), label="%d"%len(self.data), pos="%2.2f, %2.2f!"%(pos[0],pos[1]),color=color)
+        me  = pydot.Node(self.namestr(), label=self.namestr(), pos="%2.2f, %2.2f!"%(pos[0],pos[1]),color=color)
         g.add_node(me)
         if parent:
             g.add_edge(pydot.Edge(parent,me))
@@ -291,7 +291,7 @@ class edge2Dnode(drawablenode):
             g.add_edge(pydot.Edge(me,dn,color="gray"))
 
         for n in self.subnodes:
-            if n.lennodes>0:
+            if n.lennodes>0 or True:
                 n.dot(g,me)
 
     def sample(self, d):
@@ -300,8 +300,6 @@ class edge2Dnode(drawablenode):
         d.parentpos = parentpos
         d.pos       = np.dot(rotmat(self.angle), [halfnorm.rvs(scale=self.length),
                                             np.tan(vonmises.rvs(self.vonmisesscale,loc=0))]) + parentpos
-        #d.pos       = np.dot(rotmat(self.angle), [halfnorm.rvs(scale=self.length),
-                                             #0]) + parentpos
         d.ownpos    = self.pos
 
 def plot_tree(name,N):
@@ -317,29 +315,30 @@ def gentree(name,kappa=8,samples=100,alpha0=5,Lambda=.5,gamma=.25):
 
     virtual_parent = edge2Dnode(-1,[],1,0,np.zeros(2))
     N = base_distrib(virtual_parent)
+    virtual_parent.subnodes.append(N)
 
     L = []
     for i in xrange(samples):
         L.append(datum(i))
         tp.sift(N,L[-1])
 
-    #import matplotlib.pyplot as plt
-    #np.save("G.txt",np.array([a.pos for a in L]))
-    #x = [a.pos[0] for a in L]
-    #y = [a.pos[1] for a in L]
-    #plt.plot(x,y, ".b")
-    #x = [a.parentpos[0] for a in L]
-    #y = [a.parentpos[1] for a in L]
-    #plt.plot(x,y, "*c")
-    #x = [a.ownpos[0] for a in L]
-    #y = [a.ownpos[1] for a in L]
-    #plt.plot(x,y, "*c")
-    #plt.axis('equal')
+    import matplotlib.pyplot as plt
+    np.save("G.txt",np.array([a.pos for a in L]))
+    x = [a.pos[0] for a in L]
+    y = [a.pos[1] for a in L]
+    plt.plot(x,y, ".b")
+    x = [a.parentpos[0] for a in L]
+    y = [a.parentpos[1] for a in L]
+    plt.plot(x,y, "*c")
+    x = [a.ownpos[0] for a in L]
+    y = [a.ownpos[1] for a in L]
+    plt.plot(x,y, "*c")
+    plt.axis('equal')
 
-    plot_tree("G.png", N)
+    plot_tree("G.png", virtual_parent)
 
 
-    #plt.show()
+    plt.show()
 
     return N, L, hp, base_distrib, virtual_parent
 
@@ -348,8 +347,10 @@ def test_inference():
     ts = tree_sampler(hp,base_distrib)
     psi,nu = ts.get_psi_nu(0)
     N2 = base_distrib(virtual_parent,nu=nu)
+    virtual_parent.subnodes = []
+    virtual_parent.subnodes.append(N2)
     ts.generate(data,N2)
-    plot_tree("H.png", N2)
+    plot_tree("H.png", virtual_parent)
 
 
 if __name__ == "__main__":
