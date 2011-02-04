@@ -401,6 +401,9 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 }
 
 int main(int argc, char* argv[]) {
+	bool force_recompute_dijkstra = false;
+  if(argc>1)
+	  force_recompute_dijkstra = true;
   std::ifstream ifs_raw("../data/L2_22aug-upsampled.dat", std::ios::in | std::ios::binary);
 	if(!ifs_raw.is_open()) exit(1);
   float* raw_ptr = new float[XYZ];
@@ -450,7 +453,7 @@ int main(int argc, char* argv[]) {
   predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
-  find_shortest_paths(graph,strunk,p_map,d_map,false);
+  find_shortest_paths(graph,strunk,p_map,d_map,force_recompute_dijkstra);
   std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
   std::cout << "Determining scaling factors..." <<std::endl;

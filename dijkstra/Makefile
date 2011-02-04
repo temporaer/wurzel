@@ -5,6 +5,8 @@ grid_dbg: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp
 	g++ -Wall -O0 -g3 $(LDFLAGS) -o grid_dbg grid.cpp -I boost_1_45_0 
 dbg: grid_dbg
 	LD_LIBRARY_PATH=boost_1_45_0/stage/lib cgdb ./grid_dbg
+runf: grid
+	LD_LIBRARY_PATH=boost_1_45_0/stage/lib ./grid force
 run: grid
 	LD_LIBRARY_PATH=boost_1_45_0/stage/lib ./grid
 	#neato -Tpng  dijkstra-eg.dot > bla.png
