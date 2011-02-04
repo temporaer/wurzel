@@ -1,6 +1,10 @@
 //=======================================================================
-// Copyright 2011 University of Bonn
-// Author: Hannes Schulz
+// Copyright 2009 Trustees of Indiana University.
+// Authors: Michael Hansen, Andrew Lumsdaine
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
 //=======================================================================
 
 #include <algorithm>
@@ -21,7 +25,6 @@
 #include "boost/filesystem.hpp"
 #include "voxelgrid.hpp"
 #include "wurzel_tree.hpp"
-
 #define SQR(X) ((X)*(X))
 #define V(X) #X<<":"<<(X)<<"  "
 
@@ -40,7 +43,7 @@ typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > sta
 
 std::ostream& 
 operator<<(std::ostream& o, const stat_t& s) {
-	o << "min:"<<min(s)<<"  mean:"<<mean(s)<<"  max:"<<max(s);
+	o<<"min: "<<min(s)<<"  mean: "<<mean(s)<<"  max:"<<max(s);
   return o;
 }
 std::ostream& 
@@ -71,7 +74,7 @@ double voxdist(I a, I b){
 	return sqrt(s);
 }
 
-float_grid* g_sato;
+float_grid* g_sato, *g_ev10, *g_ev11, *g_ev12;
 
 template<class T>
 struct const_vox2arr{
@@ -97,19 +100,21 @@ vox2arr<T> make_vox2arr(T& t){ return vox2arr<T>(t); }
 template<class T>
 const_vox2arr<T> make_vox2arr(const T& t){ return const_vox2arr<T>(t); }
 
-// map from edges to weights    __WEIGHT__
+// map from edges to weights
 voxel_edge_weight_map::reference 
 voxel_edge_weight_map::operator[](key_type e) const {
-	//double d = get(vertex_index, m_graph)[target(e,m_graph)];
 	voxel_vertex_descriptor s = source(e,m_graph);
-	voxel_vertex_descriptor v = target(e,m_graph);
-	float_grid& a = *g_sato;
-	//double f = exp(-a[v[0]][v[1]][v[2]]);
-	double f = a[v[0]][v[1]][v[2]];
-	return f * voxdist(s.begin(),v.begin());
-}
+	voxel_vertex_descriptor t = target(e,m_graph);
+	vox2arr<float_grid> sato = make_vox2arr(*g_sato);
+	//vox2arr<float_grid> ev10 = make_vox2arr(*g_ev10);
+	//vox2arr<float_grid> ev11 = make_vox2arr(*g_ev11);
+	//vox2arr<float_grid> ev12 = make_vox2arr(*g_ev12);
 
-static const unsigned int X=256,Y=256,Z=256,XYZ=X*Y*Z;
+	//double g = ev10[s]*ev10[t] + ev11[s]*ev11[t] + ev12[s]*ev12[t];
+
+	//return sato[t] * voxdist(s.begin(),t.begin()) * exp(-3.f*g);
+	return sato[t];
+}
 
 template<class F, class T>
 void write_voxelgrid(const std::string& name, voxelgraph_t& graph, const T& map){
@@ -194,7 +199,7 @@ void paths2adjlist(voxelgraph_t& vg, wurzelgraph_t& wg, predecessor_map_t& p_map
 			add_edge((*res).second,*vi,wg);
 		}
 	}
-	std::cout <<"done."<<std::endl;
+	std::cout <<"done ("<<V(num_vertices(wg))<<")"<<std::endl;
 }
 
 template<class T, class U, class V>
@@ -204,6 +209,7 @@ void rank_op(voxelgraph_t& vg, const T& rankmap, const U& valuemap, const V& tra
 	std::ofstream ofs("data/ranks.txt");
 	ofs << "0 0 0 0"<<std::endl;
 	voxelg_traits::out_edge_iterator oei,oeend;
+	unsigned int cnt = 0;
 	for (tie(vi, vend) = vertices(vg); vi != vend; ++vi){
 		voxel_vertex_descriptor vd = *vi;
 		if(!tracesmap[*vi]) continue;
@@ -215,12 +221,14 @@ void rank_op(voxelgraph_t& vg, const T& rankmap, const U& valuemap, const V& tra
 		        order++;
 		//rankmap[*vi] = 255 - 9 * order;
 		rankmap[*vi] = order;
+		if(order==0) cnt++;
 
 		if(order!=0)
 			continue;
 		voxel_vertex_descriptor v = *vi;
 		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<255<<std::endl;
 	}
+	std::cout <<"Found "<< V(cnt)<<" maxima"<<std::endl;
 }
 void erode_tree(wurzelgraph_t& wg){
 	std::cout <<"Eroding tree (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
@@ -400,25 +408,30 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 	ofs.close();
 }
 
-int main(int argc, char* argv[]) {
-	bool force_recompute_dijkstra = false;
-  if(argc>1)
-	  force_recompute_dijkstra = true;
-  std::ifstream ifs_raw("../data/L2_22aug-upsampled.dat", std::ios::in | std::ios::binary);
-	if(!ifs_raw.is_open()) exit(1);
-  float* raw_ptr = new float[XYZ];
-  ifs_raw.read((char*)raw_ptr,XYZ*sizeof(*raw_ptr));
-  float_grid Raw(raw_ptr,boost::extents[X][Y][Z]);
-  ifs_raw.close();
+template<class T>
+boost::multi_array_ref<T, 3> 
+read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
+  std::ifstream dat(fn.c_str(), std::ios::in | std::ios::binary);
+  if(!dat.is_open())	{
+	  std::cerr << "Could not open "<<fn<<" --> exiting."<<std::endl;
+	  exit(1);
+  }
+  T* data = new T[X*Y*Z];
+  dat.read((char*)data,X*Y*Z*sizeof(T));
+  dat.close();
+  return boost::multi_array_ref<T,3>(data,boost::extents[X][Y][Z]);
+}
 
-  std::ifstream ifs_sato("../data/L2_22aug.sato", std::ios::in | std::ios::binary);
-	if(!ifs_sato.is_open()) exit(1);
-  //std::ifstream ifs_sato("../data/L2_22aug-preproc.dat", std::ios::in | std::ios::binary);
-  float* sato_ptr = new float[XYZ];
-  ifs_sato.read((char*)sato_ptr,XYZ*sizeof(*sato_ptr));
-  float_grid Sato(sato_ptr,boost::extents[X][Y][Z]);
-  g_sato = &Sato;
-  ifs_sato.close();
+int main(int argc, char* argv[]) {
+	static const unsigned int X=256,Y=256,Z=256,XYZ=X*Y*Z;
+	bool force_recompute_dijkstra = false;
+	if(argc>1)
+		force_recompute_dijkstra = true;
+  float_grid Raw  = read3darray<float>("../data/L2_22aug-upsampled.dat",X,Y,Z);
+  float_grid Sato = read3darray<float>("../data/L2_22aug.sato",X,Y,Z); g_sato = &Sato;
+  float_grid ev10 = read3darray<float>("../data/L2_22aug.ev10",X,Y,Z); g_ev10 = &ev10;
+  float_grid ev11 = read3darray<float>("../data/L2_22aug.ev11",X,Y,Z); g_ev11 = &ev11;
+  float_grid ev12 = read3darray<float>("../data/L2_22aug.ev12",X,Y,Z); g_ev12 = &ev12;
 
   unsigned char* paths = new unsigned char[XYZ];
   std::fill(paths, paths+XYZ, (unsigned char) 0);
@@ -436,19 +449,18 @@ int main(int argc, char* argv[]) {
   voxel_vertex_descriptor first_vertex = vertex((vidx_t)0, graph);
   voxel_vertex_iterator vi, vend;
 
-  stat_t s_raw = voxel_stats(graph, make_vox2arr(Raw));
   wurzel_vertex_iterator wi,wend;
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
       voxel_vertex_descriptor v = *vi;
       float& f = Sato[v[0]][v[1]][v[2]];
-			f  = exp(-10.f * log(1.f+f)/log(2.f) );
-			//f  = 1.f-log(1.f+f)/log(2.f);
-
-      float& g = Raw[v[0]][v[1]][v[2]];
-			g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
+	  //f = std::max(0.f, f-0.3f) * 1.f/0.7f;
+	  //f  = exp(-10.f * log(1.f+f)/log(2.f) );
+	  f  = exp(-10.f * f );
   }
   stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
+  stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
   std::cout << "Sato: " << s_sato <<std::endl;
+  std::cout << "Raw: " << s_raw <<std::endl;
 
   predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
@@ -460,17 +472,16 @@ int main(int argc, char* argv[]) {
   stat_t s_allpaths = voxel_stats(graph,d_map);
 
   std::cout << "Tracing paths..." <<std::endl;
-  double start_threshold       = 0.2;
-  double total_len_perc_thresh = 0.50;
-  double avg_len_perc_thresh   = 0.15;
+  double start_threshold       = min(s_raw) + 0.1*(max(s_raw)-min(s_raw));
+  double total_len_perc_thresh = 0.09;
+  double avg_len_perc_thresh   = 0.05;
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t s_avg_pathlen, s_pathlen, s_cnt;
   vox2arr<float_grid> vox2raw(Raw);
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  voxel_vertex_descriptor v = *vi;
-	  float val = vox2raw[v];
-	  if(val<start_threshold)
+	  if(vox2raw[v] < start_threshold)
 		  continue;
 	  float total_dist   = d_map[*vi];
 	  v = *vi;
@@ -486,13 +497,14 @@ int main(int argc, char* argv[]) {
 	  if(cnt>0)
 		  s_avg_pathlen(total_dist/cnt);
   }
+
   std::cout << "Total   Pathlens: "<< s_pathlen<<std::endl;
   std::cout << "Average Pathlens: "<< s_avg_pathlen<<std::endl;
   std::cout << "Hop     Pathlens: "<< s_cnt<<std::endl;
+
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  voxel_vertex_descriptor v = *vi;
-	  float val = Raw[v[0]][v[1]][v[2]];
-	  if(val<start_threshold)
+	  if(vox2raw[v]<start_threshold)
 		  continue;
 	  float total_dist   = d_map[*vi];
 	  if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
