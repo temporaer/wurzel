@@ -62,8 +62,8 @@ def eig3x3(hessian):
               A(0,2) = Dxz(i,j,k);
               A(1,2) = Dyz(i,j,k);
 
-              lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
-              //lapack::syev('N','U',A,lambda,lapack::workspace(work));
+              //lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
+              lapack::syev('N','U',A,lambda,lapack::workspace(work));
               sort(lambda.begin(),lambda.end());
 
               lambda1(i,j,k) = lambda(0);  // eigenvalues in ascending order
