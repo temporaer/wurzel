@@ -4,7 +4,7 @@ import numpy.random as rnd
 import pydot
 from progressbar import ProgressBar, Percentage, Bar, ETA, \
      RotatingMarker
-from scipy.stats.distributions import halfnorm, vonmises, gamma
+from scipy.stats.distributions import norm, vonmises, gamma, expon
 import matplotlib.pyplot as plt
 
 def rejection_sample(proposal_sampler,proposal_pdf,target,k):
@@ -19,6 +19,35 @@ def rotmat(a):
     sa = np.sin(a)
     return np.array([[ca,-sa],
                      [sa,ca]])
+def sample_pa(x,d,sigma):
+    first=(x[1]-d[1]).mean()
+    second=(x[0]-d[0]).mean()
+    print "x, d, sigma ", x, d, sigma
+    cnt = 0
+    L = []
+    z = first / np.sqrt(first**2+second**2) 
+    L.append(-np.arccos(-z))
+    L.append(-np.arccos( z))
+    L.append( np.arccos(-z))
+    L.append( np.arccos( z))
+    Lmax = max([norm.pdf(np.cos(a)*first + np.sin(a)*second,0,sigma) for a in L])
+    while True:
+        u=rnd.uniform(0,Lmax)
+        a=rnd.uniform(-np.pi/2.,np.pi/2.)
+        normal = norm.pdf(np.cos(a)*first + np.sin(a)*second,0,sigma) # right?
+        if u < normal:
+            break
+        cnt += 1
+    print cnt
+    return a
+
+def post_l(l,x,d,alpha,sigma):
+    #normal = [norm.pdf(np.cos(alpha)*(x[1]-d[1]) + np.sin(alpha)*(x[0]-d[0])) for d in data]\
+    mean=(np.cos(alpha)*(d[1]) + np.sin(alpha)*(d[0])).mean()
+    std=np.sqrt(np.cos(alpha)*(x[1]) + np.sin(alpha)*(x[0]))
+    normal = norm.pdf(l,mean,std) # sigma?
+    #normal = norm.pdf(np.cos(alpha)*(x[1]-d[:,1]) + np.sin(alpha)*(x[0]-d[:,0])) 
+    return np.prod(normal)
 
 class edge2d_base_distrib(object):
     def __init__(self,length_a0,length_b0,angle_kappa):
@@ -30,10 +59,16 @@ class edge2d_base_distrib(object):
         newname = [i for i in parent.name]
         newname.append(len(parent.subnodes))
 
-        angle   = rnd.vonmises(parent.angle, self.angle_kappa)
-        length  = gamma.rvs(self.length_a0,loc=1./self.length_b0)
-
-        n = edge2Dnode(parent.depth+1, newname,length,angle,parent,nu,psi)
+        parlen   = parent.length
+        dist     = rnd.uniform(0,parlen)
+        paralpha = parent.angle
+        beta     = np.pi / 4.
+        pos      = parent.pos + dist * np.array([np.cos(paralpha), np.sin(paralpha)])
+        p2       = pos + parlen * np.array([np.cos(paralpha+beta), np.sin(paralpha+beta)])
+        angle    = sample_pa(pos,p2,parent.width) # TODO ugly width
+        k        = 4.
+        length   = parlen + parlen * ((1.-rnd.uniform())/(k-1.))**(k-1.)
+        n = edge2Dnode(parent.depth+1, newname,pos, length,angle,parent,nu,psi)
 
         return n
     def adjust(self, node):
@@ -248,16 +283,13 @@ class drawablenode(node):
     #        n.dot(g,n2)
 
 class edge2Dnode(drawablenode):
-    def __init__(self, depth, name, length,angle,parent=None,nu=None,psi=None):
+    def __init__(self, depth, name, pos, length,angle,parent=None,nu=None,psi=None):
         drawablenode.__init__(self,depth, name,nu,psi)
         self.width  = 0.1
         self.length = length
         self.angle  = angle
+        self.pos    = pos
         self.parent = parent
-        if parent.__class__ == edge2Dnode:
-            self.update_position()
-        else:
-            self.pos = parent
         self.vonmisesscale = 100
 
     def get_likelihood(self, d):
@@ -296,26 +328,24 @@ class edge2Dnode(drawablenode):
 
     def sample(self, d):
         """" sample a data point for this edge """
-        parentpos   = self.parent.pos
-        d.parentpos = parentpos
-        d.pos       = np.dot(rotmat(self.angle), [halfnorm.rvs(scale=self.length),
-                                            np.tan(vonmises.rvs(self.vonmisesscale,loc=0))]) + parentpos
-        d.ownpos    = self.pos
+        dist     = rnd.uniform(0,self.length)
+        w        = rnd.normal(0,self.width)
+        d.pos    = np.dot(rotmat(self.angle), [dist, w]) + self.pos
+        d.ownpos = self.pos
 
 def plot_tree(name,N):
     G = pydot.Dot('Tree', graph_type="digraph")
     N.dot(G)
     G.write_png(name,prog='neato')
 
-def gentree(name,kappa=8,samples=100,alpha0=5,Lambda=.5,gamma=.25):
+def gentree(name,kappa=8,samples=1000,alpha0=5,Lambda=.5,gamma=.25):
     base_distrib = edge2d_base_distrib(3,1,kappa)
 
     hp = hyperparam(alpha0,Lambda,gamma)
     tp = tree_process(base_distrib,hp)
 
-    virtual_parent = edge2Dnode(-1,[],1,0,np.zeros(2))
-    N = base_distrib(virtual_parent)
-    virtual_parent.subnodes.append(N)
+    #def __init__(self, depth, name, pos, length,angle,parent=None,nu=None,psi=None):
+    N = edge2Dnode(0,[],np.zeros(2),10,0)
 
     L = []
     for i in xrange(samples):
@@ -327,20 +357,17 @@ def gentree(name,kappa=8,samples=100,alpha0=5,Lambda=.5,gamma=.25):
     x = [a.pos[0] for a in L]
     y = [a.pos[1] for a in L]
     plt.plot(x,y, ".b")
-    x = [a.parentpos[0] for a in L]
-    y = [a.parentpos[1] for a in L]
-    plt.plot(x,y, "*c")
     x = [a.ownpos[0] for a in L]
     y = [a.ownpos[1] for a in L]
     plt.plot(x,y, "*c")
     plt.axis('equal')
 
-    plot_tree("G.png", virtual_parent)
+    #plot_tree("G.png", N)
 
 
     plt.show()
 
-    return N, L, hp, base_distrib, virtual_parent
+    return N, L, hp, base_distrib
 
 def test_inference():
     N,data,hp,base_distrib,virtual_parent = gentree("G.png")
@@ -354,6 +381,6 @@ def test_inference():
 
 
 if __name__ == "__main__":
-    #gentree("G.png")
-    test_inference()
+    gentree("G.png")
+    #test_inference()
 
