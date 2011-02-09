@@ -77,7 +77,7 @@ void print_neighbors(G& graph, voxelg_traits::vertex_descriptor v, const M& map)
 }
 
 template<class I>
-double voxdist(I a, I b){
+inline double voxdist(I a, I b){
 	double s = 0;
 	s += SQR(*a-*b); a++; b++;
 	s += SQR(*a-*b); a++; b++;
@@ -85,7 +85,6 @@ double voxdist(I a, I b){
 	return sqrt(s);
 }
 
-float_grid* g_sato, *g_ev10, *g_ev11, *g_ev12;
 
 template<class T>
 struct const_vox2arr{
@@ -98,7 +97,7 @@ struct const_vox2arr{
 
 template<class T>
 struct vox2arr{
-	mutable T& A;
+	T& A;
 	vox2arr(T& a):A(a){}
 	typename T::element& operator[](const voxel_vertex_descriptor&v)const{
 		return A[v[0]][v[1]][v[2]];
@@ -111,20 +110,32 @@ vox2arr<T> make_vox2arr(T& t){ return vox2arr<T>(t); }
 template<class T>
 const_vox2arr<T> make_vox2arr(const T& t){ return const_vox2arr<T>(t); }
 
+vox2arr<float_grid>* g_sato, *g_ev10, *g_ev11, *g_ev12;
+boost::array<vidx_t, 3> g_strunk;
+
 // map from edges to weights
 voxel_edge_weight_map::reference 
 voxel_edge_weight_map::operator[](key_type e) const {
 	voxel_vertex_descriptor s = source(e,m_graph);
 	voxel_vertex_descriptor t = target(e,m_graph);
-	vox2arr<float_grid> sato = make_vox2arr(*g_sato);
-	//vox2arr<float_grid> ev10 = make_vox2arr(*g_ev10);
-	//vox2arr<float_grid> ev11 = make_vox2arr(*g_ev11);
-	//vox2arr<float_grid> ev12 = make_vox2arr(*g_ev12);
+	vox2arr<float_grid>& sato = *g_sato;
+	vox2arr<float_grid>& ev10 = *g_ev10;
+	vox2arr<float_grid>& ev11 = *g_ev11;
+	vox2arr<float_grid>& ev12 = *g_ev12;
 
-	//double g = ev10[s]*ev10[t] + ev11[s]*ev11[t] + ev12[s]*ev12[t];
+	double d = voxdist(s.begin(),t.begin());
 
-	//return sato[t] * voxdist(s.begin(),t.begin()) * exp(-3.f*g);
-	return sato[t];
+	//double gd = ev10[s]*ev10[t] + ev11[s]*ev11[t] + ev12[s]*ev12[t];
+	//double  g = (1.0 + 30.0*exp(-10.0*gd*gd));
+
+	double v = exp( - 50.0 * (sato[t] + sato[s]) );
+
+	//double hs = voxdist(s.begin(),g_strunk.begin());
+	//double ht = voxdist(t.begin(),g_strunk.begin()); 
+	//double h  = 1.0 + exp((hs-ht)/d); // target should be further away from source
+
+	//return g * v * d * h;
+	return v * d;
 }
 
 template<class F, class T>
@@ -218,22 +229,24 @@ void paths2adjlist(voxelgraph_t& vg, wurzelgraph_t& wg, predecessor_map_t& p_map
 }
 
 template<class T, class U, class V>
-void rank_op(voxelgraph_t& vg, const T& rankmap, const U& valuemap, const V& tracesmap){
+void rank_op(const std::string& base, voxelgraph_t& vg, T rankmap, const U& valuemap, const V& tracesmap){
 	voxel_vertex_iterator vi, vend;
 	voxel_edge_iterator ei, eend;
-	std::ofstream ofs("data/ranks.txt");
+	std::ofstream ofs(getfn(base,"ranks","txt").c_str());
 	ofs << "0 0 0 0"<<std::endl;
 	voxelg_traits::out_edge_iterator oei,oeend;
-	unsigned int cnt = 0;
-	for (tie(vi, vend) = vertices(vg); vi != vend; ++vi){
+	unsigned int cnt = 0, cnt_all=0;
+	for (tie(vi, vend) = vertices(vg); vi != vend; ++vi, ++cnt_all){
 		voxel_vertex_descriptor vd = *vi;
 		if(!tracesmap[*vi]) continue;
 		unsigned int order = 0;
 		double myval = valuemap[*vi];
 		tie(oei,oeend) = out_edges(*vi,vg);
-		for(;oei!=oeend;++oei)
-		    if(valuemap[target(*oei,vg)] <= myval)
+		for(;oei!=oeend;++oei){
+		    if(valuemap[target(*oei,vg)] >= myval){
 		        order++;
+			}
+		}
 		//rankmap[*vi] = 255 - 9 * order;
 		rankmap[*vi] = order;
 		if(order==0) cnt++;
@@ -243,7 +256,7 @@ void rank_op(voxelgraph_t& vg, const T& rankmap, const U& valuemap, const V& tra
 		voxel_vertex_descriptor v = *vi;
 		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<255<<std::endl;
 	}
-	std::cout <<"Found "<< V(cnt)<<" maxima"<<std::endl;
+	std::cout <<"Determined "<< cnt<<" of "<<cnt_all<<" to be maxima"<<std::endl;
 }
 void erode_tree(wurzelgraph_t& wg){
 	std::cout <<"Eroding tree (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
@@ -475,10 +488,10 @@ int main(int argc, char* argv[]) {
   std::fill(ranks, ranks+XYZ, (unsigned char) 255);
   uc_grid Ranks(ranks,boost::extents[X][Y][Z]);
 
-  // Define a 3x5x7 grid_graph where the second dimension doesn't wrap
-  boost::array<vidx_t, 3> lengths = { { 256, 256, 256 } };
-  boost::array<vidx_t, 3> strunk  = { { 109, 129,  24 } };
-  voxelgraph_t graph(lengths, false); // no dim is wrapped
+  float* flow = new float[XYZ];
+  std::fill(flow, flow+XYZ, (float) 0);
+  float_grid Flow(flow,boost::extents[X][Y][Z]);
+
 
   voxel_vertex_descriptor first_vertex = vertex((vidx_t)0, graph);
   voxel_vertex_iterator vi, vend;
@@ -487,51 +500,72 @@ int main(int argc, char* argv[]) {
   stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
       voxel_vertex_descriptor v = *vi;
-      float& f = Sato[v[0]][v[1]][v[2]];
-			//f = std::max(0.f, f-0.3f) * 1.f/0.7f;
+	  float& f = Sato[v[0]][v[1]][v[2]];
+			//f = std::max(0.f, f-0.2f) * 1.f/0.7f;
 			//f  = exp(-10.f * log(1.f+f)/log(2.f) );
-			f  = exp(-10.f * f );
+			//f  = exp(-15.f * f );
 
-      float& g = Raw[v[0]][v[1]][v[2]];
-			g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
+	  float& g = Raw[v[0]][v[1]][v[2]];
+	  f *= 1.0f+2.0f*g;
+	  //      g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
   }
   stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
+  std::cout << "Raw:  " << s_raw <<std::endl;
   std::cout << "Sato: " << s_sato <<std::endl;
 
   predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
-  find_shortest_paths(graph,strunk,p_map,d_map,force_recompute_dijkstra);
+  find_shortest_paths(base,graph,strunk,p_map,d_map,force_recompute_dijkstra);
   std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
   std::cout << "Determining scaling factors..." <<std::endl;
   stat_t s_allpaths = voxel_stats(graph,d_map);
 
   std::cout << "Tracing paths..." <<std::endl;
-  double start_threshold       = 0.2;
-  double total_len_perc_thresh = 0.09;
-  double avg_len_perc_thresh   = 0.55;
+  double start_threshold       = 0.1;
+  double total_len_perc_thresh = 1.00;
+  double avg_len_perc_thresh   = 0.10;
+  double min_flow_thresh       = 0.000500;
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
-  stat_t s_avg_pathlen, s_pathlen, s_cnt;
+  stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
   vox2arr<float_grid> vox2raw(Raw);
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
+	  // determine total path length statistic
+	  if(vox2raw[*vi] < start_threshold)
+		  continue;
+	  s_pathlen(d_map[*vi]);
+  }
+
+  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
+	  // determine avg path costs statistic
 	  voxel_vertex_descriptor v = *vi;
 	  if(vox2raw[v] < start_threshold)
 		  continue;
-	  float total_dist   = d_map[*vi];
-	  v = *vi;
-	  unsigned int cnt = 0;
+	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
+		  continue;
+	  double vox_dist = 0.0;
 	  while(1){ 
+		  Flow[v[0]][v[1]][v[2]] += vox2raw[*vi];
 		  if(boost::get(vertex_index,graph,v) == strunk_idx)
 			  break;
-		  cnt++;
+		  vox_dist += voxdist(p_map[v].begin(), v.begin());
 		  v = p_map[v];
 	  }
-	  s_cnt(cnt);
-	  s_pathlen(total_dist);
-	  if(cnt>0)
-		  s_avg_pathlen(total_dist/cnt);
+	  s_cnt(vox_dist);
+	  if(vox_dist>0)
+		  s_avg_pathlen(d_map[*vi]/vox_dist);
+  }
+
+  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
+	  // determine flow statistic
+	  voxel_vertex_descriptor v = *vi;
+	  if(vox2raw[v] < start_threshold)
+		  continue; // too weak at start
+	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
+		  continue; // too long
+	  s_flow(Flow[v[0]][v[1]][v[2]]);
   }
 
   std::cout << "Total   Pathlens: "<< s_pathlen<<std::endl;
@@ -540,24 +574,27 @@ int main(int argc, char* argv[]) {
 
   for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
 	  voxel_vertex_descriptor v = *vi;
-	  if(vox2raw[v]<start_threshold)
-		  continue;
+	  if(vox2raw[v]<start_threshold) 
+		  continue;                  // weak signal at start point
 	  float total_dist   = d_map[*vi];
 	  if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
-		  continue;
+		  continue;                  // too long
+	  float flow = Flow[v[0]][v[1]][v[2]];
+	  if((flow-min(s_flow))/(max(s_flow)-min(s_flow)) < min_flow_thresh)
+		  continue;                  // not enough mass here
 	  v = *vi;
-	  unsigned int cnt = 0;
+	  double vox_dist = 0.0;
 	  while(1){ 
 		  if(boost::get(vertex_index,graph,v) == strunk_idx)
 			  break;
-		  cnt++;
+		  vox_dist += voxdist(p_map[v].begin(), v.begin());
 		  v = p_map[v];
 	  }
-	  if(total_dist/cnt > max(s_avg_pathlen)*avg_len_perc_thresh)
+	  if(total_dist/vox_dist > max(s_avg_pathlen)*avg_len_perc_thresh)
 		  continue;
 	  v = *vi;
 	  while(1){ 
-		  Paths[v[0]][v[1]][v[2]] = 255.f * (cnt-- - min(s_cnt))/(max(s_cnt)-min(s_cnt));
+		  Paths[v[0]][v[1]][v[2]] = 255;
 		  if(boost::get(vertex_index,graph,v) == strunk_idx)
 			  break;
 		  v = p_map[v];
