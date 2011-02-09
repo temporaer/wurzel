@@ -1,0 +1,207 @@
+\documentclass[final,ignorenonframetext,compress]{beamer}
+% \includeonlyframes{current}
+\usepackage{garamond}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{ulem}
+
+\lstset{language=python,keywordstyle=\color{beamer@bonnblue},emphstyle=\color{red},showstringspaces=false}
+
+\mode<beamer>
+{
+  \usetheme{Bonn}
+  \pgfdeclareimage[height=0.8cm]{university-logo}{Logo_UBo_h24_4c-crop}
+  \setbeamertemplate{footline}[default]
+  \logo{\pgfuseimage{university-logo}}
+  \setbeamertemplate{navigation symbols}{}
+}
+\mode<handout>{
+  \usetheme{default}
+  \usecolortheme{dove}
+  \setbeamercolor{background canvas}{bg=black!5}
+  \usepackage{pgfpages}
+  \pgfpagesuselayout{8 on 1}[a4paper,border shrink=5mm]
+}
+
+%\setbeamerfont{title}{family*=ugm}
+%\setbeamerfont{frametitle}{family*=ugm}
+
+\DeclareMathOperator*{\mymax}{max}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\cov}{cov}
+\DeclareMathOperator{\sign}{sign}
+\DeclareMathOperator{\dist}{dist}
+\DeclareMathOperator{\freq}{frequency}
+\DeclareMathOperator{\selcrit}{selcrit}
+\DeclareMathOperator{\precision}{precision}
+\DeclareMathOperator{\recall}{recall}
+\DeclareMathOperator{\neighbours}{neighbours}
+\DeclareMathOperator{\desclen}{descriptionlength}
+
+\newcommand\itplus{\kreis{$+$}{green}}
+\newcommand\itminus{\kreis{$-$}{red}}
+\newcommand\w[1]{\ensuremath{\mathbf{#1}}}
+
+% avant, courier, chancery, times, palatino, bookman
+% newcent, utopia, charter
+\usepackage[english]{babel}
+\usepackage{times}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+% \usepackage{psfrag}
+\usepackage{multicol}
+\usepackage{mdwtab}
+\usepackage{txfonts,textcomp}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\setlength\parindent{0cm}
+\setlength\parskip{2mm}
+\setbeamerfont{gross}{size=\large}
+\setbeamerfont{quetsch}{size=\tiny}
+\setbeamerfont{klein}{size=\footnotesize}
+
+% example list spacing
+\newcommand\ml{\setlength\itemindent{-11mm}}
+
+%\titlegraphic{\includegraphics[width=2cm,height=2cm]{Blackheaded_python2}}
+
+% \DeclareGraphicsRule{.jpg}{eps}{.bb}{`bmeps -c #1}
+
+\title{Wurzelstrukturerkennung aus NMR-Daten}
+
+\author{Hannes Schulz, Sven Behnke}
+\institute[Uni Bonn, Germany]%
+{\includegraphics[width=.2\linewidth]{Logo_UBo_h24_4c-crop}}
+%{Rheinische Friedrich-Wilhelms-Universität Bonn}
+
+\date{Jan 31, 2011}
+
+
+%\beamerdefaultoverlayspecification{<+->}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage%
+\end{frame}
+
+
+\begin{frame}[plain] % WipeBlobs
+  \frametitle{Outline}
+    \tableofcontents[hidesubsections]
+  % You might wish to add the option [pausesections]
+\end{frame}
+
+\section{Beschreibung der Daten}
+
+\begin{frame}
+	\frametitle{NMR-Daten}
+	\begin{columns}
+		\column{.5\linewidth}
+		\begin{itemize}
+			\item Lupine
+		\end{itemize}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img/o}
+	\end{columns}
+\end{frame}
+\begin{frame}
+	\frametitle{NMR-Daten}
+	\begin{columns}
+		\column{.5\linewidth}
+		\begin{itemize}
+			\item Multi-Slice Aufnahme ($256\times256\times120$)
+			\item Verschiedene Stadien
+		\end{itemize}
+		\vspace{1cm}
+
+		\includegraphics[width=.6\linewidth]{img/d1}
+		\column{.5\linewidth}
+		\includegraphics[width=.6\linewidth]{img/d2}\\
+		\includegraphics[width=.6\linewidth]{img/d3}
+	\end{columns}
+\end{frame}
+
+\begin{frame}
+	\frametitle{NMR-Daten}
+	\begin{columns}
+		\column{.5\linewidth}
+		\begin{itemize}
+			\item Pixelhelligkeit $\propto$ Wassergehalt
+			\item Wurzel $\approx$ 80\%
+			\item Boden $\approx$ 10\%  (Natursand)
+			\item Verunreinigungen (Eisen) st\"oren Signal
+			\item Wassergef\"ulltes Messr\"ohrchen aus Glas
+		\end{itemize}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img/raw-4.png}
+	\end{columns}
+\end{frame}
+
+\section{Aufgabenstellungen}
+
+\begin{frame}
+	\frametitle{Aufgabenstellungen}
+	\begin{columns}
+		\column{.5\linewidth}
+		\begin{itemize}
+			\item Wassergehalt in der Wurzel modellieren
+			\item Wachstum beschreiben
+			\item Wurzel-L\"angen-Dichte bestimmen
+		\end{itemize}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img/raw-4.png}
+	\end{columns}
+\end{frame}
+
+\section{L\"osungsansatz zur Bestimmung der Wurzelkonnektivit\"at}
+\begin{frame}
+	\frametitle{Finden von r\"ohren\"ahnlichen Strukturen}
+	\begin{columns}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img/raw-4.png}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img/sato-4.png}
+	\end{columns}
+	\begin{center}	
+		Multi-Scale Verfahren basierend auf Eigenwerten der lokalen Hesse-Matrizen.
+		Details in Sato et al. 1997\end{center}
+	\end{frame}
+	\begin{frame}
+		\frametitle{Verfolgen der gefundenen R\"ohren}
+		\begin{columns}
+			\column{.5\linewidth}
+			\begin{itemize}
+				\item Manuelles Bestimmen eines Punktes $P$ in der
+					Hauptwurzel
+				\item Definiere Graph auf Voxelgrid
+					Kantengewicht $w_{ij}=\exp(\alpha s_j)$
+				\item Finde k\"urzeste Distanz f\"ur jeden Voxel zu $P$
+			\end{itemize}
+			\column{.5\linewidth}
+			\includegraphics[width=\linewidth]{img/L2_22aug_Ansicht2_Dijkstra.PNG}
+
+			\begin{center}Distanzen (Schwellwert)\end{center}
+			\end{columns}
+	\end{frame}
+
+	\begin{frame}
+		\frametitle{Verkn\"upfen der losen Enden}
+		\begin{columns}
+			\column{.5\linewidth}
+			\only<1>{			
+			\begin{itemize}
+				\item F\"ur alle Punkte in Rohdaten \"uber Threshold
+				\item Rendere Pfad zur Wurzel
+			\end{itemize}}
+			\includegraphics<2>[width=\linewidth]{img/raw-4.png}
+			\column{.5\linewidth}
+			\includegraphics[width=\linewidth]{img/L2_22aug_Ansicht2_tree.PNG}
+		\end{columns}
+	\end{frame}
+\end{document}
+
+% vim:autoread
