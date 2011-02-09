@@ -37,7 +37,7 @@ def eig3x3(hessian):
     ev11     = np.empty(hessian["Dxx"].shape,dtype="float32")
     ev12     = np.empty(hessian["Dxx"].shape,dtype="float32")
     code = """
-      #line 37 "structure_tensor.py"
+      #line 40 "structure_tensor.py"
       namespace ublas = boost::numeric::ublas;
       namespace lapack = boost::numeric::bindings::lapack;
       using namespace std;
@@ -45,13 +45,11 @@ def eig3x3(hessian):
       using ublas::trans;
       typedef ublas::bounded_matrix<double,3,3,ublas::column_major> mat;
       ublas::bounded_vector<double,3> lambda;
-      std::vector<double> work(34*3); // the 34*width is from syev.hpp
+      ublas::bounded_vector<double,34*3> work; // the 34*width is from syev.hpp
 
-      //typedef ublas::matrix<double,ublas::column_major> mat;
-      //ublas::vector<double> lambda(3);
       mat A;
-      int i,j,k;
-      #pragma omp parallel for private(i,j,k,A,lambda)
+      int i,j,k,idx;
+      #pragma omp parallel for private(i,j,k,A,idx,lambda,work)
       for(i=0;i<nx;i++){
         for(j=0;j<ny;j++){
             for(k=0;k<nz;k++){
@@ -62,20 +60,29 @@ def eig3x3(hessian):
               A(0,2) = Dxz(i,j,k);
               A(1,2) = Dyz(i,j,k);
 
-              lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
-              //lapack::syev('N','U',A,lambda,lapack::workspace(work));
-              sort(lambda.begin(),lambda.end());
+              //lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
+                lapack::syev('V','U',A,lambda,lapack::workspace(work));
+              idx = distance(lambda.begin(),min_element(lambda.begin(),lambda.end(), cmp_abs()));
+              ev10(i,j,k)    = A(0,idx);
+              ev11(i,j,k)    = A(1,idx);
+              ev12(i,j,k)    = A(2,idx);
+
+              sort(lambda.begin(),lambda.end(),cmp_abs());
 
               lambda1(i,j,k) = lambda(0);  // eigenvalues in ascending order
               lambda2(i,j,k) = lambda(1);
               lambda3(i,j,k) = lambda(2);
-              ev10(i,j,k)    = A(0,0);
-              ev11(i,j,k)    = A(0,1);
-              ev12(i,j,k)    = A(0,2);
             }
           }
         }
         """
+    sc = """
+    struct cmp_abs{
+      bool operator()(double a, double b){
+          return fabs(a)<fabs(b);
+      }
+    };
+    """
     V = vars()
     variables = "nx ny nz lambda1 lambda2 lambda3 ev10 ev11 ev12".split()
     variables.extend(hessian.keys())
@@ -83,6 +90,7 @@ def eig3x3(hessian):
     inline(code, variables,
                  verbose=2,
                  compiler="gcc",
+                 support_code=sc,
                  extra_compile_args =['-O3 -fopenmp'],
                  #extra_compile_args =['-O3'],
                  extra_link_args=['-lgomp'],
@@ -98,6 +106,8 @@ def eig3x3(hessian):
                           '<boost/numeric/ublas/vector.hpp>',
                           '<boost/numeric/ublas/io.hpp>',
                           '<iostream>',
+                          '<cmath>',
+                          '<algorithm>',
                           '<vector>',
                           '<cmath>'],
                  type_converters=converters.blitz,
