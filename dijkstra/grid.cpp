@@ -40,6 +40,17 @@ typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > stat_t;
 
+std::string
+getfn(const std::string& base, const std::string& marker, const std::string& ext){
+	std::stringstream ss;
+	if(marker.length()>0){
+		ss << base << "-"<<marker << "."<<ext;
+	}else{
+		ss << base << "."<<ext;
+	}
+	return ss.str();
+}
+
 
 std::ostream& 
 operator<<(std::ostream& o, const stat_t& s) {
@@ -131,20 +142,21 @@ void write_voxelgrid(const std::string& name, voxelgraph_t& graph, const T& map)
   std::cout << "done." <<std::endl;
 }
 
-void find_shortest_paths(voxelgraph_t& graph, 
+void find_shortest_paths(const std::string& base, 
+		voxelgraph_t& graph, 
 		voxel_vertex_descriptor& strunk,
 		predecessor_map_t&p_map, distance_map_t& d_map, bool force=false){
 
   voxel_vertex_iterator vi, vend;
   bool read_p=false, read_d=false;
-  if(fs::exists("data/p_map.dat") && !force){
+  if(fs::exists(getfn(base,"p_map","dat")) && !force){
 	  std::cout << "Reading predecessor map from file..."<<std::endl;
 	  std::ifstream ifs("data/p_map.dat");
 	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
 		  ifs.read((char*)&p_map[*vi], sizeof(voxel_vertex_descriptor));
 	  read_p = true;
   }
-  if(fs::exists("data/d_map.dat") && !force){
+  if(fs::exists(getfn(base,"d_map","dat")) && !force){
 	  std::cout << "Reading distance map from file..."<<std::endl;
 	  std::ifstream ifs("data/d_map.dat");
 	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
@@ -154,12 +166,15 @@ void find_shortest_paths(voxelgraph_t& graph,
 
   if(!read_p || !read_d){
 	  std::cout << "Running Dijkstra..." <<std::endl;
+
+	  voxel_edge_weight_map wt(graph);
+
 	  dijkstra_shortest_paths(graph, strunk
-			  ,predecessor_map(p_map)
-			  .distance_map(d_map)
-			  );
-	  write_voxelgrid<double>("data/d_map.dat", graph, d_map);
-	  write_voxelgrid<voxel_vertex_descriptor>("data/p_map.dat", graph, p_map);
+			 ,predecessor_map(p_map)
+			 .distance_map(d_map)
+			 );
+	  write_voxelgrid<double>(getfn(base,"d_map","dat"), graph, d_map);
+	  write_voxelgrid<voxel_vertex_descriptor>(getfn(base,"p_map","dat"), graph, p_map);
   }
 	
 }
@@ -403,7 +418,7 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 		voxel_vertex_descriptor  v = get(vertex_name,wg)[*vi];
 		vidx_map[*vi] = idx++;
 		unsigned int deg = out_degree(*vi,wg);
-		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<deg<<std::endl;
+		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<deg<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
 	}
 	ofs.close();
 }
@@ -411,6 +426,7 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 template<class T>
 boost::multi_array_ref<T, 3> 
 read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
+  std::cout << "Reading `"<<fn<<"', bytes="<<sizeof(T)<<std::endl;
   std::ifstream dat(fn.c_str(), std::ios::in | std::ios::binary);
   if(!dat.is_open())	{
 	  std::cerr << "Could not open "<<fn<<" --> exiting."<<std::endl;
@@ -418,6 +434,10 @@ read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
   }
   T* data = new T[X*Y*Z];
   dat.read((char*)data,X*Y*Z*sizeof(T));
+  if(dat.fail()){
+	  std::cerr << "Error while reading "<<fn<<" --> exiting."<<std::endl;
+	  exit(1);
+  }
   dat.close();
   return boost::multi_array_ref<T,3>(data,boost::extents[X][Y][Z]);
 }
@@ -425,13 +445,27 @@ read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
 int main(int argc, char* argv[]) {
 	static const unsigned int X=256,Y=256,Z=256,XYZ=X*Y*Z;
 	bool force_recompute_dijkstra = false;
-	if(argc>1)
+	if(argc<2) {
+			std::cerr << "Usage: " << argv[0]<<" {basename} [force]"<<std::endl;
+			exit(1);
+		}
+	const std::string base=argv[1];
+	if(argc>2)
 		force_recompute_dijkstra = true;
-  float_grid Raw  = read3darray<float>("../data/L2_22aug-upsampled.dat",X,Y,Z);
-  float_grid Sato = read3darray<float>("../data/L2_22aug.sato",X,Y,Z); g_sato = &Sato;
-  float_grid ev10 = read3darray<float>("../data/L2_22aug.ev10",X,Y,Z); g_ev10 = &ev10;
-  float_grid ev11 = read3darray<float>("../data/L2_22aug.ev11",X,Y,Z); g_ev11 = &ev11;
-  float_grid ev12 = read3darray<float>("../data/L2_22aug.ev12",X,Y,Z); g_ev12 = &ev12;
+	
+  // Define a 3x5x7 grid_graph where the second dimension doesn't wrap
+  boost::array<vidx_t, 3> lengths = { { 256, 256, 256 } };
+  boost::array<vidx_t, 3> strunk  = { { 109, 129,  24 } };
+  g_strunk = strunk;
+  voxelgraph_t graph(lengths, false); // no dim is wrapped
+
+  float_grid Raw  = read3darray<float>(getfn(base,"upsampled","dat"),X,Y,Z);
+  float_grid Sato = read3darray<float>(getfn(base,"","sato"),X,Y,Z); g_sato = new vox2arr<float_grid>(Sato);
+  float_grid ev10 = read3darray<float>(getfn(base,"","ev10"),X,Y,Z); g_ev10 = new vox2arr<float_grid>(ev10);
+  float_grid ev11 = read3darray<float>(getfn(base,"","ev11"),X,Y,Z); g_ev11 = new vox2arr<float_grid>(ev11);
+  float_grid ev12 = read3darray<float>(getfn(base,"","ev12"),X,Y,Z); g_ev12 = new vox2arr<float_grid>(ev12);
+
+  std::cout << "Sato stats in file: " << voxel_stats(graph,make_vox2arr(Sato)) <<std::endl;
 
   unsigned char* paths = new unsigned char[XYZ];
   std::fill(paths, paths+XYZ, (unsigned char) 0);
@@ -531,7 +565,7 @@ int main(int argc, char* argv[]) {
   }
   
   // find local ranks
-  rank_op(graph,make_vox2arr(Ranks),make_vox2arr(Sato),make_vox2arr(Paths));
+  rank_op(base,graph,make_vox2arr(Ranks),make_vox2arr(Sato),make_vox2arr(Paths));
 
   wurzelgraph_t wgraph;
   paths2adjlist(graph,wgraph,p_map,make_vox2arr(Paths));
@@ -540,8 +574,8 @@ int main(int argc, char* argv[]) {
   //merge_deg2_nodes(wgraph);
 
   std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
-  print_wurzel_vertices("data/vertices.txt",wgraph,idx_map);
-  print_wurzel_edges("data/edges.txt",wgraph,idx_map);
-  write_voxelgrid<unsigned char>("data/paths.dat",graph,make_vox2arr(Paths));
-  write_voxelgrid<unsigned char>("data/ranks.dat",graph,make_vox2arr(Ranks));
+  print_wurzel_vertices(getfn(base,"vertices","txt"),wgraph,idx_map);
+  print_wurzel_edges(   getfn(base,"edges","txt"),wgraph,idx_map);
+  write_voxelgrid<unsigned char>(getfn(base,"paths","dat"),graph,make_vox2arr(Paths));
+  write_voxelgrid<unsigned char>(getfn(base,"ranks","dat"),graph,make_vox2arr(Ranks));
 }
