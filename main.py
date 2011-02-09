@@ -31,7 +31,7 @@ def c3d(d, sigma):
 
 def loaddata(fn,slave=True):
     print "Loading dataset"
-    D = dataset("%s.dat"%fn,crop=False,upsample="zoom",usepickled=slave)
+    D = dataset("%s.dat"%fn,crop=False,upsample="zoom",remove_rohr=True,usepickled=slave)
     return D
 
 if __name__ == "__main__":
