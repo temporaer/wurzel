@@ -40,8 +40,8 @@ if __name__ == "__main__":
     except:
         print "usage: ", sys.argv[0], "[filename]"
         sys.exit()
-    basename = filename[:-4] # cut off ".dat"
-    #D = loaddata(basename,slave=False)
+    basename = filename
+    D = loaddata(basename,slave=False)
 
     s = 1.1
     sigma0 = 1.0
