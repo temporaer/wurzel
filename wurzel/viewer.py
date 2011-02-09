@@ -3,60 +3,27 @@ import numpy as np
 from enthought.mayavi import mlab
 from enthought.tvtk.util.ctf import ColorTransferFunction
 
-def show_volume2(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
+def show_vectorfield(S, U,V,W):
+    print "Show Vectors"
+    mins = S.min()
+    ptps = S.ptp()
+    mlab.quiver3d(U,V,W, scalars=S,scale_mode="scalar",vmin=mins+0.2*ptps,vmax=mins+0.8*ptps)
+    print "done."
+
+def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True, normalize=True):
     print "Show volume"
+    mind = D.min()
     D -= D.min()
 
     src = mlab.pipeline.scalar_field(D)
-    mind = D.min()
     ptpd = D.ptp()
-    R = (mind+minfact*ptpd, mind+maxfact*ptpd)
+    if normalize:
+        R = (mind+minfact*ptpd, mind+maxfact*ptpd)
+    else:
+        R = (minfact-mind, maxfact-mind)
 
 
-    v = mlab.pipeline.volume(src, vmin=mind+minfact*ptpd,vmax=mind+maxfact*ptpd)
-
-    ptpR = R[1]-R[0]
-    if not (cm == "Spectral") or True:
-        ctf = ColorTransferFunction()
-        ctf.range = R
-        ctf.add_rgb_point(mind, 0,0,0)
-        ctf.add_rgb_point(R[0], 0,0,0)
-        ctf.add_rgb_point(R[0]+0.25*ptpR, 0.500,0.500,0.500)
-        ctf.add_rgb_point(R[0]+0.50*ptpR, 0.750,0.750,0.750)
-        ctf.add_rgb_point(R[0]+0.75*ptpR, 0.875,0.875,0.875)
-        ctf.add_rgb_point(R[1]          , 0.0,0.0,0.0)
-        ctf.add_rgb_point(mind+ptpd, 1,1,1)
-        v._volume_property.set_color(ctf)
-        v._ctf = ctf
-        v.update_ctf = True
-
-    from enthought.tvtk.util.ctf import PiecewiseFunction
-    otf = PiecewiseFunction()
-    otf.add_point(mind, 1.0)
-    otf.add_point(R[0], 1.0)
-    #otf.add_point(R[0]+0.25*ptpR, 0.5)
-    #otf.add_point(R[0]+0.50*ptpR, 0.25)
-    otf.add_point(R[0]+0.90*ptpR, 0.800)
-    otf.add_point(R[0]+0.95*ptpR, 0.500)
-    otf.add_point(R[1], 0.0)
-    otf.add_point(mind+ptpd, 0.0)
-    v._otf = otf
-    v._volume_property.set_scalar_opacity(otf)
-    v.update_ctf = True
-
-    
-    print "done"
-def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
-    print "Show volume"
-    D -= D.min()
-
-    src = mlab.pipeline.scalar_field(D)
-    mind = D.min()
-    ptpd = D.ptp()
-    R = (mind+minfact*ptpd, mind+maxfact*ptpd)
-
-
-    v = mlab.pipeline.volume(src, vmin=mind+minfact*ptpd,vmax=mind+maxfact*ptpd)
+    v = mlab.pipeline.volume(src, vmin=R[0],vmax=R[1])
 
     if not (cm == "Spectral"):
         ctf = ColorTransferFunction()
@@ -86,17 +53,25 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True):
     
     print "done"
 
-def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True):
+def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
     print "Show Iso"
-    D -= D.min()
+    Dmin = D.min()
+    D -= Dmin
+    Dptp = D.ptp()
     src = mlab.pipeline.scalar_field(D)
     #mlab.contour3d(D)
     #mlab.pipeline.volume(src, vmin=D.min()+0.2*D.ptp(),vmax=D.max()-0.2*D.ptp())
     if fact.__class__ == float:
-        mlab.pipeline.iso_surface(src, contours=[D.min()+fact*D.ptp(), ], opacity=opacity, colormap=cm)
+        if normalize: c = fact * Dptp
+        else:         c = fact - Dmin
+        print "Thresholding at ", c
+        mlab.pipeline.iso_surface(src, contours=[c, ], opacity=opacity, colormap=cm)
     else:
         for i in fact:
-            mlab.pipeline.iso_surface(src, contours=[D.min()+i*D.ptp(), ], opacity=opacity, colormap=cm)
+            if normalize: c = i * Dptp
+            else:         c = i - Dmin
+            print "Thresholding at ", c
+            mlab.pipeline.iso_surface(src, contours=[c,], opacity=opacity, colormap=cm)
     #mlab.pipeline.iso_surface(src, contours=[D.max()-0.2*D.ptp(), ], opacity=0.2)
     #from enthought.mayavi.modules.streamline import Streamline
     #mlab.add_module(s)
@@ -105,16 +80,38 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True):
 def show_points(fn,fne=None,cm="Blues",mode="2dtriangle"):
     L = []
     S = []
+    D = []
     print "Show Point3D"
     with open(fn) as f:
         for line in f.readlines():
-            line = [int(x) for x in line.split()]
-            if len(line)!=4:
+            line = line.split()
+            if len(line)<7:
                 continue
-            L.append(line[:-1])
-            S.append(line[-1])
+            L.append([float(x) for x in line[:3]])
+            S.append(int(line[3]))
+            D.append([float(x) for x in line[4:]])
+    S = np.array(S)
     L = np.vstack(L)
-    pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.8,colormap=cm,scale_mode="none",resolution="20",mode=mode)
+    D = np.vstack(D)
+    #mlab.quiver3d(L[:,0],L[:,1],L[:,2], D[:,0],D[:,1],D[:,2], scale_factor=3.)
+
+    if (L<0).sum() > 0:
+        """ this is in cm """
+        L[:,0] = (-L[:,0])/100.*256 + 110
+        L[:,1] = (L[:,1])/100.*256  + 120
+        L[:,2] = (L[:,2])/131.*256  + -5
+        gt = True
+    else:
+        L += 0.5
+        gt = False
+
+    deg1 = np.where(S==0)
+    mlab.points3d(L[deg1,0].squeeze(),L[deg1,1].squeeze(),L[deg1,2].squeeze(),S[deg1],scale_factor=1.0,colormap="Spectral",scale_mode="none",mode="2dtriangle")
+    deg3 = np.where(S >1)
+    mlab.points3d(L[deg3,0].squeeze(),L[deg3,1].squeeze(),L[deg3,2].squeeze(),S[deg3],scale_factor=1.5,colormap="bone",scale_mode="none",mode="2dtriangle")
+
+    #pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.8,colormap=cm,scale_mode="none",resolution="20",mode=mode)
+    pts = mlab.points3d(L[:,0],L[:,1],L[:,2],scale_factor=0.1,colormap=cm,scale_mode="none",resolution="20",mode=mode)
     print "Done."
     if None==fne: return
     print "Show Edges3D"
@@ -125,7 +122,8 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle"):
             L.append(line)
         L = np.vstack(L)
         pts.mlab_source.dataset.lines = L
-        tube = mlab.pipeline.tube(pts,tube_radius=0.1)
+        tube = mlab.pipeline.tube(pts,tube_radius=0.5)
         #tube.filter.vary_radius = 'vary_radius_by_scalar'
-        mlab.pipeline.surface(tube,color=(0.8,0.8,0.8))
+        color = (1,0,0) if gt else (0,1,0)
+        mlab.pipeline.surface(tube,color=color)
     print "Done."
