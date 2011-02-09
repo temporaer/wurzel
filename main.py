@@ -43,12 +43,13 @@ if __name__ == "__main__":
     basename = filename
     D = loaddata(basename,slave=False)
 
-    s = 1.1
+    s = 1.20
     sigma0 = 1.0
     sigmas = []
-    sigmas.extend([sigma0 * s**i for i in xrange(0,4)])
+    sigmas.extend([sigma0 * s**i for i in xrange(0,6)])
+    print "Sigmas: ", sigmas
 
-    use_ip = False
+    use_ip = True
     if use_ip:
         from IPython.kernel import client
         mec = client.MultiEngineClient()
