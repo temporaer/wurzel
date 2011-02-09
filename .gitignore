@@ -1,8 +1,14 @@
+*.PNG
 *.png
 *.pyc
+*.pyo
 *.mhd
 *.pickle
 *.dat
+*.ev10
+*.ev11
+*.ev12
+*.sato
 *.txt
 *.zraw
 *.swp

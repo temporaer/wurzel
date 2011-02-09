@@ -18,7 +18,7 @@ def c3d(d, sigma):
     gc.collect()
     eig = img3dops.get_ev_of_hessian(d.D)
     S = linestructure.get_curve_3D(eig,0.25,0.5,0.5)
-    S *= sigma**2
+    #S *= sigma**2 # as in Sato et al
     #print "Saving S"
     #np.save("data/S-%02.01d.npy"%sigma, S)
     #comm.Send(S, dest=0, tag=77)
@@ -31,7 +31,7 @@ def c3d(d, sigma):
 
 def loaddata(fn,slave=True):
     print "Loading dataset"
-    D = dataset("%s.dat"%fn,crop=False,upsample="zoom",usepickled=slave)
+    D = dataset("%s.dat"%fn,crop=False,upsample="zoom",remove_rohr=True,usepickled=slave)
     return D
 
 if __name__ == "__main__":
@@ -40,15 +40,16 @@ if __name__ == "__main__":
     except:
         print "usage: ", sys.argv[0], "[filename]"
         sys.exit()
-    basename = filename[:-4] # cut off ".dat"
-    #D = loaddata(basename,slave=False)
+    basename = filename
+    D = loaddata(basename,slave=False)
 
-    s = 1.1
+    s = 1.20
     sigma0 = 1.0
     sigmas = []
-    sigmas.extend([sigma0 * s**i for i in xrange(0,4)])
+    sigmas.extend([sigma0 * s**i for i in xrange(0,6)])
+    print "Sigmas: ", sigmas
 
-    use_ip = False
+    use_ip = True
     if use_ip:
         from IPython.kernel import client
         mec = client.MultiEngineClient()
@@ -100,8 +101,11 @@ if __name__ == "__main__":
         ev11[0][arg] = ev11[s][arg]
         ev12[0][arg] = ev12[s][arg]
     x = sato[0]
-    x -= x.min(); x /= x.max()
+    x -= x.min();
+    x /= x.max()
     print "Saving to ", basename+".sato", "range:", x.min(),x.max()
+    print x.dtype
+    print x.flags
     np.save("res.npy", x)
     x.tofile(basename+".sato")
     ev10[0].tofile(basename+".ev10")

@@ -50,19 +50,31 @@ def mkimg(fig,name):
 if __name__ == "__main__":
   offscreen = False
   dump      = False
+  basename  = None
   for s in sys.argv[1:]:
-    if s == "-o": offscreen = True
-    if s == "-d": dump     = True
+    if   s == "-o": offscreen = True
+    elif s == "-d": dump      = True
+    else: basename = s
+  if not basename:
+      print "Usage: ",sys.argv[0],"[-o] [-d] {basename}"
+      sys.exit(1)
+
   if offscreen:
     mlab.options.offscreen = True
   fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(1024,896))
+  #fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(400,300))
   fig.scene.anti_aliasing_frames=8
   mlab.clf()
 
-  #Draw  = dataset("data/L2_22aug.dat", upsample="zoom", crop=False,usepickled=True).D
-  #Ddist = dataset("dijkstra/data/paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  #Ddist = dataset("dijkstra/data/ranks.dat", dz=256, dtype="uint8", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  Dsato  = dataset("data/L2_22aug.sato", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  #ev10  = dataset("data/L2_22aug.ev10", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  #ev11  = dataset("data/L2_22aug.ev11", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  #ev12  = dataset("data/L2_22aug.ev12", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+
+  Draw  = dataset(basename+".dat", upsample="zoom", crop=False,usepickled=True, remove_rohr=True).D
+  #Ddist = dataset(basename+"-paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
+  #Ddist = dataset(basename+"-d_map.dat", dz=256, dtype="float64", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
+  #Dsato = dataset(basename+".sato", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  #Draw  = dataset(basename+"-upsampled.dat", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
   #minv = dmin+0.15*dptp
@@ -70,32 +82,34 @@ if __name__ == "__main__":
   #L, nf = label(Dsato)
   #print "Number of connected components: ", nf
 
-  #viewer.show_points("dijkstra/data/ranks.txt",cm="Spectral", mode="sphere")
-  #viewer.show_points("dijkstra/data/vertices.txt", "dijkstra/data/edges.txt")
-  #viewer.show_iso(Ddist, 0.007 , "RdGy", 0.7)  
+  #viewer.show_points(basename+"-ranks.txt",cm="Spectral", mode="sphere")
+  #viewer.show_points(basename+"-vertices.txt", basename+"-edges.txt")
+  viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt")
+  viewer.show_points( "data/ground_vertices.txt", "data/ground_edges.txt")
+  #viewer.show_iso(Ddist, 0.05 , "RdGy", 1.0)  
   #viewer.show_iso(255.-Ddist, 1./26., "jet", 0.7)  
   #viewer.show_iso(255-Ddist, [1/26.,2/26.], "RdGy", 0.2)
-  #viewer.show_iso(Ddist, 0.05, "bone", 0.7)
-  #viewer.show_volume(Ddist/255.0, "Spectral", 0.1, 0.9)
+  #viewer.show_iso(255-Ddist, 250., "Spectral", 0.7)
+  #viewer.show_volume(Dsato, "Spectral", 0.2, 0.40)
   #if offscreen:
   #  mkimg(fig, "path-traces")
 
-  viewer.show_iso(Draw, 0.20 , "bone", 0.2)   # need 0.2 to get rid of noise
-  #if offscreen:
-  #  mkimg(fig, "path-traces-plus-raw")
-  #  mlab.clf()
+  viewer.show_iso(Draw, 0.20 , "bone", 0.1)   # need 0.2 to get rid of noise
+  if offscreen:
+    mkimg(fig, "us-vs-ground")
+    mlab.clf()
 
   #viewer.show_volume(Draw, "bone", 0.13,0.3)   # 0.13, 0.3 works well
   #if offscreen:
   #  mkimg(fig, "raw")
   #  mlab.clf()
 
-  viewer.show_iso(Dsato, 0.07 , "Spectral", 0.2)  
+  #viewer.show_iso(Dsato, 0.050 , "Spectral", 0.2)  
   #if offscreen:
   # mkimg(fig, "sato-iso")
   # mlab.clf()
 
-  #viewer.show_volume(Dsato, "Spectral", 0.02, 0.2)  # 0.03, 0.2 works well
+  #viewer.show_volume(Dsato, "Spectral", 0.01, 0.2)  # 0.03, 0.2 works well
   #if offscreen:
   #  mkimg(fig, "sato")
   #  mlab.clf()
