@@ -100,8 +100,11 @@ if __name__ == "__main__":
         ev11[0][arg] = ev11[s][arg]
         ev12[0][arg] = ev12[s][arg]
     x = sato[0]
-    x -= x.min(); x /= x.max()
+    x -= x.min();
+    x /= x.max()
     print "Saving to ", basename+".sato", "range:", x.min(),x.max()
+    print x.dtype
+    print x.flags
     np.save("res.npy", x)
     x.tofile(basename+".sato")
     ev10[0].tofile(basename+".ev10")
