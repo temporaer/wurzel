@@ -22,11 +22,13 @@
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
+#include <boost/foreach.hpp>
 #include "boost/filesystem.hpp"
 #include "voxelgrid.hpp"
 #include "wurzel_tree.hpp"
 #define SQR(X) ((X)*(X))
 #define V(X) #X<<":"<<(X)<<"  "
+#define foreach BOOST_FOREACH
 
 using namespace boost::accumulators;
 namespace fs = boost::filesystem;
@@ -70,14 +72,15 @@ void print_neighbors(G& graph, voxelg_traits::vertex_descriptor v, const M& map)
 
 	voxelg_traits::out_edge_iterator oei, oeend;
 	unsigned int i=0;
-	for(tie(oei,oeend)=out_edges(v,graph);oei!=oeend;oei++){
-	    voxelg_traits::vertex_descriptor w = target(*oei, graph);
+	//for(tie(oei,oeend)=out_edges(v,graph);oei!=oeend;oei++){
+	foreach(voxel_edge_descriptor& e, out_edges(v,graph)){
+	    voxelg_traits::vertex_descriptor w = target(e, graph);
 		std::cout<<"   edge"<<(++i)<<": "<<v<<"  "<<w<<" map:"<<(int)map[w]<<std::endl;
 	}
 }
 
-template<class I>
-inline double voxdist(I a, I b){
+template<class I, class J>
+inline double voxdist(I a, J b){
 	double s = 0;
 	s += SQR(*a-*b); a++; b++;
 	s += SQR(*a-*b); a++; b++;
@@ -142,10 +145,7 @@ template<class F, class T>
 void write_voxelgrid(const std::string& name, voxelgraph_t& graph, const T& map){
   std::cout << "Writing results "<<name<<"..." <<std::flush;
   std::ofstream of_dist(name.c_str(), std::ios::out | std::ios::binary);
-  voxel_vertex_iterator vi, vend;
-  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
-	  voxel_vertex_descriptor v = *vi;
-
+  foreach (const voxel_vertex_descriptor& v,vertices(graph)) {
 	  F d = (F)(map[v]);
 	  of_dist.write((char*)&d,sizeof(F));
   }
@@ -158,20 +158,19 @@ void find_shortest_paths(const std::string& base,
 		voxel_vertex_descriptor& strunk,
 		predecessor_map_t&p_map, distance_map_t& d_map, bool force=false){
 
-  voxel_vertex_iterator vi, vend;
   bool read_p=false, read_d=false;
   if(fs::exists(getfn(base,"p_map","dat")) && !force){
 	  std::cout << "Reading predecessor map from file..."<<std::endl;
 	  std::ifstream ifs("data/p_map.dat");
-	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
-		  ifs.read((char*)&p_map[*vi], sizeof(voxel_vertex_descriptor));
+	  foreach (const voxel_vertex_descriptor& v, vertices(graph))
+		  ifs.read((char*)&p_map[v], sizeof(voxel_vertex_descriptor));
 	  read_p = true;
   }
   if(fs::exists(getfn(base,"d_map","dat")) && !force){
 	  std::cout << "Reading distance map from file..."<<std::endl;
 	  std::ifstream ifs("data/d_map.dat");
-	  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
-		  ifs.read((char*)&d_map[*vi], sizeof(double));
+	  foreach (const voxel_vertex_descriptor& v, vertices(graph))
+		  ifs.read((char*)&d_map[v], sizeof(double));
 	  read_d = true;
   }
 
@@ -194,8 +193,8 @@ template<class M>
 stat_t voxel_stats(voxelgraph_t& graph, const M& map){
 	stat_t acc;
 	voxel_vertex_iterator vi, vend;
-	for (tie(vi, vend) = vertices(graph); vi != vend; ++vi)
-		acc(map[*vi]);
+	foreach ( const voxel_vertex_descriptor& v, vertices(graph))
+		acc(map[v]);
 	return acc;
 }
 
@@ -205,24 +204,22 @@ void paths2adjlist(voxelgraph_t& vg, wurzelgraph_t& wg, predecessor_map_t& p_map
 	typedef std::map<voxel_vertex_descriptor,wurzel_vertex_descriptor> reverse_t;
 	reverse_t reverse_lookup;
 	if(1){
-		voxel_vertex_iterator vi, vend;
-		for (tie(vi, vend) = vertices(vg); vi != vend; ++vi){
+		foreach (const voxel_vertex_descriptor& v0, vertices(vg)){
 			// add all nodes which are in the inclusion map
-			if(!inclusion_map[*vi]) continue;
-			wurzel_vertex_descriptor v = add_vertex(*vi,wg);    
-			reverse_lookup[*vi] = v;
+			if(!inclusion_map[v0]) continue;
+			wurzel_vertex_descriptor v = add_vertex(v0,wg);    
+			reverse_lookup[v0] = v;
 		}
 	}
 	if(1){
-		wurzel_vertex_iterator vi,vii, vend, vend2;
-		for (tie(vi, vend) = vertices(wg); vi != vend; ++vi){
+		foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
 			// add edges from the predecessor of vi to vi
-			voxel_vertex_descriptor v = get(vertex_name,wg)[*vi];
+			voxel_vertex_descriptor v = get(vertex_name,wg)[wv];
 			voxel_vertex_descriptor w = p_map[v];
 			if(w == v) continue;
 			reverse_t::iterator res = reverse_lookup.find(w);
 			if(res == reverse_lookup.end()) continue;
-			add_edge((*res).second,*vi,wg);
+			add_edge((*res).second,wv,wg);
 		}
 	}
 	std::cout <<"done ("<<V(num_vertices(wg))<<")"<<std::endl;
@@ -230,31 +227,28 @@ void paths2adjlist(voxelgraph_t& vg, wurzelgraph_t& wg, predecessor_map_t& p_map
 
 template<class T, class U, class V>
 void rank_op(const std::string& base, voxelgraph_t& vg, T rankmap, const U& valuemap, const V& tracesmap){
-	voxel_vertex_iterator vi, vend;
-	voxel_edge_iterator ei, eend;
 	std::ofstream ofs(getfn(base,"ranks","txt").c_str());
 	ofs << "0 0 0 0"<<std::endl;
 	voxelg_traits::out_edge_iterator oei,oeend;
 	unsigned int cnt = 0, cnt_all=0;
-	for (tie(vi, vend) = vertices(vg); vi != vend; ++vi, ++cnt_all){
-		voxel_vertex_descriptor vd = *vi;
-		if(!tracesmap[*vi]) continue;
+	foreach (const voxel_vertex_descriptor& vd, vertices(vg)){
+		if(!tracesmap[vd]) continue;
 		unsigned int order = 0;
-		double myval = valuemap[*vi];
-		tie(oei,oeend) = out_edges(*vi,vg);
-		for(;oei!=oeend;++oei){
-		    if(valuemap[target(*oei,vg)] >= myval){
+		double myval = valuemap[vd];
+		foreach(const voxel_edge_descriptor& e, out_edges(vd,vg)){
+		    if(valuemap[target(e,vg)] >= myval)
 		        order++;
-			}
 		}
 		//rankmap[*vi] = 255 - 9 * order;
-		rankmap[*vi] = order;
+		rankmap[vd] = order;
 		if(order==0) cnt++;
 
-		if(order!=0)
+		if(order!=0){
+			cnt_all++;
 			continue;
-		voxel_vertex_descriptor v = *vi;
-		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<255<<std::endl;
+		}
+		ofs << vd[0]<<" "<<vd[1]<<" "<<vd[2]<<" "<<255<<std::endl;
+		cnt_all++;
 	}
 	std::cout <<"Determined "<< cnt<<" of "<<cnt_all<<" to be maxima"<<std::endl;
 }
@@ -267,9 +261,9 @@ void erode_tree(wurzelgraph_t& wg){
 	while(modified){
 		std::cout <<"."<<std::flush;
 		modified = false;
-		tie(vi, vend) = vertices(wg);
-		for (; vi != vend; vi++)
-			mv_map[*vi] = out_degree(*vi,wg)==0;
+		foreach(wurzel_vertex_descriptor& v, vertices(wg)){
+			mv_map[v] = out_degree(v,wg)==0;
+		}
 		tie(vi, vend) = vertices(wg);
 		for (next=vi; vi != vend; vi=next){
 			next++;
@@ -277,9 +271,9 @@ void erode_tree(wurzelgraph_t& wg){
 				continue;
 			// go up from leaf to find next fork
 			tie(ei,eend) = in_edges(*vi,wg);
-			voxel_vertex_descriptor v = get(vertex_name,wg)[*vi];
 			if(ei==eend)
 				continue;
+			voxel_vertex_descriptor     v = get(vertex_name,wg)[*vi];
 			wurzel_vertex_descriptor pred = source(*ei,wg);
 			unsigned int cnt = 0;
 			static const unsigned int minlen = 5;
@@ -361,38 +355,35 @@ void merge_deg2_nodes(wurzelgraph_t& wg){
 void merge_nodes(wurzelgraph_t& wg){
 	std::cout << "Merging nodes..."<<std::flush;
 	// determine local orientations
-	wurzel_vertex_iterator wi,wend;
-	wurzel_in_edge_iterator ei,eend;
 	wurzelg_traits::adjacency_iterator      ai,aend;
 	wurzelgraph_t::inv_adjacency_iterator  iai,iaend;
 	property_map<wurzelgraph_t,path_orientation_t>::type po_map = get(path_orientation_t(), wg);
-	for (tie(wi, wend) = vertices(wg); wi != wend; ++wi) {
-		po_map[*wi] = ublas::zero_matrix<double>(3,3);
+	foreach (wurzel_vertex_descriptor& v, vertices(wg)) {
+		po_map[v] = ublas::zero_matrix<double>(3,3);
 	}
 	typedef std::vector<wurzel_vertex_descriptor> wd_vec_t;
 	wd_vec_t neighbors, neighbors2;
-	for (tie(wi, wend) = vertices(wg); wi != wend; ++wi) {
+	foreach (const wurzel_vertex_descriptor& wv, vertices(wg)) {
 		// search forward
-		tie(ai,aend) = adjacent_vertices(*wi,wg);
+		tie(ai,aend) = adjacent_vertices(wv,wg);
 		std::copy(ai,aend,std::back_inserter(neighbors));
-		for(wd_vec_t::iterator it=neighbors.begin();it!=neighbors.end();++it){
-			tie(ai,aend) = adjacent_vertices(*it,wg);
+		foreach(const wurzel_vertex_descriptor& v2, neighbors){
+			tie(ai,aend) = adjacent_vertices(v2,wg);
 			std::copy(ai,aend,std::back_inserter(neighbors2));
 		}
 		neighbors.clear();
 		// search back
-		tie(iai,iaend) = inv_adjacent_vertices(*wi,wg);
+		tie(iai,iaend) = inv_adjacent_vertices(wv,wg);
 		std::copy(iai,iaend,std::back_inserter(neighbors));
-		for(wd_vec_t::iterator it=neighbors.begin();it!=neighbors.end();++it){
-			tie(iai,iaend) = inv_adjacent_vertices(*it,wg);
+		foreach(const wurzel_vertex_descriptor& v2, neighbors){
+			tie(iai,iaend) = inv_adjacent_vertices(v2,wg);
 			std::copy(iai,iaend,std::back_inserter(neighbors2));
 		}
 
 		// now add coordinates of neighbors to covariance matrix at wi
-		covmat_t& cov = po_map[*wi];
-		for(wd_vec_t::iterator it=neighbors2.begin();it!=neighbors2.end();++it){
-			wurzel_vertex_descriptor w = *it;
-			voxel_vertex_descriptor  v = get(vertex_name,wg)[w];
+		covmat_t& cov = po_map[wv];
+		foreach(const wurzel_vertex_descriptor& w, neighbors2){
+			const voxel_vertex_descriptor&  v = get(vertex_name,wg)[w];
 			cov(0,0) += v[0]*v[0];
 			cov(0,1) += v[0]*v[1];
 			cov(0,2) += v[0]*v[2];
@@ -409,12 +400,10 @@ void merge_nodes(wurzelgraph_t& wg){
 
 template<class T>
 void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
-	wurzel_edge_iterator ei,eend;
-	tie(ei, eend) = edges(wg);
 	std::ofstream ofs(name.c_str());
-	for (; ei != eend; ei++){
-		unsigned int  v = vidx_map[source(*ei,wg)];
-		unsigned int  w = vidx_map[target(*ei,wg)];
+	foreach (wurzel_edge_descriptor& e, edges(wg)){
+		unsigned int  v = vidx_map[source(e,wg)];
+		unsigned int  w = vidx_map[target(e,wg)];
 		//ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<w[0]<<" "<<w[1]<<" "<<w[2]<<std::endl;
 		ofs << v <<" "<< w <<std::endl;
 	}
@@ -422,15 +411,12 @@ void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map)
 }
 template<class T>
 void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
-	wurzel_vertex_iterator vi,vii, vend, vend2, next;
-	wurzel_in_edge_iterator ei,eend;
-	tie(vi, vend) = vertices(wg);
 	std::ofstream ofs(name.c_str());
 	unsigned int idx=0;
-	for (; vi != vend; vi++){
-		voxel_vertex_descriptor  v = get(vertex_name,wg)[*vi];
-		vidx_map[*vi] = idx++;
-		unsigned int deg = out_degree(*vi,wg);
+	foreach (wurzel_vertex_descriptor& wd, vertices(wg)){
+		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
+		vidx_map[wd] = idx++;
+		unsigned int deg = out_degree(wd,wg);
 		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<deg<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
 	}
 	ofs.close();
@@ -498,8 +484,7 @@ int main(int argc, char* argv[]) {
 
   wurzel_vertex_iterator wi,wend;
   stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
-  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
-      voxel_vertex_descriptor v = *vi;
+  foreach(const voxel_vertex_descriptor& v, vertices(graph)) {
 	  float& f = Sato[v[0]][v[1]][v[2]];
 			//f = std::max(0.f, f-0.2f) * 1.f/0.7f;
 			//f  = exp(-10.f * log(1.f+f)/log(2.f) );
@@ -531,36 +516,35 @@ int main(int argc, char* argv[]) {
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
   vox2arr<float_grid> vox2raw(Raw);
-  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
+  foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine total path length statistic
-	  if(vox2raw[*vi] < start_threshold)
+	  if(vox2raw[v] < start_threshold)
 		  continue;
-	  s_pathlen(d_map[*vi]);
+	  s_pathlen(d_map[v]);
   }
 
-  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
+  foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine avg path costs statistic
-	  voxel_vertex_descriptor v = *vi;
 	  if(vox2raw[v] < start_threshold)
 		  continue;
 	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
 		  continue;
 	  double vox_dist = 0.0;
+		voxel_vertex_descriptor v2 = v;
 	  while(1){ 
-		  Flow[v[0]][v[1]][v[2]] += vox2raw[*vi];
-		  if(boost::get(vertex_index,graph,v) == strunk_idx)
+		  Flow[v2[0]][v2[1]][v2[2]] += vox2raw[v];
+		  if(boost::get(vertex_index,graph,v2) == strunk_idx)
 			  break;
-		  vox_dist += voxdist(p_map[v].begin(), v.begin());
-		  v = p_map[v];
+		  vox_dist += voxdist(p_map[v2].begin(), v2.begin());
+		  v2 = p_map[v2];
 	  }
 	  s_cnt(vox_dist);
 	  if(vox_dist>0)
-		  s_avg_pathlen(d_map[*vi]/vox_dist);
+		  s_avg_pathlen(d_map[v]/vox_dist);
   }
 
-  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
+  foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine flow statistic
-	  voxel_vertex_descriptor v = *vi;
 	  if(vox2raw[v] < start_threshold)
 		  continue; // too weak at start
 	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
@@ -572,17 +556,16 @@ int main(int argc, char* argv[]) {
   std::cout << "Average Pathlens: "<< s_avg_pathlen<<std::endl;
   std::cout << "Hop     Pathlens: "<< s_cnt<<std::endl;
 
-  for (tie(vi, vend) = vertices(graph); vi != vend; ++vi) {
-	  voxel_vertex_descriptor v = *vi;
-	  if(vox2raw[v]<start_threshold) 
+  foreach (const voxel_vertex_descriptor& v0, vertices(graph)) {
+	  if(vox2raw[v0]<start_threshold) 
 		  continue;                  // weak signal at start point
-	  float total_dist   = d_map[*vi];
+	  float total_dist   = d_map[v0];
 	  if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
 		  continue;                  // too long
-	  float flow = Flow[v[0]][v[1]][v[2]];
+	  float flow = Flow[v0[0]][v0[1]][v0[2]];
 	  if((flow-min(s_flow))/(max(s_flow)-min(s_flow)) < min_flow_thresh)
 		  continue;                  // not enough mass here
-	  v = *vi;
+	  voxel_vertex_descriptor v = v0;
 	  double vox_dist = 0.0;
 	  while(1){ 
 		  if(boost::get(vertex_index,graph,v) == strunk_idx)
