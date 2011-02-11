@@ -15,6 +15,7 @@
 #include <map>
 #include <boost/tuple/tuple.hpp>
 #include <boost/array.hpp>
+#include <boost/range/irange.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/accumulators/accumulators.hpp>
@@ -72,7 +73,6 @@ void print_neighbors(G& graph, voxelg_traits::vertex_descriptor v, const M& map)
 
 	voxelg_traits::out_edge_iterator oei, oeend;
 	unsigned int i=0;
-	//for(tie(oei,oeend)=out_edges(v,graph);oei!=oeend;oei++){
 	foreach(voxel_edge_descriptor& e, out_edges(v,graph)){
 	    voxelg_traits::vertex_descriptor w = target(e, graph);
 		std::cout<<"   edge"<<(++i)<<": "<<v<<"  "<<w<<" map:"<<(int)map[w]<<std::endl;
