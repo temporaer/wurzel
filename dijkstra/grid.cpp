@@ -401,7 +401,7 @@ void merge_nodes(wurzelgraph_t& wg){
 template<class T>
 void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
 	std::ofstream ofs(name.c_str());
-	foreach (wurzel_edge_descriptor& e, edges(wg)){
+	foreach (const wurzel_edge_descriptor& e, edges(wg)){
 		unsigned int  v = vidx_map[source(e,wg)];
 		unsigned int  w = vidx_map[target(e,wg)];
 		//ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<w[0]<<" "<<w[1]<<" "<<w[2]<<std::endl;
