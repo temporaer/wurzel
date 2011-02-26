@@ -9,6 +9,8 @@ dijkstra:
 	make -C dijkstra run
 vis:
 	ipython -wthread vis.py $(BASE)
+imgs:
+	ipython -wthread -- vis.py $(BASE) -o
 clean:
 	find  -maxdepth 3 -name '*.pyc' | xargs -i rm {}
 	find  -maxdepth 3 -name '*.pyo' | xargs -i rm {}
