@@ -85,14 +85,14 @@
 \begin{document}
 
 \begin{frame}[plain]
-  \titlepage%
+	\titlepage%
 \end{frame}
 
 
 \begin{frame}[plain] % WipeBlobs
-  \frametitle{Outline}
-    \tableofcontents[hidesubsections]
-  % You might wish to add the option [pausesections]
+	\frametitle{Outline}
+	\tableofcontents[hidesubsections]
+	% You might wish to add the option [pausesections]
 \end{frame}
 
 \section{Beschreibung der Daten}
@@ -109,8 +109,9 @@
 		\includegraphics[width=\linewidth]{img/o}
 	\end{columns}
 \end{frame}
+
 \begin{frame}
-	\frametitle{NMR-Daten}
+	\frametitle{NMR-Daten von Andreas Pohlmeier}
 	\begin{columns}
 		\column{.5\linewidth}
 		\begin{itemize}
@@ -153,7 +154,7 @@
 			\item Wassergehalt in der Wurzel modellieren
 			\item Wachstum beschreiben
 			\item Wurzel-L\"angen-Dichte bestimmen
-		  \item Zur Zeit: Manuelle Annotation in VR-Toolkit (3-5h)
+			\item Zur Zeit: Manuelle Annotation in VR-Toolkit (3-5h)
 		\end{itemize}
 		\column{.5\linewidth}
 		\includegraphics[width=\linewidth]{img/raw-4.png}
@@ -162,66 +163,76 @@
 
 \section{L\"osungsansatz zur Bestimmung der Wurzelkonnektivit\"at}
 \begin{frame}
-	\frametitle{Finden von r\"ohren\"ahnlichen Strukturen}
+	\frametitle{1. Entfernen des R\"ohrchens}
 	\begin{columns}
 		\column{.5\linewidth}
 		\includegraphics[width=\linewidth]{img/raw-4.png}
 		\column{.5\linewidth}
-		\includegraphics[width=\linewidth]{img/sato-4.png}
+		\includegraphics[width=\linewidth]{img2/raw-4.png}
+	\end{columns}
+\end{frame}
+
+\begin{frame}
+	\frametitle{2. Finden von r\"ohren\"ahnlichen Strukturen}
+	\begin{columns}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img2/raw-4.png}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img2/sato-bone-4.png}
 	\end{columns}
 	\begin{center}	
 		Multi-Scale Verfahren basierend auf Eigenwerten der lokalen Hesse-Matrizen.
-		Details in Sato et al. 1997\end{center}
-	\end{frame}
-	\begin{frame}
-		\frametitle{Verfolgen der gefundenen R\"ohren}
-		\begin{columns}
-			\column{.5\linewidth}
-			\begin{itemize}
-				\item Manuelles Bestimmen eines Punktes $P$ in der
-					Hauptwurzel
-				\item Definiere Graph auf Voxelgrid
-					Kantengewicht $w_{ij}=\exp(-\alpha s_j)$
-				\item Finde k\"urzeste Distanz f\"ur jeden Voxel zu $P$
-			\end{itemize}
-			\column{.5\linewidth}
-			\includegraphics[width=\linewidth]{img/L2_22aug_Ansicht2_Dijkstra.PNG}
+		Details in Sato et al. 1997, Frangi et al. 1998
+	\end{center}
+\end{frame}
 
-			\begin{center}Distanzen (Schwellwert)\end{center}
-			\end{columns}
-	\end{frame}
+\begin{frame}
+	\frametitle{3. Verfolgen der gefundenen R\"ohren}
+	\begin{columns}
+		\column{.5\linewidth}
+		\begin{itemize}
+			\item Manuelles Bestimmen eines Punktes $P$ in der
+				Hauptwurzel
+			\item Definiere Graph auf Voxelgrid
+				Kantengewicht $w_{ij}=\exp(-\alpha s_j)$
+			\item Finde k\"urzeste Distanz f\"ur jeden Voxel zu $P$
+			\item Auswahl von Startpunkten basierend auf
+				Rohdaten und durchschnittlichem Kantengewicht
+		\end{itemize}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img2/rendered-paths-4.png}
 
-	\begin{frame}
-		\frametitle{Verkn\"upfen der losen Enden}
-		\begin{columns}
-			\column{.5\linewidth}
-			\only<1>{%
-			\begin{itemize}
-				\item F\"ur alle Punkte in Rohdaten \"uber Threshold
-				\item Rendere Pfad zur Wurzel
-			\end{itemize}}
-			\includegraphics<2>[width=\linewidth]{img/raw-4.png}
-			\column{.5\linewidth}
-			\includegraphics[width=\linewidth]{img/L2_22aug_Ansicht2_tree.PNG}
-		\end{columns}
-	\end{frame}
+		\begin{center}
+			Gerenderte Pfade
+		\end{center}
+	\end{columns}
+\end{frame}
 
-	\begin{frame}
-		\frametitle{Erodieren der Gerenderten Pfade}
-		\begin{columns}
-			\column{.5\linewidth}
-			\only<1>{%
-			\begin{itemize}
-				\item Behalte nur Knoten die entweder
+\begin{frame}
+	\frametitle{4. Erodieren der Gerenderten Pfade}
+	\begin{columns}
+		\column{.5\linewidth}
+		\begin{itemize}
+			\item Behalte nur Knoten die entweder
 				\begin{itemize}
-				\item Nicht auf einem lokalen Maximum im R\"ohrchen\"ahnlichkeitsbild sind
-				\item Out-Degree gr"o"ser 1 haben
+					\item Auf einem lokalen Maximum im R\"ohrchen\"ahnlichkeitsbild sind
+					\item Out-Degree gr"o"ser 1 haben
 				\end{itemize}
-			\end{itemize}}
-			\column{.5\linewidth}
-			\includegraphics[width=\linewidth]{img/L2_22aug_Ansicht2_vergleich.png}
-		\end{columns}
-	\end{frame}
+		\end{itemize}
+		\column{.5\linewidth}
+		\includegraphics<1>[width=\linewidth]{img2/path-ours-4.png}
+	\end{columns}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Vergleich mit von-Hand gelabelter Wurzel}
+	\begin{columns}
+		\column{.5\linewidth}
+		\includegraphics<1>[width=\linewidth]{img2/path-traces-4.png}
+		\column{.5\linewidth}
+		\includegraphics<1>[width=\linewidth]{img2/raw-4.png}
+	\end{columns}
+\end{frame}
 \end{document}
 
 % vim:autoread
