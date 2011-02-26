@@ -1,4 +1,3 @@
-import gc
 import numpy as np
 
 def cnan(x):
