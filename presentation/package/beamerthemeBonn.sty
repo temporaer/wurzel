@@ -60,14 +60,20 @@
 {
   \begin{frame}<beamer>[plain]
     \frametitle{Outline}
-    \tableofcontents[currentsection,hideothersubsections]
+		\begin{columns}
+			\column{.8\linewidth}
+			\tableofcontents[currentsection,hideothersubsections]
+		\end{columns}
   \end{frame}
 }
 \AtBeginSubsection[]
 {
   \begin{frame}<beamer>[plain]
     \frametitle{Outline}
-    \tableofcontents[currentsection,subsectionstyle=show/shaded/hide]
+		\begin{columns}
+			\column{.8\linewidth}
+			\tableofcontents[currentsection,subsectionstyle=show/shaded/hide]
+		\end{columns}
   \end{frame}
 }
 

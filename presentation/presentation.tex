@@ -11,7 +11,7 @@
 {%
   \usetheme{Bonn}
   \pgfdeclareimage[height=0.8cm]{university-logo}{Logo_UBo_h24_4c-crop}
-  \setbeamertemplate{footline}[default]
+  %\setbeamertemplate{footline}[default]
   \logo{\pgfuseimage{university-logo}}
   \setbeamertemplate{navigation symbols}{}
 }
@@ -70,14 +70,14 @@
 
 % \DeclareGraphicsRule{.jpg}{eps}{.bb}{`bmeps -c #1}
 
-\title{Wurzelstrukturerkennung aus NMR-Daten}
+\title[Wurzelstrukturerkennung]{Wurzelstrukturerkennung aus NMR-Daten}
 
-\author{Hannes Schulz, Sven Behnke}
+\author[Schulz, Behnke]{Hannes Schulz, Sven Behnke}
 \institute[Uni Bonn, Germany]%
 {\includegraphics[width=.2\linewidth]{Logo_UBo_h24_4c-crop}}
 %{Rheinische Friedrich-Wilhelms-Universität Bonn}
 
-\date{31. Januar 2011}
+\date{28. Februar 2011}
 
 
 %\beamerdefaultoverlayspecification{<+->}
@@ -91,45 +91,56 @@
 
 \begin{frame}[plain] % WipeBlobs
 	\frametitle{Outline}
-	\tableofcontents[hidesubsections]
+		\begin{columns}
+			\column{.8\linewidth}
+			\tableofcontents[hidesubsections]
+		\end{columns}
 	% You might wish to add the option [pausesections]
 \end{frame}
 
 \section{Beschreibung der Daten}
 
 \begin{frame}
-	\frametitle{Objekt}
+	\frametitle{Untersuchungsobjekt}
 	\begin{columns}
+		\column{.5\linewidth}
+		\begin{center}
+			\includegraphics[width=.6\linewidth]{img/o2}
+		\end{center}
 		\column{.5\linewidth}
 		\begin{itemize}
 			\item Lupine
 			\item Natursandboden
 		\end{itemize}
-		\column{.5\linewidth}
-		\includegraphics[width=\linewidth]{img/o}
 	\end{columns}
 \end{frame}
 
 \begin{frame}
 	\frametitle{NMR-Daten von Andreas Pohlmeier}
 	\begin{columns}
-		\column{.5\linewidth}
+		\column{.4\linewidth}
 		\begin{itemize}
 			\item Multi-Slice Aufnahme ($256\times256\times120$)
 			\item Verschiedene Stadien (Wachstum, Stress)
 		\end{itemize}
 		\vspace{1cm}
 
-		\includegraphics[width=.6\linewidth]{img/d1}
-		\column{.5\linewidth}
-		\includegraphics[width=.6\linewidth]{img/d2}\\
-		\includegraphics[width=.6\linewidth]{img/d3}
+		\begin{center}
+			\includegraphics[width=.7\linewidth]{img/d1}
+		\end{center}
+		\column{.4\linewidth}
+		\begin{center}
+			\includegraphics[width=.7\linewidth]{img/d2}\\
+			\includegraphics[width=.7\linewidth]{img/d3}
+		\end{center}
 	\end{columns}
 \end{frame}
 
 \begin{frame}
 	\frametitle{NMR-Daten}
 	\begin{columns}
+		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img/raw-4.png}
 		\column{.5\linewidth}
 		\begin{itemize}
 			\item Pixelhelligkeit $\propto$ Wassergehalt
@@ -139,8 +150,6 @@
 			\item Wassergef\"ulltes Messr\"ohrchen aus Glas
 			\item Aufnahmedauer 1-3h
 		\end{itemize}
-		\column{.5\linewidth}
-		\includegraphics[width=\linewidth]{img/raw-4.png}
 	\end{columns}
 \end{frame}
 
@@ -150,14 +159,14 @@
 	\frametitle{Aufgabenstellungen}
 	\begin{columns}
 		\column{.5\linewidth}
+		\includegraphics[width=\linewidth]{img/raw-4.png}
+		\column{.5\linewidth}
 		\begin{itemize}
 			\item Wassergehalt in der Wurzel modellieren
 			\item Wachstum beschreiben
 			\item Wurzel-L\"angen-Dichte bestimmen
-			\item Zur Zeit: Manuelle Annotation in VR-Toolkit (3-5h)
+			\item<alert@2> Zur Zeit: Manuelle Annotation in VR-Toolkit ($\approx$7h)
 		\end{itemize}
-		\column{.5\linewidth}
-		\includegraphics[width=\linewidth]{img/raw-4.png}
 	\end{columns}
 \end{frame}
 
@@ -209,14 +218,14 @@
 \end{frame}
 
 \begin{frame}
-	\frametitle{4. Erodieren der Gerenderten Pfade}
+	\frametitle{4. Skelettieren der Pfade}
 	\begin{columns}
 		\column{.5\linewidth}
 		\begin{itemize}
-			\item Behalte nur Knoten die entweder
+			\item Behalte nur Knoten $n$ mit
 				\begin{itemize}
-					\item Auf einem lokalen Maximum im R\"ohrchen\"ahnlichkeitsbild sind
-					\item Out-Degree gr"o"ser 1 haben
+					\item R\"ohrchen\"ahnlichkeitsbild($n$) ist lokales Maximum
+					\item Out-Degree$(n)>1$
 				\end{itemize}
 		\end{itemize}
 		\column{.5\linewidth}
@@ -233,6 +242,13 @@
 		\includegraphics<1>[width=\linewidth]{img2/raw-4.png}
 	\end{columns}
 \end{frame}
+
+\begin{frame}[plain]
+	\begin{center}
+		\Huge{Fragen?}
+	\end{center}
+\end{frame}
+
 \end{document}
 
 % vim:autoread
