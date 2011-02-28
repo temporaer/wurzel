@@ -491,7 +491,7 @@ int main(int argc, char* argv[]) {
 			//f  = exp(-15.f * f );
 
 	  float& g = Raw[v[0]][v[1]][v[2]];
-	  f *= 1.0f+2.0f*g;
+	  //f *= 1.0f+2.0f*g;
 	  //      g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
   }
   stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
