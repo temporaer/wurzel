@@ -510,8 +510,8 @@ int main(int argc, char* argv[]) {
   std::cout << "Tracing paths..." <<std::endl;
   double start_threshold       = 0.1;
   double total_len_perc_thresh = 1.00;
-  double avg_len_perc_thresh   = 0.10;
-  double min_flow_thresh       = 0.000500;
+  double avg_len_perc_thresh   = 0.20;
+  double min_flow_thresh       = 0.000100;
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
