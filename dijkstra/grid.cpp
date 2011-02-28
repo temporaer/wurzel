@@ -161,14 +161,14 @@ void find_shortest_paths(const std::string& base,
   bool read_p=false, read_d=false;
   if(fs::exists(getfn(base,"p_map","dat")) && !force){
 	  std::cout << "Reading predecessor map from file..."<<std::endl;
-	  std::ifstream ifs("data/p_map.dat");
+	  std::ifstream ifs(getfn(base,"p_map","dat").c_str());
 	  foreach (const voxel_vertex_descriptor& v, vertices(graph))
 		  ifs.read((char*)&p_map[v], sizeof(voxel_vertex_descriptor));
 	  read_p = true;
   }
   if(fs::exists(getfn(base,"d_map","dat")) && !force){
 	  std::cout << "Reading distance map from file..."<<std::endl;
-	  std::ifstream ifs("data/d_map.dat");
+	  std::ifstream ifs(getfn(base,"d_map", "dat").c_str());
 	  foreach (const voxel_vertex_descriptor& v, vertices(graph))
 		  ifs.read((char*)&d_map[v], sizeof(double));
 	  read_d = true;
