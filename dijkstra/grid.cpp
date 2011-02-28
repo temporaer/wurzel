@@ -131,7 +131,7 @@ voxel_edge_weight_map::operator[](key_type e) const {
 	//double gd = ev10[s]*ev10[t] + ev11[s]*ev11[t] + ev12[s]*ev12[t];
 	//double  g = (1.0 + 30.0*exp(-10.0*gd*gd));
 
-	double v = exp( - 50.0 * (sato[t] + sato[s]) );
+	double v = exp( - 10.0 * (sato[t] + sato[s]) );
 
 	//double hs = voxdist(s.begin(),g_strunk.begin());
 	//double ht = voxdist(t.begin(),g_strunk.begin()); 
