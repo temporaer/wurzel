@@ -575,7 +575,7 @@ int main(int argc, char* argv[]) {
 	  }
 	  if(total_dist/vox_dist > max(s_avg_pathlen)*avg_len_perc_thresh)
 		  continue;
-	  v = *vi;
+	  v = v0;
 	  while(1){ 
 		  Paths[v[0]][v[1]][v[2]] = 255;
 		  if(boost::get(vertex_index,graph,v) == strunk_idx)
