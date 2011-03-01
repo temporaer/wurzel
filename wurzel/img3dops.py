@@ -5,7 +5,7 @@ import scipy.ndimage as nd
 from scipy.weave import inline, converters
 
 def grad(img, ax):
-    return nd.convolve1d(img, weights=[-.5,.5], axis=ax)
+    return nd.convolve1d(img, weights=[-.5,.0,.5], axis=ax)
 
 def hessian(img, sigma=-1):
     assert img.ndim == 3
