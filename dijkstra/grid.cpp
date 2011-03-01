@@ -24,15 +24,20 @@
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
 #include <boost/foreach.hpp>
+#include <boost/optional.hpp>
+#include <boost/array.hpp>
 #include "boost/filesystem.hpp"
 #include "voxelgrid.hpp"
 #include "wurzel_tree.hpp"
+#include "voxel_accessors.hpp"
+#include "voxel_normals.hpp"
 #define SQR(X) ((X)*(X))
 #define V(X) #X<<":"<<(X)<<"  "
 #define foreach BOOST_FOREACH
 
 using namespace boost::accumulators;
 namespace fs = boost::filesystem;
+using boost::optional;
 
 typedef boost::multi_array_ref<float, 3> float_grid;
 typedef boost::multi_array_ref<unsigned char, 3> uc_grid;
@@ -89,30 +94,6 @@ inline double voxdist(I a, J b){
 }
 
 
-template<class T>
-struct const_vox2arr{
-	const T& A;
-	const_vox2arr(const T& a):A(a){}
-	const typename T::element& operator[](const voxel_vertex_descriptor&v)const{
-		return A[v[0]][v[1]][v[2]];
-	}
-};
-
-template<class T>
-struct vox2arr{
-	T& A;
-	vox2arr(T& a):A(a){}
-	typename T::element& operator[](const voxel_vertex_descriptor&v)const{
-		return A[v[0]][v[1]][v[2]];
-	}
-};
-
-template<class T>
-vox2arr<T> make_vox2arr(T& t){ return vox2arr<T>(t); }
-
-template<class T>
-const_vox2arr<T> make_vox2arr(const T& t){ return const_vox2arr<T>(t); }
-
 vox2arr<float_grid>* g_sato, *g_ev10, *g_ev11, *g_ev12;
 boost::array<vidx_t, 3> g_strunk;
 
@@ -122,9 +103,9 @@ voxel_edge_weight_map::operator[](key_type e) const {
 	voxel_vertex_descriptor s = source(e,m_graph);
 	voxel_vertex_descriptor t = target(e,m_graph);
 	vox2arr<float_grid>& sato = *g_sato;
-	vox2arr<float_grid>& ev10 = *g_ev10;
-	vox2arr<float_grid>& ev11 = *g_ev11;
-	vox2arr<float_grid>& ev12 = *g_ev12;
+	//vox2arr<float_grid>& ev10 = *g_ev10;
+	//vox2arr<float_grid>& ev11 = *g_ev11;
+	//vox2arr<float_grid>& ev12 = *g_ev12;
 
 	double d = voxdist(s.begin(),t.begin());
 
@@ -301,7 +282,6 @@ void remove_nonmax_nodes(wurzelgraph_t& wg, const T& maxmap){
 	wurzel_in_edge_iterator ei,eend;
 	wurzelg_traits::adjacency_iterator      ai,aend;
 	wurzelgraph_t::inv_adjacency_iterator  iai,iaend;
-	property_map<wurzelgraph_t,path_orientation_t>::type po_map = get(path_orientation, wg);
 	bool changed = true;
 	while(changed){
 		changed = false;
@@ -331,7 +311,6 @@ void merge_deg2_nodes(wurzelgraph_t& wg){
 	wurzel_in_edge_iterator ei,eend;
 	wurzelg_traits::adjacency_iterator      ai,aend;
 	wurzelgraph_t::inv_adjacency_iterator  iai,iaend;
-	property_map<wurzelgraph_t,path_orientation_t>::type po_map = get(path_orientation, wg);
 	bool changed = true;
 	while(changed){
 		changed = false;
@@ -352,52 +331,6 @@ void merge_deg2_nodes(wurzelgraph_t& wg){
 	}
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
-void merge_nodes(wurzelgraph_t& wg){
-	std::cout << "Merging nodes..."<<std::flush;
-	// determine local orientations
-	wurzelg_traits::adjacency_iterator      ai,aend;
-	wurzelgraph_t::inv_adjacency_iterator  iai,iaend;
-	property_map<wurzelgraph_t,path_orientation_t>::type po_map = get(path_orientation_t(), wg);
-	foreach (wurzel_vertex_descriptor& v, vertices(wg)) {
-		po_map[v] = ublas::zero_matrix<double>(3,3);
-	}
-	typedef std::vector<wurzel_vertex_descriptor> wd_vec_t;
-	wd_vec_t neighbors, neighbors2;
-	foreach (const wurzel_vertex_descriptor& wv, vertices(wg)) {
-		// search forward
-		tie(ai,aend) = adjacent_vertices(wv,wg);
-		std::copy(ai,aend,std::back_inserter(neighbors));
-		foreach(const wurzel_vertex_descriptor& v2, neighbors){
-			tie(ai,aend) = adjacent_vertices(v2,wg);
-			std::copy(ai,aend,std::back_inserter(neighbors2));
-		}
-		neighbors.clear();
-		// search back
-		tie(iai,iaend) = inv_adjacent_vertices(wv,wg);
-		std::copy(iai,iaend,std::back_inserter(neighbors));
-		foreach(const wurzel_vertex_descriptor& v2, neighbors){
-			tie(iai,iaend) = inv_adjacent_vertices(v2,wg);
-			std::copy(iai,iaend,std::back_inserter(neighbors2));
-		}
-
-		// now add coordinates of neighbors to covariance matrix at wi
-		covmat_t& cov = po_map[wv];
-		foreach(const wurzel_vertex_descriptor& w, neighbors2){
-			const voxel_vertex_descriptor&  v = get(vertex_name,wg)[w];
-			cov(0,0) += v[0]*v[0];
-			cov(0,1) += v[0]*v[1];
-			cov(0,2) += v[0]*v[2];
-			cov(1,1) += v[1]*v[1];
-			cov(1,2) += v[1]*v[2];
-			cov(2,2) += v[2]*v[2];
-		}
-		cov(1,0) = cov(0,1);
-		cov(2,0) = cov(0,2);
-		cov(2,1) = cov(1,2);
-	}
-	std::cout << "done."<<std::endl;
-}
-
 template<class T>
 void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
 	std::ofstream ofs(name.c_str());
@@ -415,9 +348,10 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 	unsigned int idx=0;
 	foreach (wurzel_vertex_descriptor& wd, vertices(wg)){
 		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
+		const vec3_t&            p = get(vertex_position,wg)[wd];
 		vidx_map[wd] = idx++;
 		unsigned int deg = out_degree(wd,wg);
-		ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<deg<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
+		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<deg<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
 	}
 	ofs.close();
 }
@@ -439,6 +373,52 @@ read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
   }
   dat.close();
   return boost::multi_array_ref<T,3>(data,boost::extents[X][Y][Z]);
+}
+
+void
+initialize_vertex_positions(wurzelgraph_t& wg){
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
+	property_map<wurzelgraph_t,vertex_name_t>::type     name_map = get(vertex_name, wg);
+	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
+		vec3_t&   p = pos_map[wv];
+		std::copy(name_map[wv].begin(), name_map[wv].end(), p.begin());
+	}
+}
+
+template<class T>
+void
+determine_vertex_normals(wurzelgraph_t& wg, const T& acc){
+	std::cout << "Determining vertex normals..."<<std::flush;
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
+	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
+	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
+		get_normal(normal_map[wv],pos_map[wv],acc);
+	}
+	std::cout << "done."<<std::endl;
+}
+
+template<class T>
+void
+move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
+	std::cout << "moving vertices in planes..."<<std::flush;
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
+	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
+	double sum = 0.0;
+	int    cnt = 0;
+	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
+		covmat_t& m = normal_map[wv];
+		vec3_t&   p = pos_map[wv];
+		double dx  = acc(p[0] + m(0,1), p[1] + m(1,1), p[2] + m(2,1));
+		       dx -= acc(p[0] - m(0,1), p[1] - m(1,1), p[2] - m(2,1));
+                                                               
+		double dy  = acc(p[0] + m(0,2), p[1] + m(1,2), p[2] + m(2,2));
+		       dy -= acc(p[0] - m(0,2), p[1] - m(1,2), p[2] - m(2,2));
+		p += 0.2*dx * ublas::matrix_column<covmat_t>(m,1);
+		p += 0.2*dy * ublas::matrix_column<covmat_t>(m,2);
+		sum += SQR(dx)+SQR(dy);
+		cnt ++;
+	}
+	std::cout << "done (avg norm="<<sum/cnt<<")"<<std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -484,16 +464,16 @@ int main(int argc, char* argv[]) {
 
   wurzel_vertex_iterator wi,wend;
   stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
-  foreach(const voxel_vertex_descriptor& v, vertices(graph)) {
-	  float& f = Sato[v[0]][v[1]][v[2]];
+  //foreach(const voxel_vertex_descriptor& v, vertices(graph)) {
+		//float& f = Sato[v[0]][v[1]][v[2]];
 			//f = std::max(0.f, f-0.2f) * 1.f/0.7f;
 			//f  = exp(-10.f * log(1.f+f)/log(2.f) );
 			//f  = exp(-15.f * f );
 
-	  float& g = Raw[v[0]][v[1]][v[2]];
+		//float& g = Raw[v[0]][v[1]][v[2]];
 	  //f *= 1.0f+2.0f*g;
 	  //      g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
-  }
+  //}
   stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
   std::cout << "Raw:  " << s_raw <<std::endl;
   std::cout << "Sato: " << s_sato <<std::endl;
@@ -533,6 +513,7 @@ int main(int argc, char* argv[]) {
 		voxel_vertex_descriptor v2 = v;
 	  while(1){ 
 		  Flow[v2[0]][v2[1]][v2[2]] += vox2raw[v];
+		  //Paths[v2[0]][v2[1]][v2[2]] = 255;
 		  if(boost::get(vertex_index,graph,v2) == strunk_idx)
 			  break;
 		  vox_dist += voxdist(p_map[v2].begin(), v2.begin());
@@ -542,6 +523,8 @@ int main(int argc, char* argv[]) {
 	  if(vox_dist>0)
 		  s_avg_pathlen(d_map[v]/vox_dist);
   }
+  //write_voxelgrid<unsigned char>(getfn(base,"paths1","dat"),graph,make_vox2arr(Paths));
+  //std::fill(paths, paths+XYZ, (unsigned char) 0);
 
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine flow statistic
@@ -583,15 +566,24 @@ int main(int argc, char* argv[]) {
 		  v = p_map[v];
 	  }
   }
+
   
   // find local ranks
   rank_op(base,graph,make_vox2arr(Ranks),make_vox2arr(Sato),make_vox2arr(Paths));
 
   wurzelgraph_t wgraph;
   paths2adjlist(graph,wgraph,p_map,make_vox2arr(Paths));
-  remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
-  //erode_tree(wgraph);
-  //merge_deg2_nodes(wgraph);
+	initialize_vertex_positions(wgraph);
+
+	for(int i=0;i<100;i++){
+	 determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
+	 move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
+	}
+
+  //remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
+
+	erode_tree(wgraph);
+	//merge_deg2_nodes(wgraph);
 
   std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
   print_wurzel_vertices(getfn(base,"vertices","txt"),wgraph,idx_map);
