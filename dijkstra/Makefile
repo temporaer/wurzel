@@ -1,4 +1,4 @@
-LDFLAGS=-L boost_1_45_0/stage/lib -l boost_system -l boost_filesystem 
+LDFLAGS=-L boost_1_45_0/stage/lib -l boost_system -l boost_filesystem -l lapack
 BASE ?= data/L2_17aug
 grid: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp
 	g++-4.4 -Wall -O3 -g0 -DNDEBUG $(LDFLAGS) -march=native -mtune=native --fast-math -fno-builtin -std=gnu++0x -o grid grid.cpp -I boost_1_45_0 
