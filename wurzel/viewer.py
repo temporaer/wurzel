@@ -77,7 +77,7 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
     #mlab.add_module(s)
     print "done"
 
-def show_points(fn,fne=None,cm="Blues",mode="2dtriangle"):
+def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None):
     L = []
     S = []
     D = []
@@ -127,6 +127,8 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle"):
         pts.mlab_source.dataset.lines = L
         tube = mlab.pipeline.tube(pts,tube_radius=0.5)
         #tube.filter.vary_radius = 'vary_radius_by_scalar'
-        color = (1,0,0) if gt else (0,1,0)
+        if color==None:
+            color = (1,0,0) if gt else (0,1,0)
+        #color = (0,1,0) if gt else (1,0,0)
         mlab.pipeline.surface(tube,color=color)
     print "Done."
