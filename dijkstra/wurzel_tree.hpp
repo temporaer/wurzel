@@ -19,6 +19,10 @@ struct marked_vertex_t{
 	typedef boost::vertex_property_tag kind;
 } marked_vertex;
 
+struct root_stddev_t{
+	typedef boost::vertex_property_tag kind;
+} root_stddev;
+
 typedef ublas::bounded_matrix<double,3,3,ublas::column_major> covmat_t;
 typedef ublas::bounded_vector<double,3>                       vec3_t;
 
@@ -29,8 +33,9 @@ typedef boost::adjacency_list<
 	boost::property<boost::vertex_name_t,voxel_vertex_descriptor,
 	  boost::property<vertex_position_t,vec3_t,
 		  boost::property<vertex_normal_t,covmat_t,
+		  	boost::property<root_stddev_t,double,
 			  boost::property<marked_vertex_t,bool
-	  > > > >
+	  > > > > >
 	> wurzelgraph_t;
 
 typedef graph_traits<wurzelgraph_t> wurzelg_traits;

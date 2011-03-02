@@ -334,11 +334,13 @@ void merge_deg2_nodes(wurzelgraph_t& wg){
 template<class T>
 void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
 	std::ofstream ofs(name.c_str());
+	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
 	foreach (const wurzel_edge_descriptor& e, edges(wg)){
 		unsigned int  v = vidx_map[source(e,wg)];
 		unsigned int  w = vidx_map[target(e,wg)];
 		//ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<w[0]<<" "<<w[1]<<" "<<w[2]<<std::endl;
-		ofs << v <<" "<< w <<std::endl;
+		double thickness = stddev_map[source(e,wg)]+stddev_map[target(e,wg)];
+		ofs << v <<" "<< w <<" "<<thickness/2.0<<std::endl;
 	}
 	ofs.close();
 }
@@ -346,12 +348,14 @@ template<class T>
 void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
 	std::ofstream ofs(name.c_str());
 	unsigned int idx=0;
+	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
 	foreach (wurzel_vertex_descriptor& wd, vertices(wg)){
 		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
 		const vec3_t&            p = get(vertex_position,wg)[wd];
 		vidx_map[wd] = idx++;
 		unsigned int deg = out_degree(wd,wg);
-		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<deg<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
+		double thickness = stddev_map[wd];
+		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
 	}
 	ofs.close();
 }
@@ -421,6 +425,72 @@ move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
 	std::cout << "done (avg norm="<<sum/cnt<<")"<<std::endl;
 }
 
+template<class T>
+void
+wurzel_thickness(wurzelgraph_t& wg, const T& acc){
+	std::cout << "Determining Wurzel thickness..."<<std::flush;
+	stat_t s_thickness;
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
+	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
+	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map   = get(root_stddev, wg);
+	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
+		covmat_t& m = normal_map[wv];
+		vec3_t&   p = pos_map[wv];
+		const double r = 12, step=0.5;
+		ublas::bounded_matrix<double,2,2> M = ublas::scalar_matrix<double>(2,2,2.0);
+		double valsum = 0.0;
+		for(double i = -r; i <= r; i+=step){
+			for (double j = -r; j <= r; j+=step)
+			{
+				double val = acc(
+						p[0]+i*m(0,1) + j*m(0,2),
+					 	p[1]+i*m(1,1) + j*m(1,2),
+					 	p[2]+i*m(2,1) + j*m(2,2));
+				val = std::max(0.0,val);
+				M(0,0) += val * i*i;
+				M(1,1) += val * j*j;
+				M(0,1) += val * i*j;
+				valsum += val;
+			}
+		}
+		M(1,0) = M(0,1);
+		M /= valsum;
+		M(0,0) += 0.01;
+		M(1,1) += 0.01;
+		double t      = M(0,0)+M(1,1);                    // trace
+		double d      = M(0,0)*M(1,1) - M(0,1)*M(1,0);    // determinant
+		double tmp    = sqrt(t*t/4.0-d);
+		double stddev = 1.0/(t/2.0+tmp)   +  1.0/(t/2.0-tmp);  // sum of stddevs in both directions
+		stddev /= 2.0;                               // average of stddevs
+		stddev_map[wv] = stddev;
+		if(stddev< 0){
+			std::cout << "-----------------"<<std::endl;
+			std::cout << M(0,0)<<M(0,1)<<M(1,1)<<M(1,0)<<std::endl;
+			std::cout << V(t)<<V(d)<<V(tmp)<<V(stddev)<<std::endl;
+		}
+		s_thickness(stddev);
+	}
+	std::cout <<V(s_thickness)<< " done."<<std::endl;
+}
+
+void
+smooth_thickness(wurzelgraph_t& wg){
+	std::cout << "Smoothing Wurzel thickness..."<<std::flush;
+	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map   = get(root_stddev, wg);
+	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
+		if(out_degree(wv,wg)!=0)
+			continue;
+		wurzel_vertex_descriptor d = wv;
+		double radius = stddev_map[d];
+		while(in_degree(d,wg)>0){
+			if(stddev_map[d]<radius)
+				stddev_map[d] = radius;
+			radius = std::max(stddev_map[d],radius);
+			d = source(*in_edges(d,wg).first,wg);
+		}
+	}
+}
+
 int main(int argc, char* argv[]) {
 	static const unsigned int X=256,Y=256,Z=256,XYZ=X*Y*Z;
 	bool force_recompute_dijkstra = false;
@@ -464,7 +534,7 @@ int main(int argc, char* argv[]) {
 
   wurzel_vertex_iterator wi,wend;
   stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
-  //foreach(const voxel_vertex_descriptor& v, vertices(graph)) {
+	//foreach(const voxel_vertex_descriptor& v, vertices(graph)) {
 		//float& f = Sato[v[0]][v[1]][v[2]];
 			//f = std::max(0.f, f-0.2f) * 1.f/0.7f;
 			//f  = exp(-10.f * log(1.f+f)/log(2.f) );
@@ -473,7 +543,8 @@ int main(int argc, char* argv[]) {
 		//float& g = Raw[v[0]][v[1]][v[2]];
 	  //f *= 1.0f+2.0f*g;
 	  //      g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
-  //}
+		//f += g;
+	//}
   stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
   std::cout << "Raw:  " << s_raw <<std::endl;
   std::cout << "Sato: " << s_sato <<std::endl;
@@ -579,6 +650,9 @@ int main(int argc, char* argv[]) {
 	 determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
 	 move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
 	}
+	wurzel_thickness(wgraph, make_vox2arr_subpix(Raw));
+	//smooth_thickness(wgraph);
+	
 
   //remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
 

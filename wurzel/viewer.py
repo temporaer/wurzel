@@ -88,7 +88,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None):
             if len(line)<7:
                 continue
             L.append([float(x) for x in line[:3]])
-            S.append(int(line[3]))
+            S.append(float(line[3]))
             D.append([float(x) for x in line[4:]])
     S = np.array(S)
     L = np.vstack(L)
@@ -105,28 +105,29 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None):
         #L[:,2] = (L[:,2])/131.*256  + -5
         gt = True
     else:
-        L += 0.5
+        L[:] += 0.5
         gt = False
 
-    deg1 = np.where(S==0)
-    mlab.points3d(L[deg1,0].squeeze(),L[deg1,1].squeeze(),L[deg1,2].squeeze(),S[deg1],scale_factor=1.0,colormap="Spectral",scale_mode="none",mode="2dtriangle")
-    deg3 = np.where(S >1)
-    mlab.points3d(L[deg3,0].squeeze(),L[deg3,1].squeeze(),L[deg3,2].squeeze(),S[deg3],scale_factor=1.5,colormap="bone",scale_mode="none",mode="2dtriangle")
+    #mlab.points3d(L[:,0].squeeze(),L[:,1].squeeze(),L[:,2].squeeze(),S,scale_factor=1.5,colormap="bone",scale_mode="none",mode="2dtriangle")
 
     #pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.8,colormap=cm,scale_mode="none",resolution="20",mode=mode)
-    pts = mlab.points3d(L[:,0],L[:,1],L[:,2],scale_factor=0.1,colormap=cm,scale_mode="none",resolution="20",mode=mode)
+    #pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.1,colormap=cm,scale_mode="none",resolution="20",mode=mode)
+    pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=10,colormap=cm,resolution="20",mode=mode,scale_mode='scalar')
     print "Done."
     if None==fne: return
     print "Show Edges3D"
     L = []
     with open(fne) as f:
         for line in f.readlines():
-            line = [int(x) for x in line.split()]
+            vec = line.split()
+            line = [int(x) for x in vec[:-1]]
             L.append(line)
+
         L = np.vstack(L)
         pts.mlab_source.dataset.lines = L
-        tube = mlab.pipeline.tube(pts,tube_radius=0.5)
-        #tube.filter.vary_radius = 'vary_radius_by_scalar'
+        tube = mlab.pipeline.tube(pts,tube_sides=8)
+        tube.filter.radius_factor = 100.
+        tube.filter.vary_radius = 'vary_radius_by_scalar'
         if color==None:
             color = (1,0,0) if gt else (0,1,0)
         #color = (0,1,0) if gt else (1,0,0)
