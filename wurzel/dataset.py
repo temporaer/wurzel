@@ -70,7 +70,7 @@ class dataset(object):
         from scipy.ndimage.interpolation import zoom
         #print "mm: 100 x 100 x 131"
         #print "Dims:", self.D.shape
-        fact = np.array(self.info.shape) / np.array(self.info.read_shape)
+        fact = np.array(self.info.shape).astype("float32") / np.array(self.info.read_shape).astype("float32")
         if method == "zoom":
             print "Resampling..."
             self.D = zoom(self.D, fact).astype("float32")
@@ -95,6 +95,7 @@ class dataset(object):
         with open(datafile,"wb") as f:
             cPickle.dump(self.D, f, cPickle.HIGHEST_PROTOCOL)
         upsname = datafile.replace(".pickle","-upsampled.dat")
+        print "Saving to upsampled: ", self.D.shape
         self.D.tofile(upsname)
     def get_rid_of_roehrchen(self):
         D = self.D
