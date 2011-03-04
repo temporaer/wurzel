@@ -616,7 +616,9 @@ int main(int argc, char* argv[]) {
 		  continue;
 	  s_pathlen(d_map[v]);
   }
+  std::cout << ". " <<std::flush;
 
+  property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine avg path costs statistic
 	  if(vox2raw[v] < start_threshold)
@@ -625,18 +627,27 @@ int main(int argc, char* argv[]) {
 		  continue;
 	  double vox_dist = 0.0;
 		voxel_vertex_descriptor v2 = v;
-	  while(1){ 
-		  Flow[v2[0]][v2[1]][v2[2]] += vox2raw[v];
+	  int cnt = 0;
+	  float flow_add = vox2raw[v];
+	  voxel_vertex_descriptor tmp;
+	  while(cnt++<XYZ){ 
+		  Flow[v2[0]][v2[1]][v2[2]] += flow_add;
 		  //Paths[v2[0]][v2[1]][v2[2]] = 255;
-		  if(boost::get(vertex_index,graph,v2) == strunk_idx)
+		  if(vertex_index_map[v2] == strunk_idx)
 			  break;
-		  vox_dist += voxdist(p_map[v2].begin(), v2.begin());
-		  v2 = p_map[v2];
+		  tmp = p_map[v2];
+		  vox_dist += voxdist(tmp.begin(), v2.begin());
+		  v2 = tmp;
+	  }
+	  if(cnt>=XYZ){
+		  std::cout << "endless loop!"<<std::endl;
+		  exit(1);
 	  }
 	  s_cnt(vox_dist);
 	  if(vox_dist>0)
 		  s_avg_pathlen(d_map[v]/vox_dist);
   }
+  std::cout << ". " <<std::flush;
   //write_voxelgrid<unsigned char>(getfn(base,"paths1","dat"),graph,make_vox2arr(Paths));
   //std::fill(paths, paths+XYZ, (unsigned char) 0);
 
