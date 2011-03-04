@@ -498,7 +498,7 @@ template<class T>
 boost::array<vidx_t, 3> 
 locate_stem(boost::array<vidx_t,3>& dims, const T& acc, unsigned int plane, unsigned int axis){
 	std::cout <<"Locate stem..."<<std::flush;
-	voxel_vertex_descriptor arg_max_val;
+	voxel_vertex_descriptor arg_max_val = {{0,0,0}};
 	float max_val = -1E6;
 
 	voxel_vertex_descriptor current = {{0,0,0}};
