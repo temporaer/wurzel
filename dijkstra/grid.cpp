@@ -31,6 +31,9 @@
 #include "wurzel_tree.hpp"
 #include "voxel_accessors.hpp"
 #include "voxel_normals.hpp"
+#include "wurzel_info.hpp"
+#include "grid_config.hpp"
+
 #define SQR(X) ((X)*(X))
 #define V(X) #X<<":"<<(X)<<"  "
 #define foreach BOOST_FOREACH
@@ -491,30 +494,70 @@ smooth_thickness(wurzelgraph_t& wg){
 	}
 }
 
-int main(int argc, char* argv[]) {
-	static const unsigned int X=256,Y=256,Z=256,XYZ=X*Y*Z;
-	bool force_recompute_dijkstra = false;
-	if(argc<2) {
-			std::cerr << "Usage: " << argv[0]<<" {basename} [force]"<<std::endl;
-			exit(1);
+template<class T>
+boost::array<vidx_t, 3> 
+locate_stem(boost::array<vidx_t,3>& dims, const T& acc, unsigned int plane, unsigned int axis){
+	std::cout <<"Locate stem..."<<std::flush;
+	voxel_vertex_descriptor arg_max_val;
+	float max_val = -1E6;
+
+	voxel_vertex_descriptor current = {{0,0,0}};
+	current[axis] = plane;
+	int ax1 =  axis==0            ?1:0;
+	int ax2 = (axis==0 || axis==1)?2:1;
+
+	for ( current[ax1] = 0; current[ax1] < dims[ax1]; ++current[ax1])
+	{
+		for ( current[ax2] = 0; current[ax2] < dims[ax2]; ++current[ax2])
+		{
+			double val = 0;
+			const int radius = 6;
+			voxel_vertex_descriptor win;
+			win[axis] = plane;
+			for ( win[ax1]  = std::max(0,(int)current[ax1]-radius);
+			      win[ax1] <= std::min(dims[ax1]-1, current[ax1]+radius);
+			      ++win[ax1])
+			for ( win[ax2]  = std::max(0,(int)current[ax2]-radius);
+			      win[ax2] <= std::min(dims[ax2]-1, current[ax2]+radius);
+			      ++win[ax2]){
+				float fact = SQR(current[0]-win[0]) + SQR(current[1]-win[1]) + SQR(current[2]-win[2]);
+				fact       = 1.0/(2.0*M_PI) * exp(-fact);
+				      val += fact * acc[win];
+			      }
+			if(val>max_val){
+				max_val = val;
+				arg_max_val = current;
+			}
 		}
-	const std::string base=argv[1];
-	if(argc>2)
-		force_recompute_dijkstra = true;
+	}
+	std::cout <<"done ("<<arg_max_val[0]<<", "<<arg_max_val[1]<<", "<<arg_max_val[2]<<")"<<std::endl;
+	return arg_max_val;
+}
+
+int main(int argc, char* argv[]) {
+	wurzel_info info;
+
+	po::variables_map vm = get_config(info,argc,argv);
+	static const unsigned int X=info.X,Y=info.Y,Z=info.Z,XYZ=info.XYZ;
+	bool force_recompute_dijkstra = vm.count("force");
+	std::string base = vm["base"].as<std::string>();
 	
   // Define a 3x5x7 grid_graph where the second dimension doesn't wrap
-  boost::array<vidx_t, 3> lengths = { { 256, 256, 256 } };
-  boost::array<vidx_t, 3> strunk  = { { 109, 129,  24 } };
-  g_strunk = strunk;
+  boost::array<vidx_t, 3> lengths = { { X, Y, Z } };
   voxelgraph_t graph(lengths, false); // no dim is wrapped
 
   float_grid Raw  = read3darray<float>(getfn(base,"upsampled","dat"),X,Y,Z);
+  boost::array<vidx_t, 3> strunk   // locate the stem
+	  =  locate_stem(lengths, make_vox2arr(Raw), info.stem_plane, info.stem_axis); //{ { 109, 129,  24 } };
+
   float_grid Sato = read3darray<float>(getfn(base,"","sato"),X,Y,Z); g_sato = new vox2arr<float_grid>(Sato);
   float_grid ev10 = read3darray<float>(getfn(base,"","ev10"),X,Y,Z); g_ev10 = new vox2arr<float_grid>(ev10);
   float_grid ev11 = read3darray<float>(getfn(base,"","ev11"),X,Y,Z); g_ev11 = new vox2arr<float_grid>(ev11);
   float_grid ev12 = read3darray<float>(getfn(base,"","ev12"),X,Y,Z); g_ev12 = new vox2arr<float_grid>(ev12);
 
   std::cout << "Sato stats in file: " << voxel_stats(graph,make_vox2arr(Sato)) <<std::endl;
+
+  g_strunk = strunk;
 
   unsigned char* paths = new unsigned char[XYZ];
   std::fill(paths, paths+XYZ, (unsigned char) 0);
@@ -559,10 +602,10 @@ int main(int argc, char* argv[]) {
   stat_t s_allpaths = voxel_stats(graph,d_map);
 
   std::cout << "Tracing paths..." <<std::endl;
-  double start_threshold       = 0.1;
-  double total_len_perc_thresh = 1.00;
-  double avg_len_perc_thresh   = 0.20;
-  double min_flow_thresh       = 0.000100;
+  double start_threshold       = vm["start-threshold"].as<double>();
+  double total_len_perc_thresh = vm["total-len-frac"].as<double>();
+  double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
+  double min_flow_thresh       = vm["min-flow-thresh"].as<double>();
 
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
