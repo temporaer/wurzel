@@ -4,28 +4,59 @@ import numpy as np
 import cPickle
 from scipy.ndimage import gaussian_filter
 
+class WurzelType:
+    lupine, gerste, reis = range(3)
+class WurzelInfo:
+    def __init__(self, fn):
+        self.wurzel_type = self.gettype(fn)
+        wt = self.wurzel_type
+
+        if wt==WurzelType.lupine:
+            self.read_shape = (256,256,120)
+            self.shape      = (256,256,256)
+            self.read_dtype = "uint8"
+            self.resample_ax= 2
+        elif wt==WurzelType.gerste:
+            self.read_shape = (410,192,192)
+            self.shape      = (872,192,192)
+            self.read_dtype = "float32"
+            self.resample_ax= 0
+
+        upsampled = fn.find("-upsampled")>=0
+        if upsampled:
+            self.read_shape = self.shape
+            self.read_dtype = "float32"
+    def gettype(self,fn):
+        if fn.find("reis")>=0:
+            return WurzelType.reis
+        if fn.find("Gerste")>=0:
+            return WurzelType.gerste
+        if fn.find("L2")>=0:
+            return WurzelType.lupine
+
 class dataset(object):
-    def __init__(self,datafile,crop=False,usepickled=True,upsample=None,dtype=np.uint8,medianfilt=True,dz=120, remove_rohr=False):
+    def __init__(self,datafile,crop=False,usepickled=True,upsample="zoom",medianfilt=True,dz=120, remove_rohr=False):
         if not isinstance(datafile,str):
             self.D = datafile
             return
+        self.info = WurzelInfo(datafile)
+        info = self.info
+        if info.wurzel_type != WurzelType.lupine: remove_rohr = False
+        if info.wurzel_type != WurzelType.lupine: medianfilt = False
 
         picklename = datafile.replace(".dat",".pickle")
         if usepickled and os.path.exists(picklename):
             self.load(picklename)
         else:
             with open(datafile) as fd:
-                self.D = np.fromfile(file=fd, dtype=dtype).reshape((256,256,dz) ).astype("float32")
-            if dtype in [np.uint8, "uint8"]:
+                self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
+            if info.read_dtype in [np.uint8, "uint8"]:
                 self.D /= 255.0
-            if medianfilt:
-                self.median_filter()
-            if remove_rohr:
-                self.get_rid_of_roehrchen()
+            if medianfilt:  self.median_filter()
+            if remove_rohr: self.get_rid_of_roehrchen()
             self.upsample(upsample)
             self.save(picklename)
-        if crop:
-            self.D = self.D[50:200,50:200,10:80]
+
     def median_filter(self):
         print "Median-Filtering..."
         D  = self.D
@@ -39,12 +70,15 @@ class dataset(object):
         from scipy.ndimage.interpolation import zoom
         #print "mm: 100 x 100 x 131"
         #print "Dims:", self.D.shape
+        fact = np.array(self.info.shape) / np.array(self.info.read_shape)
         if method == "zoom":
-            print "Resampling 3rd axis..."
-            self.D = zoom(self.D, [1,1,256.0/120.0 * 100.0/100.0]).astype("float32")
+            print "Resampling..."
+            self.D = zoom(self.D, fact).astype("float32")
         elif method == "resample":
-            print "Resampling 3rd axis..."
-            self.D = resample(self.D, 120 * (256.0/120.0 * 100.0/100.0), axis=2, window=10).astype("float32")
+            print "Resampling..."
+            a = self.info.resample_ax
+            s = self.info.shape[a]
+            self.D = resample(self.D, s, axis=a, window=10).astype("float32")
         elif method == None:
             pass
         else:
@@ -70,7 +104,6 @@ class dataset(object):
         py = p % X.shape[0]
         px = p / X.shape[0]
 
-        mv = Y[px,py]
         S  = 0
 
         for i in xrange(5,20):
