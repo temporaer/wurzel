@@ -23,7 +23,8 @@ class WurzelInfo:
             self.resample_ax= 0
 
         upsampled = fn.find("-upsampled")>=0
-        if upsampled:
+        sato      = fn.find(".sato")>=0
+        if upsampled or sato:
             self.read_shape = self.shape
             self.read_dtype = "float32"
     def gettype(self,fn):
@@ -35,7 +36,7 @@ class WurzelInfo:
             return WurzelType.lupine
 
 class dataset(object):
-    def __init__(self,datafile,crop=False,usepickled=True,upsample="zoom",medianfilt=True,dz=120, remove_rohr=False):
+    def __init__(self,datafile,crop=False,usepickled=True,upsample=None,medianfilt=True,dz=120, remove_rohr=False):
         if not isinstance(datafile,str):
             self.D = datafile
             return
@@ -55,7 +56,8 @@ class dataset(object):
             if medianfilt:  self.median_filter()
             if remove_rohr: self.get_rid_of_roehrchen()
             self.upsample(upsample)
-            self.save(picklename)
+            if medianfilt or remove_rohr or upsample:
+                self.save(picklename)
 
     def median_filter(self):
         print "Median-Filtering..."
