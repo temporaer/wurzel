@@ -1,6 +1,6 @@
 # vim:ts=4:sw=4:sts=4:et:ai
 import sys
-#import numpy as np
+import numpy as np
 import wurzel.viewer as viewer
 from wurzel.dataset import dataset
 #from enthought import mayavi 
@@ -121,6 +121,12 @@ if __name__ == "__main__":
       if offscreen:
         mkimg(fig, "us-vs-ground")
         mlab.clf()
+
+  #DGerste = np.fromfile("data/GersteLA_290909.dat",dtype="float32").reshape(410,192,192)
+  #viewer.show_iso(DGerste, 0.01 , "bone", 0.4)   # need 0.2 to get rid of noise
+
+  DReis = np.load("data/reispflanze_wurzeln-laser.npy")
+  viewer.show_laserpoints(DReis);
 
   #viewer.show_iso(Draw, 0.19 , "bone", 0.1)   # need 0.2 to get rid of noise
   #if offscreen:
