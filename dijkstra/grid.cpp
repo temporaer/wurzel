@@ -577,17 +577,17 @@ int main(int argc, char* argv[]) {
 
   wurzel_vertex_iterator wi,wend;
   stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
-	//foreach(const voxel_vertex_descriptor& v, vertices(graph)) {
-		//float& f = Sato[v[0]][v[1]][v[2]];
+	foreach(const voxel_vertex_descriptor& v, vertices(graph)) {
+		float& f = Sato[v[0]][v[1]][v[2]];
 			//f = std::max(0.f, f-0.2f) * 1.f/0.7f;
 			//f  = exp(-10.f * log(1.f+f)/log(2.f) );
 			//f  = exp(-15.f * f );
 
-		//float& g = Raw[v[0]][v[1]][v[2]];
+		float& g = Raw[v[0]][v[1]][v[2]];
 	  //f *= 1.0f+2.0f*g;
 	  //      g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
-		//f += g;
-	//}
+		f += g/max(s_raw);
+	}
   stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
   std::cout << "Raw:  " << s_raw <<std::endl;
   std::cout << "Sato: " << s_sato <<std::endl;
@@ -601,7 +601,7 @@ int main(int argc, char* argv[]) {
   std::cout << "Determining scaling factors..." <<std::endl;
   stat_t s_allpaths = voxel_stats(graph,d_map);
 
-  std::cout << "Tracing paths..." <<std::endl;
+  std::cout << "Tracing paths... " <<std::flush;
   double start_threshold       = vm["start-threshold"].as<double>();
   double total_len_perc_thresh = vm["total-len-frac"].as<double>();
   double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();

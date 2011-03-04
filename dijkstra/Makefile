@@ -10,7 +10,7 @@ grid_dbg: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp
 dbg: grid_dbg
 	LD_LIBRARY_PATH=boost_1_45_0/stage/lib cgdb ./grid_dbg ../$(BASE)
 runf: grid
-	LD_LIBRARY_PATH=boost_1_45_0/stage/lib time ./grid ../$(BASE) force
+	LD_LIBRARY_PATH=boost_1_45_0/stage/lib time ./grid ../$(BASE) --force
 run: grid
 	LD_LIBRARY_PATH=boost_1_45_0/stage/lib time ./grid ../$(BASE)
 
