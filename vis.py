@@ -78,8 +78,8 @@ if __name__ == "__main__":
   #Ddist1 = dataset(basename+"-paths1.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-d_map.dat", dz=256, dtype="float64", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  Dsato = dataset(basename+".sato", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
-  Draw  = dataset(basename+"-upsampled.dat", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  Dsato = dataset(basename+".sato", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  Draw  = dataset(basename+"-upsampled.dat", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
   #minv = dmin+0.15*dptp
@@ -125,8 +125,8 @@ if __name__ == "__main__":
   #DGerste = np.fromfile("data/GersteLA_290909.dat",dtype="float32").reshape(410,192,192)
   #viewer.show_iso(DGerste, 0.01 , "bone", 0.4)   # need 0.2 to get rid of noise
 
-  DReis = np.load("data/reispflanze_wurzeln-laser.npy")
-  viewer.show_laserpoints(DReis);
+  #DReis = np.load("data/reispflanze_wurzeln-laser.npy")
+  #viewer.show_laserpoints(DReis);
 
   #viewer.show_iso(Draw, 0.19 , "bone", 0.1)   # need 0.2 to get rid of noise
   #if offscreen:
@@ -150,10 +150,10 @@ if __name__ == "__main__":
   #  mkimg(fig, "raw")
   #  mlab.clf()
 
-  #viewer.show_iso(Dsato, 0.050 , "Spectral", 0.2)  
-  #if offscreen:
-  # mkimg(fig, "sato-iso")
-  # mlab.clf()
+  viewer.show_iso(Dsato, 0.050 , "Spectral", 0.2)  
+  if offscreen:
+      mkimg(fig, "sato-iso")
+      mlab.clf()
 
   #viewer.show_volume(Dsato, "bone", 0.005, 0.2)  # 0.03, 0.2 works well
   #if offscreen:
