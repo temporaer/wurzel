@@ -369,13 +369,13 @@ read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
   std::cout << "Reading `"<<fn<<"', bytes="<<sizeof(T)<<std::endl;
   std::ifstream dat(fn.c_str(), std::ios::in | std::ios::binary);
   if(!dat.is_open())	{
-	  std::cerr << "Could not open "<<fn<<" --> exiting."<<std::endl;
+	  std::cerr << "Could not open `"<<fn<<"' --> exiting."<<std::endl;
 	  exit(1);
   }
   T* data = new T[X*Y*Z];
   dat.read((char*)data,X*Y*Z*sizeof(T));
   if(dat.fail()){
-	  std::cerr << "Error while reading "<<fn<<" --> exiting."<<std::endl;
+	  std::cerr << "Error while reading `"<<fn<<"' --> exiting."<<std::endl;
 	  exit(1);
   }
   dat.close();
