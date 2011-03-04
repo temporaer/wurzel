@@ -1,7 +1,8 @@
 LDFLAGS=-L boost_1_45_0/stage/lib -l boost_system -l boost_filesystem -l lapack -l boost_program_options
+CCFLAGS=-I $(HOME)/pool/include/boost-numeric-bindings/
 BASE ?= data/L2_17aug
 grid: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp
-	g++-4.4 -Wall -O3 -g0 -DNDEBUG $(LDFLAGS) -march=native -mtune=native --fast-math -fno-builtin -std=gnu++0x -o grid grid.cpp -I boost_1_45_0 
+	g++-4.4 -Wall -O3 -g0 -DNDEBUG $(CCFLAGS) $(LDFLAGS) -march=native -mtune=native --fast-math -fno-builtin -std=gnu++0x -o grid grid.cpp -I boost_1_45_0 
 #grid: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp
 #    mpic++ -Wall -O3 -g0 -DNDEBUG $(LDFLAGS) -o grid grid.cpp -I boost_1_45_0 
 grid_dbg: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp
