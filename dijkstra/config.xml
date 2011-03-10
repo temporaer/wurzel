@@ -7,30 +7,44 @@
 		<!--      Gerste          -->
 		<!-- ******************** -->
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_256x256x410</base-name>
-			<read-shape x="256" y="256" z="410"/>
-			<shape      x="256" y="256" z="1056"/>
+			<base-name>../data/GersteLA_64x64x410</base-name>
+			<read-shape x="410" y="64" z="64"/>
+			<shape      x="410" y="99" z="99"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_96x96x410</base-name>
-			<read-shape x="96" y="96" z="410"/>
-			<shape      x="99" y="99" z="410"/>
+			<read-shape x="410" y="96" z="96"/>
+			<shape      x="410" y="99" z="99"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_128x128x410</base-name>
-			<read-shape x="128" y="128" z="410"/>
-			<shape      x="128" y="128" z="528"/>
+			<read-shape x="410" y="128" z="128"/>
+			<shape      x="528" y="128" z="128"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_192x192x410_normal</base-name>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_256x256x410</base-name>
+			<read-shape x="410" y="256" z="256"/>
+			<shape      x="1056" y="256" z="256"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_290909</base-name>
-			<read-shape x="192" y="192" z="410"/>
-			<shape      x="192" y="192" z="792"/>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
@@ -40,29 +54,29 @@
 		<!-- ******************** -->
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_noise2</base-name>
-			<read-shape x="192" y="192" z="410"/>
-			<shape      x="192" y="192" z="792"/>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_noise3</base-name>
-			<read-shape x="192" y="192" z="410"/>
-			<shape      x="192" y="192" z="792"/>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_noise4</base-name>
-			<read-shape x="192" y="192" z="410"/>
-			<shape      x="192" y="192" z="792"/>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_noise5</base-name>
-			<read-shape x="192" y="192" z="410"/>
-			<shape      x="192" y="192" z="792"/>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
@@ -71,22 +85,22 @@
 		<!-- ******************** -->
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_filter6-16</base-name>
-			<read-shape x="192" y="192" z="410"/>
-			<shape      x="192" y="192" z="792"/>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_filter7-16</base-name>
-			<read-shape x="192" y="192" z="410"/>
-			<shape      x="192" y="192" z="792"/>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_filter8-16</base-name>
-			<read-shape x="192" y="192" z="410"/>
-			<shape      x="192" y="192" z="792"/>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="792" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
 			<stem-axis>0</stem-axis>
 		</datafile>
