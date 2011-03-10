@@ -128,6 +128,15 @@ if __name__ == "__main__":
   #DReis = np.load("data/reispflanze_wurzeln-laser.npy")
   #viewer.show_laserpoints(DReis);
 
+  DReis = np.loadtxt("laser/rec_del.txt")
+  viewer.show_laserpoints(DReis,"bone",ss=1,color=(1,0,0));
+  DReis = np.loadtxt("laser/rec_out.txt")
+  viewer.show_laserpoints(DReis,"bone",ss=1,color=(0,0,1));
+  DReis = np.loadtxt("laser/rec.txt")
+  viewer.show_laserpoints(DReis,"bone",ss=1,color=(0,1,0));
+  DReis = np.loadtxt("laser/tube.txt")
+  viewer.show_laserpoints(DReis,"Spectral",color=(0,0,1));
+
   #viewer.show_iso(Draw, 0.19 , "bone", 0.1)   # need 0.2 to get rid of noise
   #if offscreen:
   #  mkimg(fig, "us-vs-ground")
@@ -150,10 +159,10 @@ if __name__ == "__main__":
   #  mkimg(fig, "raw")
   #  mlab.clf()
 
-  viewer.show_iso(Dsato, 0.050 , "Spectral", 0.2)  
-  if offscreen:
-      mkimg(fig, "sato-iso")
-      mlab.clf()
+  #viewer.show_iso(Dsato, 0.050 , "Spectral", 0.2)  
+  #if offscreen:
+  #    mkimg(fig, "sato-iso")
+  #    mlab.clf()
 
   #viewer.show_volume(Dsato, "bone", 0.005, 0.2)  # 0.03, 0.2 works well
   #if offscreen:
