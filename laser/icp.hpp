@@ -147,6 +147,11 @@ class ICP
 		inline typename TTree::const_reverse_iterator rbegin()const{return mModelTree.rbegin();}
 		inline typename TTree::const_reverse_iterator rend()const{return mModelTree.rend();}
 
+		/// determine the centroid of the points between begin and end. 
+		/// Assumes that they are convertible to TVec.
+		template<class Iter>
+		inline boost::tuple<TVec,int>   getCentroid(Iter begin, Iter end);
+
 	private:
 		bool       mVerbose;
 		TTree      mModelTree;             ///< the registered model in a kD-Tree
@@ -164,10 +169,6 @@ class ICP
 		float  mTrimBeta;            ///< trimming parameter: upper bound of interval to search for minimum of phi(xi)
 		int    mMaxIters;            ///< maximum number of iterations
 
-		/// determine the centroid of the points between begin and end. 
-		/// Assumes that they are convertible to TVec.
-		template<class Iter>
-		inline boost::tuple<TVec,int>   getCentroid(Iter begin, Iter end);
 
 		/// determine the best match of the points in begin, end to model.
 		/// The result is saved in the output-iterator out.
