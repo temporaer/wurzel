@@ -100,6 +100,7 @@
 			<shape      x="256" y="256" z="256"/>
 			<stem-plane>24</stem-plane>
 			<stem-axis>2</stem-axis>
+			<has-rohr>true</has-rohr>
 		</datafile>
 		<datafile read-dtype="uint8">
 			<base-name>../data/L2_17aug</base-name>
@@ -107,6 +108,7 @@
 			<shape      x="256" y="256" z="256"/>
 			<stem-plane>24</stem-plane>
 			<stem-axis>2</stem-axis>
+			<has-rohr>true</has-rohr>
 		</datafile>
 		<datafile read-dtype="uint8">
 			<base-name>../data/L2_22aug</base-name>
@@ -114,6 +116,7 @@
 			<shape      x="256" y="256" z="256"/>
 			<stem-plane>24</stem-plane>
 			<stem-axis>2</stem-axis>
+			<has-rohr>true</has-rohr>
 		</datafile>
 	</datafiles>
 </config>
