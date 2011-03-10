@@ -134,9 +134,8 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None):
         mlab.pipeline.surface(tube,color=color)
     print "Done."
 
-def show_laserpoints(L,cm="Blues",mode="2dtriangle",color=None):
+def show_laserpoints(L,cm="Blues",mode="2dtriangle",color=(0,0,0), ss=8):
     print "Show LaserPoints"
     print L.shape
-    ss = 8
-    mlab.points3d(L[::ss,0].squeeze(),L[::ss,1].squeeze(),L[::ss,2].squeeze(),scale_factor=0.1,colormap="bone",scale_mode="none",mode=mode,resolution=4)
+    mlab.points3d(L[::ss,0].squeeze(),L[::ss,1].squeeze(),L[::ss,2].squeeze(),scale_factor=0.1,colormap=cm,scale_mode="none",mode=mode,resolution=4,color=color)
     print "Done."
