@@ -3,37 +3,27 @@ import os
 import numpy as np
 import cPickle
 from scipy.ndimage import gaussian_filter
+from config import config
 
 class WurzelType:
     lupine, gerste, reis = range(3)
 class WurzelInfo:
     def __init__(self, fn):
-        self.wurzel_type = self.gettype(fn)
-        wt = self.wurzel_type
+        cfg = config("dijkstra/config.xml")
 
-        if wt==WurzelType.lupine:
-            self.read_shape = (256,256,120)
-            self.shape      = (256,256,256)
-            self.read_dtype = "uint8"
-            self.resample_ax= 2
-        elif wt==WurzelType.gerste:
-            self.read_shape = (410,192,192)
-            self.shape      = (872,192,192)
-            self.read_dtype = "float32"
-            self.resample_ax= 0
+        basename,ext = os.path.splitext(fn)
+        self.read_shape = cfg.read_shape(basename)
+        self.shape      = cfg.shape(basename)
+        self.read_dtype = cfg.read_dtype(basename)
+        self.has_rohr   = cfg.has_rohr(basename)
+
+        print "WurzelInfo: ", self.read_shape, self.shape, self.read_dtype, self.has_rohr
 
         upsampled = fn.find("-upsampled")>=0
         sato      = fn.find(".sato")>=0
         if upsampled or sato:
             self.read_shape = self.shape
             self.read_dtype = "float32"
-    def gettype(self,fn):
-        if fn.find("reis")>=0:
-            return WurzelType.reis
-        if fn.find("Gerste")>=0:
-            return WurzelType.gerste
-        if fn.find("L2")>=0:
-            return WurzelType.lupine
 
 class dataset(object):
     def __init__(self,datafile,crop=False,usepickled=True,upsample=None,medianfilt=True,dz=120, remove_rohr=False):
@@ -42,12 +32,13 @@ class dataset(object):
             return
         self.info = WurzelInfo(datafile)
         info = self.info
-        if info.wurzel_type != WurzelType.lupine: remove_rohr = False
-        if info.wurzel_type != WurzelType.lupine: medianfilt = False
+        if not info.has_rohr: remove_rohr = False
+        if not info.has_rohr: medianfilt = False
 
         picklename = datafile.replace(".dat",".pickle")
         if usepickled and os.path.exists(picklename):
             self.load(picklename)
+            assert all([x==y for x,y in zip(self.D.shape, info.shape )])
         else:
             with open(datafile) as fd:
                 self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
