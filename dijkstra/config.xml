@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="config.xsd"
+        xsi:schemaLocation="http://www.w3.org/XML/1998/namespace xml.xsd">
+	<datafiles>
+		<!-- ******************** -->
+		<!--      Gerste          -->
+		<!-- ******************** -->
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_256x256x410</base-name>
+			<read-shape x="256" y="256" z="410"/>
+			<shape      x="256" y="256" z="1056"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_96x96x410</base-name>
+			<read-shape x="96" y="96" z="410"/>
+			<shape      x="99" y="99" z="410"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_128x128x410</base-name>
+			<read-shape x="128" y="128" z="410"/>
+			<shape      x="128" y="128" z="528"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_290909</base-name>
+			<read-shape x="192" y="192" z="410"/>
+			<shape      x="192" y="192" z="792"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+
+		<!-- ******************** -->
+		<!--    Gerste Noise      -->
+		<!-- ******************** -->
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_192x192x410_noise2</base-name>
+			<read-shape x="192" y="192" z="410"/>
+			<shape      x="192" y="192" z="792"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_192x192x410_noise3</base-name>
+			<read-shape x="192" y="192" z="410"/>
+			<shape      x="192" y="192" z="792"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_192x192x410_noise4</base-name>
+			<read-shape x="192" y="192" z="410"/>
+			<shape      x="192" y="192" z="792"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_192x192x410_noise5</base-name>
+			<read-shape x="192" y="192" z="410"/>
+			<shape      x="192" y="192" z="792"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<!-- ******************** -->
+		<!--    Gerste Filter     -->
+		<!-- ******************** -->
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_192x192x410_filter6-16</base-name>
+			<read-shape x="192" y="192" z="410"/>
+			<shape      x="192" y="192" z="792"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_192x192x410_filter7-16</base-name>
+			<read-shape x="192" y="192" z="410"/>
+			<shape      x="192" y="192" z="792"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>../data/GersteLA_192x192x410_filter8-16</base-name>
+			<read-shape x="192" y="192" z="410"/>
+			<shape      x="192" y="192" z="792"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+		</datafile>
+
+		<!-- ******************** -->
+		<!--      Lupine          -->
+		<!-- ******************** -->
+		<datafile read-dtype="uint8">
+			<base-name>../data/L2_6aug</base-name>
+			<read-shape x="256" y="256" z="120"/>
+			<shape      x="256" y="256" z="256"/>
+			<stem-plane>24</stem-plane>
+			<stem-axis>2</stem-axis>
+		</datafile>
+		<datafile read-dtype="uint8">
+			<base-name>../data/L2_17aug</base-name>
+			<read-shape x="256" y="256" z="120"/>
+			<shape      x="256" y="256" z="256"/>
+			<stem-plane>24</stem-plane>
+			<stem-axis>2</stem-axis>
+		</datafile>
+		<datafile read-dtype="uint8">
+			<base-name>../data/L2_22aug</base-name>
+			<read-shape x="256" y="256" z="120"/>
+			<shape      x="256" y="256" z="256"/>
+			<stem-plane>24</stem-plane>
+			<stem-axis>2</stem-axis>
+		</datafile>
+	</datafiles>
+</config>

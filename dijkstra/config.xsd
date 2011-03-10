@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:simpleType name="dtype_t">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="uint8"/>
+      <xs:enumeration value="float32"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="shape_t">
+	  <xs:attribute name="x" type="xs:unsignedInt" use="required"/>
+	  <xs:attribute name="y" type="xs:unsignedInt" use="required"/>
+	  <xs:attribute name="z" type="xs:unsignedInt" use="required"/>
+  </xs:complexType>
+
+
+  <xs:complexType name="datafile_t">
+    <xs:sequence>
+      <xs:element name="base-name"  type="xs:string" />
+      <xs:element name="read-shape" type="shape_t"   />
+      <xs:element name="shape"      type="shape_t"   />
+      <xs:element name="stem-plane" type="xs:unsignedInt"   />
+      <xs:element name="stem-axis"  type="xs:unsignedInt"   />
+    </xs:sequence>
+      <xs:attribute name="read-dtype" type="dtype_t"  use="required" />
+  </xs:complexType>
+
+  <xs:complexType name="datafiles_t">
+    <xs:sequence>
+      <xs:element name="datafile" type="datafile_t" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="config_t">
+    <xs:sequence>
+      <xs:element name="datafiles" type="datafiles_t" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="config" type="config_t"/>
+
+</xs:schema>

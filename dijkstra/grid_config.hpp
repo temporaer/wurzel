@@ -3,7 +3,10 @@
 
 #include <iostream>
 #include <boost/program_options.hpp>
+#include <boost/foreach.hpp>
 #include "wurzel_info.hpp"
+#include "config.hxx"
+#define foreach BOOST_FOREACH
 
 namespace po = boost::program_options;
 
@@ -17,6 +20,7 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 		desc.add_options()
 			("help",  "produce help message")
 			("base",  "the base name of the dataset")
+			("cfg,c", po::value<std::string>()->default_value("config.xml"),"the config-file containing dataset descriptions (XML)")
 			("force", "force recomputation of dijkstra algorithm")
 			("stem-plane", po::value<int>(),"plane index in which to search for stem")
 			("stem-axis",  po::value<int>(),"the axis of stem-plane")
@@ -39,30 +43,53 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 		exit(1);
 	}
 	std::string base = vm["base"].as<std::string>();
-	if(base.find("Gerste")>=0){
-		std::cout <<"Detected instance of Gerste"<<std::endl;
-		wi.X = 872;
-		wi.Y = 192;
-		wi.Z = 192;
-		if(vm.count("stem-plane")==0)
-			wi.stem_plane = 5;
-		if(vm.count("stem-plane")==0)
-			wi.stem_axis  = 0;
+	std::string config_file = vm["cfg"].as<std::string>();
+	std::cout << "Reading config from file `"<<config_file<<"'."<<std::endl;
+
+	std::ifstream config_ifs(config_file.c_str());
+	std::auto_ptr<config_t> cfg;
+	try{
+		cfg = config(config_ifs);
+	}catch(xml_schema::exception& e){
+		std::cerr << e << std::endl;
+		exit(1);
+	}catch (const xml_schema::properties::argument&) {
+		std::cerr << "invalid property argument (empty namespace or location)" << std::endl;
+		exit(1);
 	}
-	else if(base.find("L2")>=0){
-		std::cout <<"Detected instance of Lupine"<<std::endl;
-		wi.X = 256;
-		wi.Y = 256;
-		wi.Z = 256;
-		if(vm.count("stem-plane")==0)
-			wi.stem_plane = 24;
-		if(vm.count("stem-plane")==0)
-			wi.stem_axis  = 2;
+	catch (const xsd::cxx::xml::invalid_utf16_string&) {
+		std::cerr << "invalid UTF-16 text in DOM model" << std::endl;
+		exit(1);
 	}
+	catch (const xsd::cxx::xml::invalid_utf8_string&) {
+		std::cerr << "invalid UTF-8 text in object model" << std::endl;
+		exit(1);
+	}
+
+	int found = 0;
+	foreach(datafile_t& df,cfg->datafiles().datafile()){
+		if(df.base_name()==base){
+			wi.X = df.shape().x();
+			wi.Y = df.shape().y();
+			wi.Z = df.shape().z();
+			wi.stem_plane = df.stem_plane();
+			wi.stem_axis  = df.stem_axis();
+			found++;
+		}
+	}
+	if(!found){
+		std::cerr << "could not find in config-file: `"<<base<<"'."<<std::endl;
+		exit(1);
+	}
+	if(found>1){
+		std::cerr << "could more than once in config-file: `"<<base<<"'."<<std::endl;
+		exit(1);
+	}
+
 	if(vm.count("stem-plane"))
 		wi.stem_plane = vm["stem-plane"].as<int>();
 	if(vm.count("stem-axis"))
-		wi.stem_axis = vm["stem-axis"].as<int>();
+		wi.stem_axis  = vm["stem-axis"].as<int>();
 
 	wi.XYZ=wi.X*wi.Y*wi.Z;
 
