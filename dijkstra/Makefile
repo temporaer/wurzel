@@ -4,8 +4,11 @@ BASE ?= data/L2_17aug
 
 grid: grid.o config.o config-pskel.o
 	g++-4.4 $(LDFLAGS) -o grid grid.o config.o config-pskel.o
-grid.o: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp grid_config.hpp voxel_accessors.hpp voxel_normals.hpp
+grid.o: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp grid_config.hpp voxel_accessors.hpp voxel_normals.hpp config.hxx config.xsd
 	g++-4.4 $(CCFLAGS) -c -o grid.o grid.cpp -I boost_1_45_0 
+
+
+
 config-pskel.o: config-pskel.cxx config.xsd
 	g++-4.4 $(CCFLAGS) -c -o config-pskel.o config-pskel.cxx 
 config.o: config.cxx config-pskel.cxx config.xsd
@@ -13,7 +16,7 @@ config.o: config.cxx config-pskel.cxx config.xsd
 config-pskel.cxx: config.xsd
 	rm -f config-pskel.cxx config-pskel.hxx
 	xsdcxx cxx-parser config.xsd
-config.cxx: config.xsd
+config.cxx config.hxx: config.xsd
 	rm -f config.hxx config.cxx
 	xsdcxx cxx-tree   config.xsd
 
