@@ -4,12 +4,19 @@
 #include "voxelgrid.hpp"
 #include "wurzel_tree.hpp"
 
+#define USE_MANUAL_ACCESSOR 0
+#if USE_MANUAL_ACCESSOR
+#  define ACC(A,v) A.data()[v[0] * (A.shape()[1]*A.shape()[2]) + v[1]*A.shape()[2] + v[2]]
+#else
+#  define ACC(A,v) A[v[0]][v[1]][v[2]]
+#endif
+
 template<class T>
 struct const_vox2arr{
 	const T& A;
 	const_vox2arr(const T& a):A(a){}
 	const typename T::element& operator[](const voxel_vertex_descriptor&v)const{
-		return A[v[0]][v[1]][v[2]];
+		return ACC(A,v);
 	}
 };
 
@@ -18,7 +25,7 @@ struct vox2arr{
 	T& A;
 	vox2arr(T& a):A(a){}
 	typename T::element& operator[](const voxel_vertex_descriptor&v)const{
-		return A[v[0]][v[1]][v[2]];
+		return ACC(A,v);
 	}
 };
 
