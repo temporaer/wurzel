@@ -18,7 +18,7 @@ typedef acc::accumulator_set< double, acc::features< acc::tag::min, acc::tag::me
 
 typedef ublas::bounded_matrix<double,3,3,ublas::column_major> mat_t;
 
-#include "detect_circle.hpp"
+//#include "detect_circle.hpp"
 
 struct tensor_visitor{
 	tensor_visitor(const point_type& _c){
@@ -38,20 +38,20 @@ struct tensor_visitor{
 		m(1,2) += p[1] * p[2];
 		sum += 1;
 	}
-	float finish(){
+	void finish(){
 		m /= sum;
 	}
 	float plateness(){
 		ublas::bounded_vector<double,3> lambda;
-		m(0,0) += 0.01;
-		m(1,1) += 0.01;
-		m(2,2) += 0.01;
+		//m(0,0) += 0.01;
+		//m(1,1) += 0.01;
+		//m(2,2) += 0.01;
 		int info = boost::numeric::bindings::lapack::syev( 'N', 'U', m, lambda, boost::numeric::bindings::lapack::minimal_workspace() );
-		if(info!=0){
-			return 1.f; // could be point, line or plane... 
+		if(info!=0){ 
+			return 0.f; // could be point, line or plane... 
 		}
 		std::sort(lambda.begin(), lambda.end());
-		return exp(-2.0*lambda[2]/lambda[1]) * exp(-fabs(lambda[0]));
+		return exp(-lambda[2]/lambda[1]) * exp(-fabs(lambda[0]));
 	}
 };
 
@@ -140,33 +140,37 @@ point_type g_orig_pt1, g_orig_pt2;
 double g_orig_radius, g_orig_len;
 void
 get_tube(const icp_type::TQuat& q, const icp_type::TVec& trans, const icp_type::TVec& scale, std::vector<point_type>& rec){
-	const float res = 100;
+	const float res = 200;
 	rec.reserve(res*res);
-	icp_type::VectorRotator rot;
-	float heightfact = 0.7f;
-       	for (float i = -0.5f; i < 0.5f; i+=1.f/(res))
+	//icp_type::VectorRotator rot;
+	float heightfact = 1.0f;
+	g_orig_radius = scale[0]*0.35f;
+	g_orig_len    = scale[2]*heightfact;
+       	for (float i = 0; i < 1.f; i+=1.f/(res))
 	{
 		for(float ang=0.f;ang<=2*M_PI;ang+=2*M_PI/res){
 			point_type pt;
-			pt[0] = scale[0]*sin(ang)*0.3f;
-			pt[1] = scale[1]*cos(ang)*0.3f;
-			pt[2] = scale[2]*i       *heightfact;
+			pt[0] = sin(ang) * g_orig_radius;
+			pt[1] = cos(ang) * g_orig_radius;
+			pt[2] = i        * g_orig_len;
 			//pt = rot(pt, q) + trans;
 			pt = pt + trans;
 			rec.push_back(pt);
 		}
 	}
-	g_orig_radius = scale[0]*0.3f;
 
 	g_orig_pt1[0] = 0;
 	g_orig_pt1[1] = 0;
-	g_orig_pt1[2] = scale[2]*0.5f * heightfact;
+	g_orig_pt1[2] = 0;
+	g_orig_pt1   += trans;
 
 	g_orig_pt2[0] = 0;
 	g_orig_pt2[1] = 0;
-	g_orig_pt2[2] = scale[2]*-0.5f * heightfact;
+	g_orig_pt2[2] = scale[2]* heightfact;
+	g_orig_pt2   += trans;
 
-	g_orig_len    = g_orig_pt1[2] - g_orig_pt2[2];
+	rec.push_back(g_orig_pt1);
+	rec.push_back(g_orig_pt2);
 }
 
 int main(){
@@ -180,29 +184,47 @@ int main(){
 		dim1(p[1]);
 		dim2(p[2]);
 	}
+
+	float mindim2 = acc::min(dim2)+0.1*(acc::max(dim2)-acc::min(dim2));
 	std::cout << "stats0: "<<dim0<<std::endl;
 	std::cout << "stats1: "<<dim1<<std::endl;
 	std::cout << "stats2: "<<dim2<<std::endl;
 	icp_type::TVec trans;
 	trans[0] = acc::mean(dim0);
 	trans[1] = acc::mean(dim1);
-	trans[2] = acc::mean(dim2);
+	trans[2] = acc::min(dim2);
 	icp_type::TVec scale;
 	scale[0] = acc::max(dim0)-acc::min(dim0);
 	scale[1] = acc::max(dim1)-acc::min(dim1);
 	scale[0] = scale[1] = std::min(scale[0], scale[1]);
-	scale[2] = acc::max(dim2)-acc::min(dim2);
+	scale[2] = 0.5f*acc::max(dim2)-acc::min(dim2);
+
+	std::vector<point_type> rec2;
+	rec2.reserve(rec.size());
+
+	foreach(const point_type& p, rec){ // permute 
+		if(p[2]<mindim2)
+			continue;
+		rec2.push_back(p);
+		//do{
+		//        rec2.back()[2] = rec[drand48()*rec.size()][2];
+		//}while(rec2.back()[2]<mindim2);
+	}
+
+	std::cout << "Registering..."<<std::endl;
+	icp_type icp(1000);
+	icp.setVerbose(true);
+	icp.registerModel(rec2.begin(), rec2.end());
+	icp_type::TVec modelCentroid = icp.getModelCentroid();
+
+	std::cout << "Get Tube..."<<std::endl;
 	get_tube(icp_type::TQuat(1,0,0,0),trans,scale,tube);
 
-
-	icp_type icp(100);
-	icp.setVerbose(true);
-	icp.registerModel(rec.begin(), rec.end());
-	icp_type::TVec modelCentroid = icp.getModelCentroid();
-	//icp.match(tube.begin(), tube.end());
-	//std::cout << "Trans: "<< icp.getTrans()<<std::endl;
-	//std::cout << "Rot:   "<< icp.getRot()<<std::endl;
-	//std::cout << "Scale: "<< icp.getScale()<<std::endl;
+	std::cout << "Matching..."<<std::endl;
+	icp.match(tube.begin(), tube.end());
+	std::cout << "Trans: "<< icp.getTrans()<<std::endl;
+	std::cout << "Rot:   "<< icp.getRot()<<std::endl;
+	std::cout << "Scale: "<< icp.getScale()<<std::endl;
 
 	// translate rec to centered coordinates
 	foreach(point_type& p, rec){
@@ -211,38 +233,16 @@ int main(){
 		p[2]-=modelCentroid[2];
 	}
 
-	stat_t dim0a, dim1a, dim2a;
-	foreach(const point_type& p, rec){
-		dim0a(p[0]);
-		dim1a(p[1]);
-		dim2a(p[2]);
-	}
-
-	float* c = find_circles(rec,2048,2048,dim0a,dim1a, dim2a);
-	if(c==NULL){
-		std::cout<<"no circles found!!"<<std::endl;
-		exit(1);
-	}
-
-	//// transform the cylinder according to ICP outcome
-	//point_type pt1  = icp_type::VectorRotator()(g_orig_pt1,icp.getRot())*icp.getScale() + icp.getTrans();
-	//point_type pt2  = icp_type::VectorRotator()(g_orig_pt2,icp.getRot())*icp.getScale() + icp.getTrans();
-
-	//double       r2 = g_orig_radius * icp.getScale(); r2 *= r2;
-	//double       l2 = g_orig_len    * icp.getScale(); l2 *= l2;
-
 	// transform the cylinder according to ICP outcome
-	point_type pt1,pt2;
-	pt1[0] = c[0];
-	pt1[1] = c[1];
-	pt1[2] = acc::min(dim2a);
+	point_type tube_centroid; int n;
+	boost::tie(tube_centroid, n) = icp.getCentroid(tube.begin(),tube.end());
+	point_type pt1  = icp_type::VectorRotator()(g_orig_pt1-tube_centroid,icp.getRot())*icp.getScale() + icp.getTrans();
+	point_type pt2  = icp_type::VectorRotator()(g_orig_pt2-tube_centroid,icp.getRot())*icp.getScale() + icp.getTrans();
+	pt1 = tube[tube.size()-2];
+	pt2 = tube[tube.size()-1];
 
-	pt2[0] = c[0];
-	pt2[1] = c[1];
-	pt2[2] = acc::max(dim2a);
-
-	double       r2 = c[2]*c[2];
-	double       l2 = pt2[2]-pt1[2]; l2 *= l2;
+	double       r2 = g_orig_radius * icp.getScale(); r2 *= r2;
+	double       l2 = g_orig_len    * icp.getScale(); l2 *= l2;
 
 	std::cout << "Pt1: "<<pt1<<std::endl;
 	std::cout << "Pt2: "<<pt2<<std::endl;
@@ -255,22 +255,37 @@ int main(){
 	std::ofstream osrec_del("rec_del.txt");
 	std::ofstream osrec_out("rec_out.txt");
 	stat_t s_plateness;
+	unsigned int progress=0;
+	unsigned int total = rec.size();
 	foreach(const point_type& p, rec){
+		progress++;
+		if(progress%1000==0){
+			std::cout << "\r";
+			int i=0;
+			for(i=0;i<progress; i+=total/100){
+				std::cout<<"#";
+			}
+			for(;i<total; i+=total/100){
+				std::cout<<"-";
+			}
+			std::cout<<std::flush;
+		}
+
 		float d2 = CylTest_CapsFirst(pt1,pt2,l2,r2,p);
 		if(d2<0) {
 			osrec_out << p[0]<<" "<<p[1]<<" "<<p[2]<<std::endl;
 			continue;
 		}
-		//if((r2-d2)/r2 < 0.4){
-		//        tensor_visitor tv = icp.modelTree().visit_within_range(p, 8, tensor_visitor(p));
-		//        tv.finish();
-		//        float pn = tv.plateness();
-		//        s_plateness(pn);
-		//        if(pn > 0.05){
-		//                osrec_del << p[0]<<" "<<p[1]<<" "<<p[2]<<std::endl;
-		//                continue;
-		//        }
-		//}
+		if((r2-d2)/r2 < 0.1){
+		        tensor_visitor tv = icp.modelTree().visit_within_range(p, 8, tensor_visitor(p));
+		        tv.finish();
+		        float pn = tv.plateness();
+		        s_plateness(pn);
+		        if(pn > 0.10){
+		                osrec_del << p[0]<<" "<<p[1]<<" "<<p[2]<<std::endl;
+		                continue;
+		        }
+		}
 		osrec << p[0]<<" "<<p[1]<<" "<<p[2]<<std::endl;
 		cnt++;
 	}
