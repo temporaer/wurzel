@@ -356,7 +356,7 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
 		const vec3_t&            p = get(vertex_position,wg)[wd];
 		vidx_map[wd] = idx++;
-		unsigned int deg = out_degree(wd,wg);
+		//unsigned int deg = out_degree(wd,wg);
 		double thickness = stddev_map[wd];
 		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
 	}
@@ -627,7 +627,7 @@ int main(int argc, char* argv[]) {
 		  continue;
 	  double vox_dist = 0.0;
 		voxel_vertex_descriptor v2 = v;
-	  int cnt = 0;
+	  unsigned int cnt = 0;
 	  float flow_add = vox2raw[v];
 	  voxel_vertex_descriptor tmp;
 	  while(cnt++<XYZ){ 
