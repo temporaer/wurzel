@@ -30,7 +30,7 @@ def c3d(d, sigma):
     return res
 
 def loaddata(fn,slave=True):
-    print "Loading dataset"
+    print "Loading dataset `%s'"%fn
     D = dataset("%s.dat"%fn,crop=False,upsample="zoom",remove_rohr=True,usepickled=slave)
     return D
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         print "usage: ", sys.argv[0], "[filename]"
         sys.exit()
     basename = filename
-    D = loaddata(basename,slave=False)
+    D = loaddata(basename,slave=True)
 
     s = 1.20
     sigma0 = 1.0
