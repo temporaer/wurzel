@@ -638,7 +638,7 @@ int main(int argc, char* argv[]) {
   vox2arr<float_grid> vox2raw(Raw);
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine total path length statistic
-	  if(vox2raw[v] < start_threshold)
+	  if(vox2raw[v]/max(s_raw) < start_threshold)
 		  continue;
 	  s_pathlen(d_map[v]);
   }
@@ -647,7 +647,7 @@ int main(int argc, char* argv[]) {
   property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine avg path costs statistic
-	  if(vox2raw[v] < start_threshold)
+	  if(vox2raw[v]/max(s_raw) < start_threshold)
 		  continue;
 	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
 		  continue;
@@ -679,7 +679,7 @@ int main(int argc, char* argv[]) {
 
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine flow statistic
-	  if(vox2raw[v] < start_threshold)
+	  if(vox2raw[v]/max(s_raw) < start_threshold)
 		  continue; // too weak at start
 	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
 		  continue; // too long
@@ -691,7 +691,7 @@ int main(int argc, char* argv[]) {
   std::cout << "Hop     Pathlens: "<< s_cnt<<std::endl;
 
   foreach (const voxel_vertex_descriptor& v0, vertices(graph)) {
-	  if(vox2raw[v0]<start_threshold) 
+	  if(vox2raw[v0]/max(s_raw) < start_threshold)
 		  continue;                  // weak signal at start point
 	  float total_dist   = d_map[v0];
 	  if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
