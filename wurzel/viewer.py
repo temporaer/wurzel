@@ -77,7 +77,7 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
     #mlab.add_module(s)
     print "done"
 
-def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None):
+def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True):
     L = []
     S = []
     D = []
@@ -95,7 +95,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None):
     D = np.vstack(D)
     #mlab.quiver3d(L[:,0],L[:,1],L[:,2], D[:,0],D[:,1],D[:,2], scale_factor=3.)
 
-    if (L<0).sum() > 0:
+    if (L<0).sum() > 0 and False:
         """ this is in cm """
         L[:,0] = (-L[:,0])/100.*256 + 120
         L[:,1] = (L[:,1])/100.*256  + 110
