@@ -23,6 +23,7 @@
       <xs:element name="stem-plane" type="xs:unsignedInt"   />
       <xs:element name="stem-axis"  type="xs:unsignedInt"   />
       <xs:element name="has-rohr"   type="xs:boolean" minOccurs="0"  />
+      <xs:element name="scale"      type="xs:float"   />
     </xs:sequence>
       <xs:attribute name="read-dtype" type="dtype_t"  use="required" />
   </xs:complexType>
