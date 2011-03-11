@@ -724,20 +724,23 @@ int main(int argc, char* argv[]) {
 
   wurzelgraph_t wgraph;
   paths2adjlist(graph,wgraph,p_map,make_vox2arr(Paths));
-	initialize_vertex_positions(wgraph);
+  erode_tree(wgraph);
+  initialize_vertex_positions(wgraph);
 
-	for(int i=0;i<100;i++){
-	 determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
-	 move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
-	}
-	wurzel_thickness(wgraph, make_vox2arr_subpix(Raw));
-	//smooth_thickness(wgraph);
-	
+  for(int i=0;i<100;i++){
+	  determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
+	  move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
+  }
+  wurzel_thickness(wgraph, make_vox2arr_subpix(Raw));
+  std::cout<<"Total root length: "<<total_length(wgraph) <<std::endl;
+  std::cout<<"Total root mass  : "<<total_mass(wgraph,make_vox2arr_subpix(Raw)) <<std::endl;
+
+  //smooth_thickness(wgraph);
+
 
   //remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
 
-	erode_tree(wgraph);
-	//merge_deg2_nodes(wgraph);
+  //merge_deg2_nodes(wgraph);
 
   std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
   print_wurzel_vertices(getfn(base,"vertices","txt"),wgraph,idx_map);
