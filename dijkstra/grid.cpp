@@ -463,7 +463,7 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc){
 		double t      = M(0,0)+M(1,1);                    // trace
 		double d      = M(0,0)*M(1,1) - M(0,1)*M(1,0);    // determinant
 		double tmp    = sqrt(t*t/4.0-d);
-		double stddev = 1.0/(t/2.0+tmp)   +  1.0/(t/2.0-tmp);  // sum of stddevs in both directions
+		double stddev = sqrt(t/2.0+tmp)   +  sqrt(t/2.0-tmp);  // sum of stddevs in both directions
 		stddev /= 2.0;                               // average of stddevs
 		stddev_map[wv] = stddev;
 		if(stddev< 0){
