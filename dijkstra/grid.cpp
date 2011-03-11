@@ -366,7 +366,7 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 template<class T>
 boost::multi_array_ref<T, 3> 
 read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
-  std::cout << "Reading `"<<fn<<"', bytes="<<sizeof(T)<<std::endl;
+  std::cout << "Reading `"<<fn<<"', bytes="<<sizeof(T)<<" size="<<X<<","<<Y<<","<<Z<<std::endl;
   std::ifstream dat(fn.c_str(), std::ios::in | std::ios::binary);
   if(!dat.is_open())	{
 	  std::cerr << "Could not open `"<<fn<<"' --> exiting."<<std::endl;
