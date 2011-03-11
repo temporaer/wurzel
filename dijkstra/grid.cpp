@@ -534,6 +534,32 @@ locate_stem(boost::array<vidx_t,3>& dims, const T& acc, unsigned int plane, unsi
 	return arg_max_val;
 }
 
+double total_length(wurzelgraph_t& wg){
+	double sum = 0.0;
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
+	foreach(const wurzel_edge_descriptor& e, edges(wg)){
+		const wurzel_vertex_descriptor& s = source(e,wg);
+		const wurzel_vertex_descriptor& t = target(e,wg);
+		sum += voxdist(pos_map[s].begin(),pos_map[t].begin());
+	}
+	return sum;
+}
+template<class T>
+double total_mass(wurzelgraph_t& wg, const T& rawacc){
+	double sum = 0.0;
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
+	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map   = get(root_stddev, wg);
+	foreach(const wurzel_edge_descriptor& e, edges(wg)){
+		const wurzel_vertex_descriptor& s = source(e,wg);
+		const wurzel_vertex_descriptor& t = target(e,wg);
+		double length        = voxdist(pos_map[s].begin(),pos_map[t].begin());
+		double center_mass   = rawacc[pos_map[s]];
+		double radius        = 2.0 * stddev_map[s];
+		sum += M_PI*radius*radius   * center_mass * length;
+	}
+	return sum;
+}
+
 int main(int argc, char* argv[]) {
 	wurzel_info info;
 
