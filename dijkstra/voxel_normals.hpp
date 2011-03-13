@@ -18,7 +18,7 @@
 #define SQR(X) ((X)*(X))
 template<class T>
 void
-get_normal(covmat_t&M,	const vec3_t& v, const T& acc){
+get_normal(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc){
 	namespace ublas = boost::numeric::ublas;
 	namespace lapack = boost::numeric::bindings::lapack;
 	using namespace std;
@@ -45,6 +45,7 @@ get_normal(covmat_t&M,	const vec3_t& v, const T& acc){
 			}
 		}
 	}
+	A /= sum;
 
 	int info = lapack::syev('V', 'U', A, lambda, lapack::optimal_workspace());
 	if(info!=0)
@@ -55,8 +56,10 @@ get_normal(covmat_t&M,	const vec3_t& v, const T& acc){
 		std::swap(A(0,0),A(0,idx));
 		std::swap(A(1,0),A(1,idx));
 		std::swap(A(2,0),A(2,idx));
+		std::swap(lambda(0),lambda(idx));
 	}
 	M = A;
+	l = lambda;
 }
 
 #endif /* __VOXEL_NORMALS_HPP__ */
