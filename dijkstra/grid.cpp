@@ -408,11 +408,11 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
 	property_map<wurzelgraph_t,vertex_param0_t>::type param0_map = get(vertex_param0, wg);
 	const double r = max_radius_mm/scale, step=0.25; // r and step in voxel
+	double sr      = r/5.0; // start radius for fitting
 	std::vector<double> values, coors;
 	values.reserve(2*r/step*2*r/step);
 	coors .reserve(2*r/step*2*r/step);
 	double params[3]; // gaussian curve params
-	std::ofstream match_ofs("matches.txt");
 	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
 		covmat_t& m = normal_map[wv];
 		vec3_t&   p = pos_map[wv];
@@ -420,7 +420,7 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 		coors.clear();
 		double centerval = acc( p[0], p[1], p[2])/wi.spross_intensity;
 		params[0] = centerval;     double& centerscale = params[0];
-		params[1] = 1.0/(2*r*r);   double& expscale    = params[1];
+		params[1] = 1.0/(2*sr*sr); double& expscale    = params[1];
 		params[2] = 0;
 		for(double i = -r; i <= r; i+=step){
 			for (double j = -r; j <= r; j+=step)
@@ -429,19 +429,16 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 						p[0]+i*m(0,1) + j*m(0,2),
 					 	p[1]+i*m(1,1) + j*m(1,2),
 					 	p[2]+i*m(2,1) + j*m(2,2))/wi.spross_intensity;
-				values.push_back(val);
+				values.push_back(std::max(0.0,val-wi.noise_cutoff));
+				//values.push_back(val<wi.noise_cutoff ? 0.0 : val);
+				//values.push_back(val);
 				coors.push_back(i*i + j*j);
 			}
 		}
-		//if(centerval>noisethresh){
-		//        for(std::vector<double>::iterator vit=values.begin(),cit=coors.begin(); vit!=values.end();vit++,cit++){
-		//                match_ofs<< sqrt(*cit) << "	" << *vit <<std::endl;
-		//        }
-		//        match_ofs<<std::endl;
-		//}
 		
 		fit_gauss_curve(params,&values.front(),values.size(),&coors.front());
-		double stddev = sqrt(1.0/(2*expscale)) * scale; 
+		centerscale += wi.noise_cutoff/4; // account for cutoff above
+		double stddev = sqrt(1.0/(2*expscale)); 
 
 
 		//std::cout << "-------------------------------------"<<std::endl;
@@ -461,7 +458,7 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 		//double stddev = (sqrt(l(1))+sqrt(l(2)))/2.0;
 		if(stddev != stddev)          stddev = 0.00001;
 		if(isinf(stddev))             stddev = 0.00001;
-		if(stddev > max_radius_mm)    stddev = 0.00001;
+		if(stddev > max_radius_mm)    stddev = max_radius_mm;
 		if(stddev <        0.00001  ) stddev = 0.00001;
 		//stddev *= params[0];
 		stddev_map[wv] = stddev;
@@ -703,10 +700,10 @@ int main(int argc, char* argv[]) {
   // find local ranks
   //rank_op(base,graph,make_vox2arr(Ranks),make_vox2arr(Sato),make_vox2arr(Paths));
 
-  const double maximum_radius = 7*info.scale;
+  const double maximum_radius_mm = 4;
   wurzelgraph_t wgraph;
   paths2adjlist(graph,wgraph,p_map,make_vox2arr(Paths));
-  erode_tree(wgraph, info.scale, maximum_radius);
+  erode_tree(wgraph, info.scale, maximum_radius_mm);
   initialize_vertex_positions(wgraph);
 
   std::cout << "Finding subpixel vertex positions..."<<std::flush;
@@ -715,7 +712,7 @@ int main(int argc, char* argv[]) {
           move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
   }
   std::cout << "done."<<std::endl;
-  wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), info.scale, maximum_radius, info);
+  wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), info.scale, maximum_radius_mm, info);
 
   if(1){
 	  // serialize tree
