@@ -78,8 +78,8 @@ if __name__ == "__main__":
   #Ddist1 = dataset(basename+"-paths1.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-d_map.dat", dz=256, dtype="float64", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  Dsato = dataset(basename+".sato", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
-  Draw  = dataset(basename+"-upsampled.dat", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  #Dsato = dataset(basename+".sato", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  #Draw  = dataset(basename+"-upsampled.dat", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
   #minv = dmin+0.15*dptp
@@ -98,10 +98,12 @@ if __name__ == "__main__":
   #  mkimg(fig, "path-ours")
   #  #mlab.clf()
 
+  viewer.show_points( "data/GersteLA_192x192x410_normal-vertices.txt", "data/GersteLA_192x192x410_normal-edges.txt")
+  viewer.show_points( "data/GersteLA_128x128x410-vertices.txt", "data/GersteLA_128x128x410-edges.txt", color=(0,0,1))
   if token == "us-vs-raw":
       #viewer.show_points( "data/ground_vertices.txt", "data/ground_edges.txt")
       viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt")
-      viewer.show_iso(Draw, 0.19 , "bone", 0.15)   # need 0.2 to get rid of noise
+      viewer.show_iso(Draw, 0.095 , "bone", 0.15)   # need 0.2 to get rid of noise
       if offscreen:
         mkimg(fig, "us-vs-raw")
         mlab.clf()
@@ -122,20 +124,17 @@ if __name__ == "__main__":
         mkimg(fig, "us-vs-ground")
         mlab.clf()
 
-  #DGerste = np.fromfile("data/GersteLA_290909.dat",dtype="float32").reshape(410,192,192)
-  #viewer.show_iso(DGerste, 0.01 , "bone", 0.4)   # need 0.2 to get rid of noise
-
   #DReis = np.load("data/reispflanze_wurzeln-laser.npy")
   #viewer.show_laserpoints(DReis);
 
-  DReis = np.loadtxt("laser/rec_del.txt")
-  viewer.show_laserpoints(DReis,"bone",ss=1,color=(1,0,0));
-  DReis = np.loadtxt("laser/rec_out.txt")
-  viewer.show_laserpoints(DReis,"bone",ss=1,color=(0,0,1));
-  DReis = np.loadtxt("laser/rec.txt")
-  viewer.show_laserpoints(DReis,"bone",ss=1,color=(0,1,0));
-  DReis = np.loadtxt("laser/tube.txt")
-  viewer.show_laserpoints(DReis,"Spectral",color=(0,0,1));
+  #DReis = np.loadtxt("laser/rec_del.txt")
+  #viewer.show_laserpoints(DReis,"bone",ss=1,color=(1,0,0));
+  #DReis = np.loadtxt("laser/rec_out.txt")
+  #viewer.show_laserpoints(DReis,"bone",ss=1,color=(0,0,1));
+  #DReis = np.loadtxt("laser/rec.txt")
+  #viewer.show_laserpoints(DReis,"bone",ss=1,color=(0,1,0));
+  #DReis = np.loadtxt("laser/tube.txt")
+  #viewer.show_laserpoints(DReis,"Spectral",color=(0,0,1));
 
   #viewer.show_iso(Draw, 0.19 , "bone", 0.1)   # need 0.2 to get rid of noise
   #if offscreen:
@@ -154,15 +153,15 @@ if __name__ == "__main__":
   #  mkimg(fig, "rendered-paths")
   #  mlab.clf()
 
-  #viewer.show_volume(Draw, "bone", 0.22,1.0)   # 0.13, 0.3 works well
+  #viewer.show_volume(Draw, "bone", 0.15,1.0)   # 0.13, 0.3 works well
   #if offscreen:
   #  mkimg(fig, "raw")
   #  mlab.clf()
 
-  #viewer.show_iso(Dsato, 0.050 , "Spectral", 0.2)  
+  #viewer.show_iso(Dsato, 0.002 , "Spectral", 0.2)  
   #if offscreen:
-  #    mkimg(fig, "sato-iso")
-  #    mlab.clf()
+  #   mkimg(fig, "sato-iso")
+  #   mlab.clf()
 
   #viewer.show_volume(Dsato, "bone", 0.005, 0.2)  # 0.03, 0.2 works well
   #if offscreen:
