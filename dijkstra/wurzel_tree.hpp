@@ -3,6 +3,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
+#include <boost/graph/adj_list_serialize.hpp>
 #include "voxelgrid.hpp"
 
 namespace ublas = boost::numeric::ublas;
@@ -15,6 +16,10 @@ struct vertex_position_t{
 	typedef boost::vertex_property_tag kind;
 } vertex_position;
 
+struct vertex_eigenval_t{
+	typedef boost::vertex_property_tag kind;
+} vertex_eigenval;
+
 struct marked_vertex_t{
 	typedef boost::vertex_property_tag kind;
 } marked_vertex;
@@ -22,6 +27,14 @@ struct marked_vertex_t{
 struct root_stddev_t{
 	typedef boost::vertex_property_tag kind;
 } root_stddev;
+
+struct vertex_param0_t{
+	typedef boost::vertex_property_tag kind;
+} vertex_param0;
+
+struct edge_mass_t{
+	typedef boost::edge_property_tag kind;
+} edge_mass;
 
 typedef ublas::bounded_matrix<double,3,3,ublas::column_major> covmat_t;
 typedef ublas::bounded_vector<double,3>                       vec3_t;
@@ -33,9 +46,12 @@ typedef boost::adjacency_list<
 	boost::property<boost::vertex_name_t,voxel_vertex_descriptor,
 	  boost::property<vertex_position_t,vec3_t,
 		  boost::property<vertex_normal_t,covmat_t,
-		  	boost::property<root_stddev_t,double,
-			  boost::property<marked_vertex_t,bool
-	  > > > > >
+		        boost::property<vertex_eigenval_t,vec3_t,
+		  	     boost::property<root_stddev_t,double,
+		  	          boost::property<vertex_param0_t,double,
+			               boost::property<marked_vertex_t,bool
+	  > > > > > > >,
+	boost::property<edge_mass_t,double>
 	> wurzelgraph_t;
 
 typedef graph_traits<wurzelgraph_t> wurzelg_traits;
