@@ -5,17 +5,25 @@ import cPickle
 from scipy.ndimage import gaussian_filter
 from config import config
 
-class WurzelType:
-    lupine, gerste, reis = range(3)
 class WurzelInfo:
     def __init__(self, fn):
         cfg = config("dijkstra/config.xml")
 
         basename,ext = os.path.splitext(fn)
+        basename = basename.replace("-upsampled","")
+        basename = basename.replace("-vertices","")
+        try:
+            print "All data: ", cfg.all_bases()
+            cfg.shape(basename)
+        except:
+            print "Could not find dataset `%s' in config!"%basename
+            import sys
+            sys.exit(1)
         self.read_shape = cfg.read_shape(basename)
         self.shape      = cfg.shape(basename)
         self.read_dtype = cfg.read_dtype(basename)
         self.has_rohr   = cfg.has_rohr(basename)
+        self.scale      = cfg.scale(basename)
 
         print "WurzelInfo: ", self.read_shape, self.shape, self.read_dtype, self.has_rohr
 
@@ -38,7 +46,10 @@ class dataset(object):
         picklename = datafile.replace(".dat",".pickle")
         if usepickled and os.path.exists(picklename):
             self.load(picklename)
-            assert all([x==y for x,y in zip(self.D.shape, info.shape )])
+            if not all([x==y for x,y in zip(self.D.shape, info.shape )]):
+                print "After loading pickle, dimensions do not match: ", self.D.shape, info.shape
+                import sys
+                sys.exit(1)
         else:
             with open(datafile) as fd:
                 self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
@@ -46,7 +57,17 @@ class dataset(object):
                 self.D /= 255.0
             if medianfilt:  self.median_filter()
             if remove_rohr: self.get_rid_of_roehrchen()
+            assert self.D.min()>= 0
             self.upsample(upsample)
+            if not medianfilt:
+                cnt = (self.D<0).sum()
+                print "fraction below zero: ", cnt/np.prod(self.D.shape)
+                self.D[self.D<0]=0 # this is an upsampling-artefact (hopefully)
+            if not all([x==y for x,y in zip(self.D.shape, info.shape )]):
+                print "After resampling, dimensions do not match: ", self.D.shape, info.shape
+                import sys
+                sys.exit(1)
+
             if medianfilt or remove_rohr or upsample:
                 self.save(picklename)
 
@@ -63,7 +84,7 @@ class dataset(object):
         from scipy.ndimage.interpolation import zoom
         #print "mm: 100 x 100 x 131"
         #print "Dims:", self.D.shape
-        fact = np.array(self.info.shape).astype("float32") / np.array(self.info.read_shape).astype("float32")
+        fact = np.array(self.info.shape).astype("float32") / np.array(self.info.read_shape).astype("float32")+0.00001 # hrmpf!!
         if method == "zoom":
             print "Resampling..."
             self.D = zoom(self.D, fact).astype("float32")
