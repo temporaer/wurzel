@@ -547,6 +547,7 @@ int main(int argc, char* argv[]) {
   float_grid Raw  = read3darray<float>(getfn(base,"upsampled","dat"),X,Y,Z);
   boost::array<vidx_t, 3> strunk   // locate the stem
 	  =  locate_stem(lengths, info.spross_intensity, make_vox2arr(Raw), info.stem_plane, info.stem_axis); //{ { 109, 129,  24 } };
+  info.spross_intensity = 425000;
 
   float_grid Sato = read3darray<float>(getfn(base,"","sato"),X,Y,Z); g_sato = new vox2arr<float_grid>(Sato);
   //float_grid ev10 = read3darray<float>(getfn(base,"","ev10"),X,Y,Z); g_ev10 = new vox2arr<float_grid>(ev10);
@@ -605,6 +606,8 @@ int main(int argc, char* argv[]) {
   double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
   double min_flow_thresh       = vm["min-flow-thresh"].as<double>();
 
+  start_threshold *= info.noise_cutoff;
+
   voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
   stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
   vox2arr<float_grid> vox2raw(Raw);
@@ -612,7 +615,7 @@ int main(int argc, char* argv[]) {
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine total path length statistic
 	  //if(vox2sato[v] < start_threshold)
-	  if(vox2raw[v]/info.spross_intensity < info.noise_cutoff)
+	  if(vox2raw[v]/info.spross_intensity < start_threshold)
 		  continue;
 	  s_pathlen(d_map[v]);
   }
@@ -622,7 +625,7 @@ int main(int argc, char* argv[]) {
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine avg path costs statistic
 	  //if(vox2sato[v] < start_threshold)
-	  if(vox2raw[v]/info.spross_intensity < info.noise_cutoff)
+	  if(vox2raw[v]/info.spross_intensity < start_threshold)
 		  continue;
 	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
 		  continue;
@@ -655,7 +658,7 @@ int main(int argc, char* argv[]) {
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine flow statistic
 	  //if(vox2sato[v] < start_threshold)
-	  if(vox2raw[v]/info.spross_intensity < info.noise_cutoff)
+	  if(vox2raw[v]/info.spross_intensity < start_threshold)
 		  continue; // too weak at start
 	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
 		  continue; // too long
@@ -668,7 +671,7 @@ int main(int argc, char* argv[]) {
 
   foreach (const voxel_vertex_descriptor& v0, vertices(graph)) {
 	  //if(vox2sato[v0] < start_threshold)
-	  if(vox2raw[v0]/info.spross_intensity < info.noise_cutoff)
+	  if(vox2raw[v0]/info.spross_intensity < start_threshold)
 		  continue;                  // weak signal at start point
 	  float total_dist   = d_map[v0];
 	  if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
