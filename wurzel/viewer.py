@@ -132,11 +132,11 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
 
         L = np.vstack(L)
         pts.mlab_source.dataset.lines = L
-        tube = mlab.pipeline.tube(pts,tube_sides=7,tube_radius=.1, name="root tubes")
+        tube = mlab.pipeline.tube(pts,tube_sides=7,tube_radius=1, name="root tubes")
         #tube.filter.radius_factor = 1.
-        #tube.filter.vary_radius = 'vary_radius_by_absolute_scalar'
-        tube.filter.vary_radius = 'vary_radius_by_scalar'
-        #tube.filter.capping = True
+        tube.filter.vary_radius = 'vary_radius_by_absolute_scalar'
+        #tube.filter.vary_radius = 'vary_radius_by_scalar'
+        tube.filter.capping = True
         #tube.filter.use_default_normal = True
 
         if color==None:
