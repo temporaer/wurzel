@@ -31,6 +31,16 @@ vec3_t cross_product(
         c[2] = a[0] * b[1] - a[1] * b[0];
         return c;
 }
+std::string
+getfn(const std::string& base, const std::string& marker, const std::string& ext){
+	std::stringstream ss;
+	if(marker.length()>0){
+		ss << base << "-"<<marker << "."<<ext;
+	}else{
+		ss << base << "."<<ext;
+	}
+	return ss.str();
+}
 
 
 voxel_edge_weight_map::reference 
@@ -74,7 +84,7 @@ void graph_stats(wurzelgraph_t& g){
 }
 double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 	double sum = 0.0;
-	double minpos = wi.scale * /*wi.stem_plane*/15 * wi.Z/410; // TODO: make this work for other datasets!!
+	double minpos = wi.scale * /*wi.stem_plane*/14 * wi.X/410.0; // TODO: make this work for other datasets!!
 	property_map<wurzelgraph_t,vertex_position_t>::type  pos_map = get(vertex_position, wg);
 	property_map<wurzelgraph_t,root_stddev_t>::type   stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type       mass_map = get(edge_mass, wg);
@@ -214,6 +224,62 @@ void action_distance(std::vector<wurzel_info>& wis, std::vector<std::string>& ba
 		distance(g1,g2,tolerance);
 }
 
+template<class T>
+void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
+	std::ofstream ofs(name.c_str());
+	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
+	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
+	foreach (const wurzel_edge_descriptor& e, edges(wg)){
+		unsigned int  v = vidx_map[source(e,wg)];
+		unsigned int  w = vidx_map[target(e,wg)];
+		//ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<w[0]<<" "<<w[1]<<" "<<w[2]<<std::endl;
+		//double thickness = stddev_map[source(e,wg)]+stddev_map[target(e,wg)];
+		double thickness = mass_map[e];
+		ofs << v <<" "<< w <<" "<<thickness<<std::endl;
+	}
+	ofs.close();
+}
+template<class T>
+void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
+	std::ofstream ofs(name.c_str());
+	unsigned int idx=0;
+	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
+	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
+	//property_map<wurzelgraph_t,vertex_param0_t>::type mass_map = get(vertex_param0, wg);
+	foreach (wurzel_vertex_descriptor& wd, vertices(wg)){
+		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
+		const vec3_t&            p = get(vertex_position,wg)[wd];
+		vidx_map[wd] = idx++;
+		//unsigned int deg = out_degree(wd,wg);
+		double thickness = 0; double cnt = 0;
+		if(in_degree(wd,wg)>0){
+			thickness += mass_map[*in_edges(wd,wg).first];
+			cnt ++;
+		}
+		if(out_degree(wd,wg)>0){
+			thickness += mass_map[*out_edges(wd,wg).first];
+			cnt ++;
+		}
+		if(cnt>0) thickness /= cnt;
+		//thickness = mass_map[wd];
+		//ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
+		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<0<<" "<<0<<" "<<0<<std::endl;
+	}
+	ofs.close();
+}
+
+void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& bases, const po::variables_map& vm){
+  std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
+
+  wurzelgraph_t g;
+  loadtree(bases[0], g);
+
+  scale_to_mm(g,wis[0]);
+  total_mass(g, wis[0]);
+  print_wurzel_vertices(getfn(bases[0],"vertices","txt"),g,idx_map);
+  print_wurzel_edges(   getfn(bases[0],"edges","txt"),g,idx_map);
+}
+
 int main(int argc, char* argv[]){
 	std::vector<wurzel_info> wis;
 	po::variables_map vm = get_config(wis,argc,argv);
@@ -230,6 +296,8 @@ int main(int argc, char* argv[]){
 			action_mass(wis,bases,vm);
 		}else if(a == "length"){
 			action_length(wis,bases,vm);
+		}else if(a == "print"){
+			action_print(wis,bases,vm);
 		}
 	}
 	
