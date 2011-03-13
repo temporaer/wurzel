@@ -10,6 +10,7 @@
 #else
 #  define ACC(A,v) A[v[0]][v[1]][v[2]]
 #endif
+#define SQR(X) ((X)*(X))
 
 template<class T>
 struct const_vox2arr{
@@ -85,5 +86,14 @@ vox2arr_subpix<T> make_vox2arr_subpix(T& t){ return vox2arr_subpix<T>(t); }
 
 template<class T>
 const_vox2arr_subpix<T> make_vox2arr_subpix(const T& t){ return const_vox2arr_subpix<T>(t); }
+
+template<class I, class J>
+inline double voxdist(I a, J b){
+	double s = 0;
+	s += SQR(*a-*b); a++; b++;
+	s += SQR(*a-*b); a++; b++;
+	s += SQR(*a-*b); 
+	return sqrt(s);
+}
 
 #endif /* __VOXEL_ACCESSORS_HPP__ */
