@@ -48,6 +48,7 @@ if __name__ == "__main__":
     sigmas = []
     sigmas.extend([sigma0 * s**i for i in xrange(0,6)])
     print "Sigmas: ", sigmas
+    sigmas = [x * 0.52 / D.info.scale for x in sigmas]  # 0.52 is the scale of the dataset which the params above were adjusted for
 
     use_ip = True
     if use_ip:
