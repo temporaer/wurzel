@@ -74,6 +74,8 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			wi.Z = df.shape().z();
 			wi.stem_plane = df.stem_plane();
 			wi.stem_axis  = df.stem_axis();
+			wi.scale      = df.scale();
+			wi.noise_cutoff = df.noise_cutoff();
 			found++;
 		}
 	}
