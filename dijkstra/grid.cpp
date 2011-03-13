@@ -728,9 +728,6 @@ int main(int argc, char* argv[]) {
 
   //merge_deg2_nodes(wgraph);
 
-  std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
-  print_wurzel_vertices(getfn(base,"vertices","txt"),wgraph,idx_map);
-  print_wurzel_edges(   getfn(base,"edges","txt"),wgraph,idx_map);
   //write_voxelgrid<unsigned char>(getfn(base,"paths","dat"),graph,make_vox2arr(Paths));
   //write_voxelgrid<unsigned char>(getfn(base,"ranks","dat"),graph,make_vox2arr(Ranks));
 }
