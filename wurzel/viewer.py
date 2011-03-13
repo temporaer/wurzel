@@ -77,10 +77,14 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
     #mlab.add_module(s)
     print "done"
 
-def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True):
+def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True):
     L = []
     S = []
     D = []
+    if scaled:
+        from dataset import WurzelInfo
+        info = WurzelInfo(fn)
+        print "Scale: ", info.scale
     print "Show Point3D"
     with open(fn) as f:
         for line in f.readlines():
@@ -93,6 +97,9 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True):
     S = np.array(S)
     L = np.vstack(L)
     D = np.vstack(D)
+    if scaled:
+        #S *= scaled # diameter is in mm already
+        L *= info.scale
     #mlab.quiver3d(L[:,0],L[:,1],L[:,2], D[:,0],D[:,1],D[:,2], scale_factor=3.)
 
     if (L<0).sum() > 0 and False:
@@ -112,7 +119,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True):
 
     #pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.8,colormap=cm,scale_mode="none",resolution="20",mode=mode)
     #pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.1,colormap=cm,scale_mode="none",resolution="20",mode=mode)
-    pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=10,colormap=cm,resolution="20",mode=mode,scale_mode='scalar')
+    pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=.01,colormap=cm,resolution="20",mode=mode,scale_mode='scalar')
     print "Done."
     if None==fne: return
     print "Show Edges3D"
@@ -125,9 +132,13 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True):
 
         L = np.vstack(L)
         pts.mlab_source.dataset.lines = L
-        tube = mlab.pipeline.tube(pts,tube_sides=8)
-        tube.filter.radius_factor = 100.
+        tube = mlab.pipeline.tube(pts,tube_sides=7,tube_radius=.1, name="root tubes")
+        #tube.filter.radius_factor = 1.
+        #tube.filter.vary_radius = 'vary_radius_by_absolute_scalar'
         tube.filter.vary_radius = 'vary_radius_by_scalar'
+        #tube.filter.capping = True
+        #tube.filter.use_default_normal = True
+
         if color==None:
             color = (1,0,0) if gt else (0,1,0)
         #color = (0,1,0) if gt else (1,0,0)
