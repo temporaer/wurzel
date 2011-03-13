@@ -326,35 +326,6 @@ void merge_deg2_nodes(wurzelgraph_t& wg){
 	}
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
-template<class T>
-void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
-	std::ofstream ofs(name.c_str());
-	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
-	foreach (const wurzel_edge_descriptor& e, edges(wg)){
-		unsigned int  v = vidx_map[source(e,wg)];
-		unsigned int  w = vidx_map[target(e,wg)];
-		//ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<w[0]<<" "<<w[1]<<" "<<w[2]<<std::endl;
-		double thickness = stddev_map[source(e,wg)]+stddev_map[target(e,wg)];
-		ofs << v <<" "<< w <<" "<<thickness/2.0<<std::endl;
-	}
-	ofs.close();
-}
-template<class T>
-void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
-	std::ofstream ofs(name.c_str());
-	unsigned int idx=0;
-	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
-	foreach (wurzel_vertex_descriptor& wd, vertices(wg)){
-		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
-		const vec3_t&            p = get(vertex_position,wg)[wd];
-		vidx_map[wd] = idx++;
-		//unsigned int deg = out_degree(wd,wg);
-		double thickness = stddev_map[wd];
-		//ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
-		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<0<<" "<<0<<" "<<0<<std::endl;
-	}
-	ofs.close();
-}
 
 template<class T>
 boost::multi_array_ref<T, 3> 
