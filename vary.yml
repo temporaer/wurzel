@@ -3,7 +3,7 @@ default_section:   global
 settletime:   1000000
 want_ini: 0
 at_start: echo > dijkstra/props.txt
-run_blocks: [props]
+run_blocks: [dijkstra]
 #run_blocks: [rbm_nips_mnist_01, rbm_nips_bars_and_stripes_001]
 #precond: test ! -e /tmp/block_remote_jobs
 blocks:
@@ -18,24 +18,24 @@ blocks:
           - GersteLA_96x96x410
           - GersteLA_128x128x410
           - GersteLA_256x256x410
-          - GersteLA_192x192x410_noise2
-          - GersteLA_192x192x410_filter6-16
-          - GersteLA_192x192x410_filter7-16
-          - GersteLA_192x192x410_filter8-16
-          - GersteLA_192x192x410_noise3
-          - GersteLA_192x192x410_noise4
-          - GersteLA_192x192x410_noise5
+          #- GersteLA_192x192x410_noise2
+          #- GersteLA_192x192x410_filter6-16
+          #- GersteLA_192x192x410_filter7-16
+          #- GersteLA_192x192x410_filter8-16
+          #- GersteLA_192x192x410_noise3
+          #- GersteLA_192x192x410_noise4
+          #- GersteLA_192x192x410_noise5
   - name: dijkstra
-    local_abort_conf: test ! -e data/${base}-d_map.dat
-    run: cd dijkstra ; ./grid ../data/${base} -s 0.04 -a 1.0 -f 5
+    #local_abort_conf: test ! -e data/${base}-d_map.dat
+    run: cd dijkstra ; ./grid ../data/${base} -s 2.0 -a 1.0 -f 5 --force
     vary:
       - name: base
         vals:
-          - GersteLA_192x192x410_normal
-          - GersteLA_64x64x410
-          - GersteLA_96x96x410
-          - GersteLA_128x128x410
-          - GersteLA_256x256x410
+          #- GersteLA_192x192x410_normal
+          #- GersteLA_64x64x410
+          #- GersteLA_96x96x410
+          #- GersteLA_128x128x410
+          #- GersteLA_256x256x410
           - GersteLA_192x192x410_noise2
           - GersteLA_192x192x410_filter6-16
           - GersteLA_192x192x410_filter7-16
@@ -45,16 +45,16 @@ blocks:
           - GersteLA_192x192x410_noise5
   - name: sato
     local_abort_conf: test ! -e data/${base}.sato
-    run: python -O main.py ${base}
+    run: python -O main.py data/${base}
     vary:
       - name: base
         vals:
-          - GersteLA_192x192x410_normal
-          - GersteLA_64x64x410
-          - GersteLA_96x96x410
-          - GersteLA_128x128x410
-          - GersteLA_256x256x410
-          - GersteLA_192x192x410_noise2
+          #- GersteLA_192x192x410_normal
+          #- GersteLA_64x64x410
+          #- GersteLA_96x96x410
+          #- GersteLA_128x128x410
+          #- GersteLA_256x256x410
+          #- GersteLA_192x192x410_noise2
           - GersteLA_192x192x410_filter6-16
           - GersteLA_192x192x410_filter7-16
           - GersteLA_192x192x410_filter8-16
@@ -62,152 +62,21 @@ blocks:
           - GersteLA_192x192x410_noise4
           - GersteLA_192x192x410_noise5
         
-  #- name: rbm_nips_mnist_01
-  #  run:  python -O caller.py -d ${vp_device} -w mnist-pcd-lr0.01-long-seed${seed} --save_every 1000 --learnrate 0.01 --l_size 25 --weight_updates 1000000 --load pretraining --continue_learning 1
-  #  vary:
-  #    - name: seed
-  #      vals: [0, 1, 2, 3, 4]
-        
-  #- name: rbm_nips_bars_and_stripes_001
-  #  run:  python -O caller.py -d ${vp_device} -w bars_and_stripes-pcd-lr0.001-long-seed${seed} --save_every 1000 --learnrate 0.001 --dataset bars_and_stripes --l_size 24 --weight_updates 1000000 --load pretraining --continue_learning 1
-
-  #  vary:
-  #    - name: seed
-  #      vals: [0, 1, 2, 3, 4]
-
-  - name: samplemean
-    local_abort_cond: test ! -e ${directory}/sample-mean-0-${idx}.npy
-    run:  python caller.py --batchsize=8192 --eval-cooldown -w ${directory} -d ${vp_device} --eval-steps=1000 --save-sample-mean --load ${idx}
+  - name: upsample
+    local_abort_conf: test ! -e data/${base}-upsampled.dat
+    run: python -O tools/upsample.py data/${base}.dat
     vary:
-      - name: idx
-        vals: 
-          - glob{4,-0-(.*)\.npy,${directory}/weights-0-*.npy}
-      - name: directory
+      - name: base
         vals:
-          - mnist-lr0.01-frac0.0-seed1
-          
-  - name: partfunc
-    local_abort_cond: python analyse/extr2.py nats ${directory} info-0-${idx}.pickle
-    run:  python analyse/calc_part_func.py --basename ${directory} -i ${idx} -d ${vp_device} -f
-    vary:
-      - name: idx
-        vals: 
-          - glob{4,-0-(.*)\.npy,${directory}/weights-0-*.npy}
-      - name: directory
-        vals:
-          - mnist-lr0.01-frac0.0-seed1
-
-
-  - name: ais
-    #local_abort_cond: python analyse/extr2.py ais_nats ${directory}-seed${seed} info-0-${idx}.pickle
-    #local_abort_cond: python analyse/extr2.py ais_nats ${directory} info-0-${idx}.pickle
-    #run:  python -O ais/ais.py -p ${directory}-seed${seed} -i ${idx} -d ${vp_device}
-    run:  python -O ais/ais.py -p ${directory} -i ${idx} -d ${vp_device} -f1
-    vary:
-      - name: idx
-        vals: 
-          #- glob{1,-0-(.*)\.npy,${directory}-seed${seed}/weights-0-*.npy}
-          - glob{4,-0-(.*)\.npy,${directory}/weights-0-*.npy}
-      - name: directory
-        vals:
-          - mnist-lr0.01-frac0.0-seed1
-
-  #- name: numerator
-  #  local_abort_cond: python analyse/extr2.py nats ${directory} info-0-${idx}-sample-${idx_dataset}.pickle
-  #  run:  python -O analyse/calc_part_func.py -b ${directory} -i ${idx} -d ${vp_device} --srbmhid --idx_in_dataset ${idx_dataset}
-  #  vary:
-  #    - name: idx
-  #      vals: 
-  #        - glob{1,-0-(.*)\.npy,${directory}/weights-0-*.npy}
-  #        #- pretrain
-  #    - name: directory
-  #      vals:
-  #         #- test_small_local_save
-  #         - mnist_local__steep6_ps3_maps1_lateralps_3
-  #         #- mnist_local__steep7_ps3_maps1_lateralps_1
-  #         #- test_small_local_lateral_save
-  #    - name: idx_dataset
-  #      vals: 
-  #          - perl{(0..100)}
-
-  #- name: mlp
-  #  #run:  python -O caller.py --dataset mnist_validation -b mnist-mlp-hu${hiddenunits}-lr${learningrate}-bs${batchsize}-wd${weightdecay} -d ${vp_device} --finetune_batchsize ${batchsize} --finetune_cost ${weightdecay} --finetune_learningrate ${learningrate} --l_size ${hiddenunits} --finetune_epochs 400 --finetune 1 --pretrain 0
-  #  run:  python -O caller.py --dataset mnist_padded_validation -w mnist-mlp-hu${hiddenunits}-lr${learningrate}-wd${weightdecay}-bs${batchsize} -d ${vp_device}  --finetune_cost ${weightdecay} --finetune_learnrate ${learningrate} --l_size ${hiddenunits} --finetune_epochs 800 --finetune 1 --pretrain 0 --finetune_rprop 0 --load finetuning --continue_learning 1 --finetune_batch_size ${batchsize} --finetune_online_learning 1
-  #  vary:
-  #    - name: hiddenunits
-  #      vals: 
-  #        - 100
-  #        - 200
-  #        - 400
-  #        - 500
-  #        - 600
-  #        - 700
-  #        - 800
-  #        - 900
-  #        - 1000
-  #   - name: learningrate
-  #      vals:
-  #          #- 0.2
-  #          - 0.1
-  #          - 0.05
-  #          - 0.025
-  #          - 0.0125
-  #          - 0.075
-  #          #- 0.005
-  #          #- 0.0025
-  #          #- 0.00125
-  #          #- 0.0005
-  #          #- 0.0001
-  #          #- 0.00001
-  #    - name: weightdecay
-  #      vals:
-  #          - 0.0
-  #          #- 0.0001
-  #          - 0.001
-  #          #- 0.01
-  #          #- 0.1
-  #          #- 0.3
-  #    - name: batchsize
-  #      vals:
-  #          - 32
-
-    
-  #- name: mlp_local
-  #  #run:  python -O caller.py --dataset mnist_validation -b mnist-mlp-hu${hiddenunits}-lr${learningrate}-bs${batchsize}-wd${weightdecay} -d ${vp_device} --finetune_batchsize ${batchsize} --finetune_cost ${weightdecay} --finetune_learningrate ${learningrate} --l_size ${hiddenunits} --finetune_epochs 400 --finetune 1 --pretrain 0
-  #  run:  python -O caller.py --dataset mnist_padded_validation -w mnist-mlp-local-maps${maps}-ps${patchsize}-steepness${steepness}-lr${learningrate}-wd${weightdecay}-bs${batchsize} -d ${vp_device}  --finetune_cost ${weightdecay} --finetune_learnrate ${learningrate} --local 1 --local_maps ${maps} --local_patchsize ${patchsize} --local_steepness ${steepness} --finetune_epochs 800 --finetune 1 --pretrain 0 --finetune_rprop 0  --finetune_batch_size ${batchsize} --finetune_online_learning 1
-  #  vary:
-  #    - name: steepness
-  #      vals: [1, 2, 3, 4, 5, 6] 
-  #    - name: patchsize
-  #      vals: [11, 9, 7]
-  #    - name: maps
-  #      vals:
-  #          - 0.4
-  #          - 0.8
-  #          - 0.16
-  #    - name: learningrate
-  #      vals:
-  #          #- 0.2
-  #          - 0.1
-  #          - 0.05
-  #          #- 0.025
-  #          - 0.0125
-  #          #- 0.075
-  #          #- 0.005
-  #          #- 0.0025
-  #          #- 0.00125
-  #          #- 0.0005
-  #          #- 0.0001
-  #          #- 0.00001
-  #    - name: weightdecay
-  #      vals:
-  #          - 0.0
-  #          #- 0.0001
-  #          - 0.001
-  #          #- 0.01
-  #          #- 0.1
-  #          #- 0.3
-  #    - name: batchsize
-  #      vals:
-  #          - 32
-        
+          #- GersteLA_192x192x410_normal
+          #- GersteLA_64x64x410
+          #- GersteLA_96x96x410
+          #- GersteLA_128x128x410
+          #- GersteLA_256x256x410
+          #- GersteLA_192x192x410_noise2
+          - GersteLA_192x192x410_filter6-16
+          - GersteLA_192x192x410_filter7-16
+          - GersteLA_192x192x410_filter8-16
+          - GersteLA_192x192x410_noise3
+          - GersteLA_192x192x410_noise4
+          - GersteLA_192x192x410_noise5
