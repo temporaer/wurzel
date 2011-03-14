@@ -89,6 +89,7 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 	property_map<wurzelgraph_t,root_stddev_t>::type   stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type       mass_map = get(edge_mass, wg);
 	property_map<wurzelgraph_t,vertex_param0_t>::type param0_map = get(vertex_param0, wg);
+	double sum_horiz = 0.0, sum_vert = 0.0;
 	foreach(const wurzel_edge_descriptor& e, edges(wg)){
 		const wurzel_vertex_descriptor& s = source(e,wg);
 		const wurzel_vertex_descriptor& t = target(e,wg);
@@ -98,8 +99,8 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 			continue;
 		double length  = voxdist(pos_map[s].begin(),pos_map[t].begin());          // pos_map is in mm
 
-		double radiuss = 1.50 *stddev_map[s]*wi.scale;                                              // stddev_map is in voxel
-		double radiust = 1.50 *stddev_map[t]*wi.scale;                                              // stddev_map is in voxel
+		double radiuss = 1.30 *stddev_map[s]*wi.scale;                                              // stddev_map is in voxel
+		double radiust = 1.30 *stddev_map[t]*wi.scale;                                              // stddev_map is in voxel
 
 		double param1s = 1.0/(2.0*stddev_map[s]*stddev_map[s]*wi.scale*wi.scale);                              // determine param in exp of gauss again
 		double param1t = 1.0/(2.0*stddev_map[t]*stddev_map[t]*wi.scale*wi.scale);                              // determine param in exp of gauss again
@@ -111,20 +112,43 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 		//mass_map[e]    = masss*length;
 		mass_map[e] = length / 3.0 * (masss +masst +sqrt(masss *masst));
 		sum += mass_map[e];
+
+		const vec3_t& spos = pos_map[s];
+		const vec3_t& tpos = pos_map[t];
+		const vec3_t& diff = tpos-spos;
+		bool is_vert = diff[0]*diff[0] > (diff[1]*diff[1]+diff[2]*diff[2]);
+		if(is_vert) sum_vert  += mass_map[e];
+		else        sum_horiz += mass_map[e];
 	}
 	double weight_scale     = 0.2712; // milli-gram
 	weight_scale /= wi.X*wi.Y*wi.Z  / 192.0 / 192.0 / 410.0; // change 0.27 so that it fits the resolution
 	std::cout << "Total mass: "<<sum * weight_scale <<std::endl;
+	std::cout << "Horiz mass: "<<sum_horiz * weight_scale <<std::endl;
+	std::cout << "Vertc mass: "<<sum_vert  * weight_scale <<std::endl;
+	std::cout << "V/H       : "<<sum_vert/sum_horiz<<std::endl;
 	return sum*weight_scale;
 }
 double total_length(wurzelgraph_t& wg){
-	double sum = 0.0;
+	double sum = 0.0, sum_horiz=0.0, sum_vert=0.0;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	foreach(const wurzel_edge_descriptor& e, edges(wg)){
 		const wurzel_vertex_descriptor& s = source(e,wg);
 		const wurzel_vertex_descriptor& t = target(e,wg);
-		sum += voxdist(pos_map[s].begin(),pos_map[t].begin()); // assumed to be in mm here!!
+		double length = voxdist(pos_map[s].begin(),pos_map[t].begin()); // assumed to be in mm here!!
+		sum += length;
+
+		const vec3_t& spos = pos_map[s];
+		const vec3_t& tpos = pos_map[t];
+		const vec3_t& diff = tpos-spos;
+		bool is_vert = diff[0]*diff[0] > (diff[1]*diff[1]+diff[2]*diff[2]);
+		if(is_vert) sum_vert  += length;
+		else        sum_horiz += length;
 	}
+	std::cout << "Total len: "<<sum <<std::endl;
+	std::cout << "Horiz len: "<<sum_horiz <<std::endl;
+	std::cout << "Vertc len: "<<sum_vert  <<std::endl;
+	std::cout << "V/H      : "<<sum_vert/sum_horiz<<std::endl;
+
 	return sum;
 }
 void distance(wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance){
@@ -162,7 +186,8 @@ void distance(wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance){
 			no_counterpart ++;
 		s_distances(min_d);
 		v_cnt ++;
-		std::cout <<"\rFraction not found: "<<((float)no_counterpart/v_cnt)<<" count: "<<v_cnt<< " mind: "<< min_d<<std::flush;
+		if(v_cnt % 1000==0)
+			std::cout <<"\rFraction not found: "<<((float)no_counterpart/v_cnt)<<" count: "<<v_cnt<< " mind: "<< min_d<<std::flush;
 	}
 	std::cout <<std::endl<< "Vertices w/o counterpart: "<<no_counterpart<<" at tolerance "<<tolerance<<std::endl;
 	std::cout <<std::endl<< "Average distance: "<<mean(s_distances)<< " var:"<<variance(s_distances)<<std::endl;
@@ -228,17 +253,28 @@ void action_distance(std::vector<wurzel_info>& wis, std::vector<std::string>& ba
 }
 
 template<class T>
-void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
+void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map, const wurzel_info& wi){
 	std::ofstream ofs(name.c_str());
 	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	foreach (const wurzel_edge_descriptor& e, edges(wg)){
-		unsigned int  v = vidx_map[source(e,wg)];
-		unsigned int  w = vidx_map[target(e,wg)];
+		const wurzel_vertex_descriptor& s = source(e,wg);
+		const wurzel_vertex_descriptor& t = target(e,wg);
+		double length = voxdist(pos_map[s].begin(),pos_map[t].begin()); // assumed to be in mm here!!
+
+		const vec3_t &spos = pos_map[s];
+		const vec3_t &tpos = pos_map[t];
+		const vec3_t  diff = tpos-spos;
+		double        ang  = atan2(fabs(diff[0]),sqrt(diff[1] *diff[1]+diff[2]*diff[2]));
+
+		unsigned int  v = vidx_map[s];
+		unsigned int  w = vidx_map[t];
 		//ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<w[0]<<" "<<w[1]<<" "<<w[2]<<std::endl;
 		//double thickness = stddev_map[source(e,wg)]+stddev_map[target(e,wg)];
-		double thickness = mass_map[e];
-		ofs << v <<" "<< w <<" "<<thickness<<std::endl;
+		double thickness = mass_map[e]/length;
+		double mass      = mass_map[e]/length;
+		ofs << v <<" "<< w <<" "<<thickness<<" "<<mass<< " "<<ang <<" "<<0.5*(spos[0]+tpos[0])<<std::endl;
 	}
 	ofs.close();
 }
@@ -248,6 +284,7 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 	unsigned int idx=0;
 	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	//property_map<wurzelgraph_t,vertex_param0_t>::type mass_map = get(vertex_param0, wg);
 	foreach (wurzel_vertex_descriptor& wd, vertices(wg)){
 		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
@@ -256,14 +293,20 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 		//unsigned int deg = out_degree(wd,wg);
 		double thickness = 0; double cnt = 0;
 		if(in_degree(wd,wg)>0){
-			thickness += mass_map[*in_edges(wd,wg).first];
+			wurzel_edge_descriptor e = *in_edges(wd,wg).first;
+			double l = voxdist(pos_map[source(e,wg)].begin(),pos_map[target(e,wg)].begin());
+			thickness += mass_map[e]/l;
 			cnt ++;
 		}
 		if(out_degree(wd,wg)>0){
-			thickness += mass_map[*out_edges(wd,wg).first];
+			wurzel_edge_descriptor e = *out_edges(wd,wg).first;
+			double l = voxdist(pos_map[source(e,wg)].begin(),pos_map[target(e,wg)].begin());
+			thickness += mass_map[*out_edges(wd,wg).first]/l;
 			cnt ++;
 		}
 		if(cnt>0) thickness /= cnt;
+		thickness = std::max(thickness, 0.05);
+		thickness = std::min(thickness, 6.00);
 		//thickness = mass_map[wd];
 		//ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
 		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<0<<" "<<0<<" "<<0<<std::endl;
@@ -279,8 +322,9 @@ void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& bases
 
   scale_to_mm(g,wis[0]);
   total_mass(g, wis[0]);
+  total_length(g);
   print_wurzel_vertices(getfn(bases[0],"vertices","txt"),g,idx_map);
-  print_wurzel_edges(   getfn(bases[0],"edges","txt"),g,idx_map);
+  print_wurzel_edges(   getfn(bases[0],"edges","txt"),g,idx_map,wis[0]);
 }
 
 int main(int argc, char* argv[]){
