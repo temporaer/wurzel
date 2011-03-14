@@ -78,7 +78,7 @@
 			<stem-axis>0</stem-axis>
 			<has-rohr>false</has-rohr>
 			<scale>0.47</scale>
-			<noise-cutoff>0.04</noise-cutoff>
+			<noise-cutoff>0.08</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_noise3</base-name>
@@ -88,7 +88,7 @@
 			<stem-axis>0</stem-axis>
 			<has-rohr>false</has-rohr>
 			<scale>0.47</scale>
-			<noise-cutoff>0.04</noise-cutoff>
+			<noise-cutoff>0.12</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_noise4</base-name>
@@ -98,7 +98,7 @@
 			<stem-axis>0</stem-axis>
 			<has-rohr>false</has-rohr>
 			<scale>0.47</scale>
-			<noise-cutoff>0.04</noise-cutoff>
+			<noise-cutoff>0.16</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_noise5</base-name>
@@ -108,7 +108,7 @@
 			<stem-axis>0</stem-axis>
 			<has-rohr>false</has-rohr>
 			<scale>0.47</scale>
-			<noise-cutoff>0.04</noise-cutoff>
+			<noise-cutoff>0.20</noise-cutoff>
 		</datafile>
 		<!-- ******************** -->
 		<!--    Gerste Filter     -->
