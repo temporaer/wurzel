@@ -129,6 +129,120 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 	std::cout << "V/H       : "<<sum_vert/sum_horiz<<std::endl;
 	return sum*weight_scale;
 }
+
+struct wurzel_segment{
+	const wurzelgraph_t& wg;
+	wurzel_segment(const wurzelgraph_t& g):wg(g){}
+	std::list<wurzel_edge_descriptor> edges;
+	void add(const wurzel_edge_descriptor& e){
+		edges.push_back(e);
+	}
+	bool has(const wurzel_edge_descriptor& e){
+		return edges.end()==std::find(edges.begin(),edges.end(),e);
+	}
+	bool has(const wurzel_vertex_descriptor& v){
+		foreach(const wurzel_edge_descriptor &e, edges){
+			if(source(e,wg)==v) return true;
+			if(target(e,wg)==v) return true;
+		}
+		return false;
+	}
+	bool is_vert(){
+		property_map<wurzelgraph_t,vertex_position_t>::const_type pos_map  = get(vertex_position, wg);
+		const wurzel_vertex_descriptor& s = source(edges.front(),wg);
+		const wurzel_vertex_descriptor& t = target(edges.back(),wg);
+		const vec3_t& spos = pos_map[s];
+		const vec3_t& tpos = pos_map[t];
+		const vec3_t& diff = tpos-spos;
+		return diff[0]*diff[0] > (diff[1]*diff[1]+diff[2]*diff[2]);
+	}
+	double length(){
+		double sum = 0.0;
+		property_map<wurzelgraph_t,vertex_position_t>::const_type pos_map  = get(vertex_position, wg);
+		foreach(const wurzel_edge_descriptor &e, edges){
+			const wurzel_vertex_descriptor& s = source(e,wg);
+			const wurzel_vertex_descriptor& t = target(e,wg);
+			double length = voxdist(pos_map[s].begin(),pos_map[t].begin()); // assumed to be in mm here!!
+			sum += length;
+		}
+		return sum;
+	}
+	bool has_leaf(){
+		foreach(const wurzel_edge_descriptor &e, edges){
+			const wurzel_vertex_descriptor& s = source(e,wg);
+			const wurzel_vertex_descriptor& t = target(e,wg);
+			if(out_degree(s,wg)==0) return true;
+			if(out_degree(t,wg)==0) return true;
+		}
+		return false;
+	}
+	int pieces(){
+		return edges.size();
+	}
+};
+
+void build_seg(const wurzel_edge_descriptor& e, wurzel_segment seg, std::list<wurzel_segment>& segments, const wurzelgraph_t& wg){
+	const wurzel_vertex_descriptor& t = target(e,wg);
+	if(out_degree(t,wg)==0){// ends in leaf
+		seg.add(e);
+		segments.push_back(seg);
+		return;
+	}
+	if(out_degree(t,wg)>1){ // ends in furcation
+		seg.add(e);
+		segments.push_back(seg);
+		// continue building new segments from nodes after t
+		foreach(const wurzel_edge_descriptor& e2, out_edges(t,wg)){
+			build_seg(e2,wurzel_segment(wg),segments,wg);
+		}
+		return;
+	}
+	// now out_degree==1
+	seg.add(e);
+	build_seg(*out_edges(t,wg).first, seg,segments,wg);
+}
+
+double avg_len_btw_splits(wurzelgraph_t& wg){
+	std::list<wurzel_segment> segments;
+	std::map<wurzel_edge_descriptor,bool> foundmap;
+	//property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
+	wurzel_vertex_descriptor root;
+	bool found = false;
+	foreach(const wurzel_vertex_descriptor& v, vertices(wg)){
+		if(in_degree(v,wg)==0){
+			root = v;
+			found = true;
+			break;
+		}
+	}
+	if(!found){
+		std::cout << "Could not find root node...."<<std::endl;
+		exit(1);
+	}
+	foreach(const wurzel_edge_descriptor& e2, out_edges(root,wg)){
+		build_seg(e2,wurzel_segment(wg), segments, wg);
+	}
+	
+	
+	std::cout << "Found #segments: "<<segments.size()<<std::endl;
+	stat_t s_lens, s_lens_hor, s_lens_ver;
+	stat_t s_nums;
+	foreach(wurzel_segment& seg,segments){
+		if(seg.has_leaf())
+			continue;
+		s_lens(seg.length());
+		s_nums(seg.pieces());
+		if(seg.is_vert())
+			s_lens_ver(seg.length());
+		else
+			s_lens_hor(seg.length());
+	}
+	std::cout <<"Avg seg len: "<< mean(s_lens)<<" +/- "<<sqrt(variance(s_lens))<< " mm"<<std::endl;
+	std::cout <<"        ver: "<< mean(s_lens_ver)<<" +/- "<<sqrt(variance(s_lens_ver))<< " mm"<<std::endl;
+	std::cout <<"        hor: "<< mean(s_lens_hor)<<" +/- "<<sqrt(variance(s_lens_hor))<< " mm"<<std::endl;
+	std::cout <<"Avg seg num: "<< mean(s_nums)<<" +/- "<<sqrt(variance(s_nums))<< " pieces"<<std::endl;
+	return mean(s_lens);
+}
 double total_length(wurzelgraph_t& wg){
 	double sum = 0.0, sum_horiz=0.0, sum_vert=0.0;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
