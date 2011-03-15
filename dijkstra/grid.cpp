@@ -377,8 +377,24 @@ determine_vertex_normals(wurzelgraph_t& wg, const T& acc){
 
 template<class T>
 void
+determine_inertia_tensor(wurzelgraph_t& wg, const T& acc, const double& max_radius_mm, const wurzel_info& wi){
+	//std::cout << "Determining vertex normals..."<<std::flush;
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
+	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
+	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
+
+	const double r = max_radius_mm/wi.scale, step=0.25; // r and step in voxel
+
+	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
+		get_inertia_tensor(normal_map[wv],eigenval_map[wv],pos_map[wv],acc,r,step);
+	}
+	//std::cout << "done."<<std::endl;
+}
+
+template<class T>
+void
 move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
-	//std::cout << "moving vertices in planes..."<<std::flush;
+	std::cout << "moving vertices in planes..."<<std::flush;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
 	double sum = 0.0;
@@ -400,7 +416,7 @@ move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
 		sum += SQR(dx)+SQR(dy);
 		cnt ++;
 	}
-	//std::cout << "done (avg norm="<<sum/cnt<<")"<<std::endl;
+	std::cout << "done (avg norm="<<sum/cnt<<")"<<std::endl;
 }
 
 template<class T>
@@ -722,6 +738,9 @@ int main(int argc, char* argv[]) {
   }
   std::cout << "done."<<std::endl;
   wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), info.scale, maximum_radius_mm, info);
+
+  // substitute covariance stuff with inertia tensor, for radius estimation!
+  determine_inertia_tensor(wgraph, make_vox2arr_subpix(Raw), maximum_radius_mm, info);
 
   if(1){
 	  // serialize tree
