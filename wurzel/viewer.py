@@ -77,7 +77,7 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
     #mlab.add_module(s)
     print "done"
 
-def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True):
+def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True,dscale=1):
     L = []
     S = []
     D = []
@@ -85,21 +85,22 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
         from dataset import WurzelInfo
         info = WurzelInfo(fn)
         print "Scale: ", info.scale
-    print "Show Point3D"
+    print "Show Point3D `%s'" % fn
     with open(fn) as f:
         for line in f.readlines():
             line = line.split()
-            if len(line)<7:
-                continue
-            L.append([float(x) for x in line[:3]])
-            S.append(float(line[3]))
-            D.append([float(x) for x in line[4:]])
+            #if len(line)<7:
+            #    continue
+            L.append([float(x) for x in line[:3]]) # 0..2: coordinate axes
+            S.append(float(line[4]))              # 3: thickness, 4: diameter
+            D.append([float(x) for x in line[4:]]) # D: not used
     S = np.array(S)
     L = np.vstack(L)
     D = np.vstack(D)
+    print "NumPoints: ", L.shape[0]
     if scaled:
-        #S *= scaled # diameter is in mm already
-        L *= info.scale
+        L /= info.scale  # L is in mm, now it matches raw data again
+    S *= dscale
     #mlab.quiver3d(L[:,0],L[:,1],L[:,2], D[:,0],D[:,1],D[:,2], scale_factor=3.)
 
     if (L<0).sum() > 0 and False:
@@ -127,7 +128,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
     with open(fne) as f:
         for line in f.readlines():
             vec = line.split()
-            line = [int(x) for x in vec[:-1]]
+            line = [int(x) for x in vec[:2]]
             L.append(line)
 
         L = np.vstack(L)
