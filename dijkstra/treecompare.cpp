@@ -400,31 +400,34 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
-	//property_map<wurzelgraph_t,vertex_param0_t>::type mass_map = get(vertex_param0, wg);
+	property_map<wurzelgraph_t,vertex_eigenval_t>::type ev_map = get(vertex_eigenval, wg);
 	foreach (wurzel_vertex_descriptor& wd, vertices(wg)){
 		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
 		const vec3_t&            p = get(vertex_position,wg)[wd];
 		vidx_map[wd] = idx++;
 		//unsigned int deg = out_degree(wd,wg);
-		double thickness = 0; double cnt = 0;
+		double mass = 0, cnt = 0;
 		if(in_degree(wd,wg)>0){
 			wurzel_edge_descriptor e = *in_edges(wd,wg).first;
 			double l = voxdist(pos_map[source(e,wg)].begin(),pos_map[target(e,wg)].begin());
-			thickness += mass_map[e]/l;
+			mass += mass_map[e]/l;
 			cnt ++;
 		}
 		if(out_degree(wd,wg)>0){
 			wurzel_edge_descriptor e = *out_edges(wd,wg).first;
 			double l = voxdist(pos_map[source(e,wg)].begin(),pos_map[target(e,wg)].begin());
-			thickness += mass_map[*out_edges(wd,wg).first]/l;
+			mass += mass_map[*out_edges(wd,wg).first]/l;
 			cnt ++;
 		}
-		if(cnt>0) thickness /= cnt;
-		thickness = std::max(thickness, 0.05);
-		thickness = std::min(thickness, 6.00);
-		//thickness = mass_map[wd];
-		//ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<(*g_ev10)[v]<<" "<<(*g_ev11)[v]<<" "<<(*g_ev12)[v]<<std::endl;
-		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<thickness<<" "<<0<<" "<<0<<" "<<0<<std::endl;
+		if(cnt>0) mass /= cnt;
+		mass = std::max(mass, 0.05);
+		mass = std::min(mass, 6.00);
+
+		double d1 = pow(ev_map[wd][1], 0.25);
+		double d2 = pow(ev_map[wd][2], 0.25);
+		//std::cout << "d1: "<<d1<< " d2: "<< d2<<std::endl;
+		double diameter = 0.5 * (d1+d2);
+		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<mass<<" "<<diameter<<" "<<0<<" "<<0<<std::endl;
 	}
 	ofs.close();
 }
