@@ -350,9 +350,15 @@ void
 initialize_vertex_positions(wurzelgraph_t& wg){
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	property_map<wurzelgraph_t,vertex_name_t>::type     name_map = get(vertex_name, wg);
+
+	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
+	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
+
 	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
 		vec3_t&   p = pos_map[wv];
 		std::copy(name_map[wv].begin(), name_map[wv].end(), p.begin());
+		normal_map[wv] = ublas::scalar_matrix<double>(3,3,0);
+		eigenval_map[wv] = ublas::scalar_vector<double>(3,0);
 	}
 }
 
