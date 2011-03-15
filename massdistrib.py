@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 import sys
 from wurzel.dataset import WurzelInfo
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -42,8 +41,9 @@ assert np.abs(max_ang-1.57) < 0.1
 ang  = ((ang -np.min(ang ))/np.ptp(ang ) * (resx-1)).astype("int")
 Z    = ((Z   -np.min(Z   ))/np.ptp(Z   ) * (resy-1)).astype("int")
 
-fig = plt.figure(figsize=(4,4))
-fig.subplots_adjust(hspace=0.1,wspace=0.1,left=0.07,bottom=0.07,right=1,top=0.85)
+fig = plt.figure(figsize=(6,8))
+fig.subplots_adjust(hspace=0.1,wspace=0.1,left=0.10,bottom=0.07,right=1,top=0.85)
+xticklab = ["horizontal", "vertical"]
 if True:
 	for i in xrange(Z.shape[0]):
 		x = ang[i]
@@ -54,17 +54,27 @@ if True:
 	ax  = fig.add_subplot(121)
 	#cax = ax.matshow(img/imgn,cmap="binary",norm=LogNorm(vmin=min_mass,vmax=max_mass))
 	cax = ax.matshow(img/imgn,cmap="binary")
-	ax.set_xticks([x for x in np.arange(0,resx+.01,resx/2)])
+	#ax.set_xticks([x for x in np.arange(0,resx+.01,resx/3)])
 	ax.set_yticks([y for y in np.arange(0,resy+.01,resy/10)])
-	ax.set_xticklabels(["%1.2f"%x for x in np.arange(min_ang,max_ang+.01,(max_ang-min_ang)/2)])
+	#xticklab = ["%1.2f"%x for x in np.arange(min_ang,max_ang+.01,(max_ang-min_ang)/3)]
 	ax.set_yticklabels(["%3.0f"%y for y in np.arange(min_Z,max_Z+.01,(max_Z-min_Z)/10)])
-	ax.set_xlabel('angle to vertical (rad)')
 	ax.set_ylabel('depth (mm)')
 	ax.set_title("Mass distribution")
-	divider   = make_axes_locatable(ax)
-        axMarg = divider.append_axes("bottom", 1.2, pad=0.1, sharex=ax)
+	ax.set_ylim(resy-1.5,-0.5)
+	plt.setp(ax.get_xticklabels(), visible=False)
 
-	axMarg.plot(np.arange(min_ang,max_ang,(max_ang-min_ang)/img.shape[1]),img.sum(axis=0))
+	divider = make_axes_locatable(ax)
+        axMarg  = divider.append_axes("bottom", 1.2, pad=0.1, sharex=ax)
+	plt.setp(axMarg.get_yticklabels(), visible=False)
+	axMarg.plot(img.sum(axis=0))
+	axMarg.set_xticks([3.5, resx-5.5])
+	axMarg.set_xticklabels(xticklab)
+	axMarg.set_aspect("auto","box-forced")
+	axMarg.set_xticklabels(xticklab)
+	axMarg.set_xlabel('angle to vertical (rad)')
+	axMarg.set_xlim(-0.5,resx-1.5)
+	#axMarg.apply_aspect()
+	#axMarg.set_ylim(
 
 
 if True:
@@ -78,19 +88,23 @@ if True:
 	ax  = fig.add_subplot(122)
 	#cax = ax.matshow(img/imgn,cmap="binary",norm=LogNorm(vmin=min_mass,vmax=max_mass))
 	cax = ax.matshow(img/imgn,cmap="binary")
-	ax.set_xticks([x for x in np.arange(0,resx+.01,resx/3)])
+	ax.set_ylim(resy-1.5,-0.5)
 	#ax.set_yticks([y for y in np.arange(0,resy+.01,resy/10)])
 	ax.set_xticklabels(["%1.2f"%x for x in np.arange(min_ang,max_ang+.01,(max_ang-min_ang)/3)])
 	#ax.set_yticklabels(["%3.0f"%y for y in np.arange(min_Z,max_Z+.01,(max_Z-min_Z)/10)])
-	ax.set_xlabel('angle to vertical (rad)')
 	plt.setp(ax.get_yticklabels(), visible=False)
 	#ax.set_ylabel('depth (mm)')
 	ax.set_title("Expected Mass")
+	plt.setp(ax.get_xticklabels(), visible=False)
 
-	#ax  = fig.add_subplot(224)
-	#ax.plot(np.arange(min_ang,max_ang,(max_ang-min_ang)/img.shape[1]),img.sum(axis=0))
-	#ax.set_aspect(2)
-	#ax.apply_aspect()
+	divider   = make_axes_locatable(ax)
+        axMarg = divider.append_axes("bottom", 1.2, pad=0.1, sharex=ax)
+	plt.setp(axMarg.get_yticklabels(), visible=False)
+	axMarg.plot((img/imgn).sum(axis=0))
+	axMarg.set_xticklabels(xticklab)
+	axMarg.set_xticks([3.5, resx-5.5])
+	axMarg.set_xlabel('angle to vertical (rad)')
+	axMarg.set_xlim(-0.5,resx-1.5)
 
 plt.savefig("massdistrib.pdf", bbox_inches='tight')
 plt.show()
