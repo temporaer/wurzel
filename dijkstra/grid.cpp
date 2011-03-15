@@ -422,7 +422,6 @@ move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
 template<class T>
 void
 wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const double max_radius_mm, const wurzel_info& wi){
-	std::cout << "Determining Wurzel thickness..."<<std::flush;
 	stat_t s_thickness;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
@@ -431,6 +430,10 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 	property_map<wurzelgraph_t,vertex_param0_t>::type param0_map = get(vertex_param0, wg);
 	const double r = max_radius_mm/scale, step=0.25; // r and step in voxel
 	double sr      = r/5.0; // start radius for fitting
+	std::cout << "Determining Wurzel thickness..."
+		<< V(max_radius_mm)
+		<< V(pow(2*r/step,2))
+		<<std::flush;
 	std::vector<double> values, coors;
 	values.reserve(2*r/step*2*r/step);
 	coors .reserve(2*r/step*2*r/step);
