@@ -1,6 +1,6 @@
 # vim:ts=4:sw=4:sts=4:et:ai
 import sys
-import numpy as np
+#import numpy as np
 import wurzel.viewer as viewer
 from wurzel.dataset import dataset
 #from enthought import mayavi 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
   #Ddist = dataset(basename+"-paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-d_map.dat", dz=256, dtype="float64", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Dsato = dataset(basename+".sato", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
-  #Draw  = dataset(basename+"-upsampled.dat", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  Draw  = dataset(basename+"-upsampled.dat", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
   #minv = dmin+0.15*dptp
@@ -98,11 +98,11 @@ if __name__ == "__main__":
   #  mkimg(fig, "path-ours")
   #  #mlab.clf()
 
-  viewer.show_points( "data/GersteLA_192x192x410_normal-vertices.txt", "data/GersteLA_192x192x410_normal-edges.txt")
-  viewer.show_points( "data/GersteLA_128x128x410-vertices.txt", "data/GersteLA_128x128x410-edges.txt", color=(0,0,1))
+  #viewer.show_points( "data/GersteLA_192x192x410_normal-vertices.txt", "data/GersteLA_192x192x410_normal-edges.txt")
+  #viewer.show_points( "data/GersteLA_128x128x410-vertices.txt", "data/GersteLA_128x128x410-edges.txt", color=(0,0,1))
   if token == "us-vs-raw":
       #viewer.show_points( "data/ground_vertices.txt", "data/ground_edges.txt")
-      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt")
+      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=0.005)
       viewer.show_iso(Draw, 0.095 , "bone", 0.15)   # need 0.2 to get rid of noise
       if offscreen:
         mkimg(fig, "us-vs-raw")
