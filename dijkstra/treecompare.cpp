@@ -438,6 +438,7 @@ void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& bases
   scale_to_mm(g,wis[0]);
   total_mass(g, wis[0]);
   total_length(g);
+  avg_len_btw_splits(g);
   print_wurzel_vertices(getfn(bases[0],"vertices","txt"),g,idx_map);
   print_wurzel_edges(   getfn(bases[0],"edges","txt"),g,idx_map,wis[0]);
 }
