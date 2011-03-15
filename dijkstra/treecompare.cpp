@@ -6,6 +6,7 @@
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
+#include <boost/accumulators/statistics/count.hpp>
 #include <boost/accumulators/statistics/variance.hpp>
 
 #include <boost/numeric/ublas/io.hpp>
@@ -18,7 +19,7 @@
 #include "treecompare_config.hpp"
 
 using namespace boost::accumulators;
-typedef accumulator_set< double, features< tag::min, tag::mean, tag::max, tag::variance > > stat_t;
+typedef accumulator_set< double, features< tag::min, tag::mean, tag::max, tag::variance, tag::count > > stat_t;
 
 
 // (a2b3 − a3b2, a3b1 − a1b3, a1b2 − a2b1)
