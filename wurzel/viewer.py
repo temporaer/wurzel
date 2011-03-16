@@ -77,7 +77,36 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
     #mlab.add_module(s)
     print "done"
 
-def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True,dscale=1):
+def xyz2pol(L):
+    cy = np.min(L[:,1]) + L[:,1].ptp()/2
+    cz = np.min(L[:,2]) + L[:,2].ptp()/2
+    A = np.arctan2(L[:,2]-cz,L[:,1]-cy)
+    M = np.vstack((L[:,0],A,L[:,0])).T
+    M[:,1] *= L[:,0].ptp()/2/np.pi/2
+    M[:,2] = 0
+    return M
+
+def xyz2pol_grid(L):
+    cy = L.shape[1]/2
+    cz = L.shape[2]/2
+    G  = np.mgrid[0:L.shape[1],0:L.shape[2]]
+    G0 = np.mgrid[0:L.shape[1],0:L.shape[2]]
+    G[0] -= cy
+    G[1] -= cz
+
+    ares = 500
+
+    A = np.arctan2(G[1],G[0])
+    M = np.zeros((L.shape[0],ares))
+    for i in xrange(L.shape[1]):
+        for j in xrange(L.shape[2]):
+            M[:,int(A[i,j]/np.pi/2.0*ares)] = L[:,i,j]
+
+
+
+
+
+def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True,dscale=1,what=3):
     L = []
     S = []
     D = []
@@ -85,6 +114,10 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
         from dataset import WurzelInfo
         info = WurzelInfo(fn)
         print "Scale: ", info.scale
+    wireframe = False
+    if what == "wireframe":
+        wireframe = True
+        what = 3
     print "Show Point3D `%s'" % fn
     with open(fn) as f:
         for line in f.readlines():
@@ -92,15 +125,18 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
             #if len(line)<7:
             #    continue
             L.append([float(x) for x in line[:3]]) # 0..2: coordinate axes
-            S.append(float(line[4]))              # 3: thickness, 4: diameter
+            S.append(float(line[what]))           # 3: mass, 4: diameter
             D.append([float(x) for x in line[4:]]) # D: not used
     S = np.array(S)
     L = np.vstack(L)
     D = np.vstack(D)
+    if wireframe:
+        S[:] = 1
     print "NumPoints: ", L.shape[0]
     if scaled:
         L /= info.scale  # L is in mm, now it matches raw data again
     S *= dscale
+    S[S<0.1]=0.8
     #mlab.quiver3d(L[:,0],L[:,1],L[:,2], D[:,0],D[:,1],D[:,2], scale_factor=3.)
 
     if (L<0).sum() > 0 and False:
@@ -115,6 +151,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
     else:
         L[:] += 0.5
         gt = False
+    #L = xyz2pol(L)
 
     #mlab.points3d(L[:,0].squeeze(),L[:,1].squeeze(),L[:,2].squeeze(),S,scale_factor=1.5,colormap="bone",scale_mode="none",mode="2dtriangle")
 
@@ -124,15 +161,18 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
     print "Done."
     if None==fne: return
     print "Show Edges3D"
-    L = []
+    E = []
+    thresh = 100
     with open(fne) as f:
         for line in f.readlines():
             vec = line.split()
             line = [int(x) for x in vec[:2]]
-            L.append(line)
+            #if np.linalg.norm(L[line[0],:] - L[line[1],:]) > thresh:
+            #    continue
+            E.append(line)
 
-        L = np.vstack(L)
-        pts.mlab_source.dataset.lines = L
+        E = np.vstack(E)
+        pts.mlab_source.dataset.lines = E
         tube = mlab.pipeline.tube(pts,tube_sides=7,tube_radius=1, name="root tubes")
         #tube.filter.radius_factor = 1.
         tube.filter.vary_radius = 'vary_radius_by_absolute_scalar'

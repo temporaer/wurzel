@@ -39,14 +39,22 @@ def mkimg(fig,name):
     #scene.render()
     #mlab.savefig(name+"-3.png",magnification=1)
 
-    scene.camera.position = [128.5, 591.45266609081978, 128.5]
-    scene.camera.focal_point = [128.5, 128.5, 128.5]
+    #scene.camera.position = [128.5, 591.45266609081978, 128.5]
+    #scene.camera.focal_point = [128.5, 128.5, 128.5]
+    #scene.camera.view_angle = 30.0
+    #scene.camera.view_up = [-0.014778103364283094, 0.0, 0.99989079786792456]
+    #scene.camera.clipping_range = [204.59813942991155, 789.28445608218215]
+    #scene.camera.compute_view_plane_normal()
+    #scene.render()
+    #mlab.savefig(name+"-4.png",magnification=1)
+    scene.camera.position = [421.63833162281662, 0.41217041015625, -1602.0273769039982]
+    scene.camera.focal_point = [421.63833162281662, 0.41217041015625, 0.0]
     scene.camera.view_angle = 30.0
-    scene.camera.view_up = [-0.014778103364283094, 0.0, 0.99989079786792456]
-    scene.camera.clipping_range = [204.59813942991155, 789.28445608218215]
+    scene.camera.view_up = [0.99991970691306742, -0.012672005637842045, 0.0]
+    scene.camera.clipping_range = [1574.0671031349582, 1641.0877875575584]
     scene.camera.compute_view_plane_normal()
     scene.render()
-    mlab.savefig(name+"-4.png",magnification=1)
+    mlab.savefig(name+"-plain.png",magnification=2)
 
 
 if __name__ == "__main__":
@@ -65,7 +73,7 @@ if __name__ == "__main__":
 
   if offscreen:
     mlab.options.offscreen = True
-  fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(1024,896))
+  fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(2048,1792))
   #fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(400,300))
   fig.scene.anti_aliasing_frames=1
   mlab.clf()
@@ -78,7 +86,7 @@ if __name__ == "__main__":
   #Ddist1 = dataset(basename+"-paths1.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-d_map.dat", dz=256, dtype="float64", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  #Dsato = dataset(basename+".sato", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  Dsato = dataset(basename+".sato", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
   Draw  = dataset(basename+"-upsampled.dat", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
@@ -100,28 +108,38 @@ if __name__ == "__main__":
 
   #viewer.show_points( "data/GersteLA_192x192x410_normal-vertices.txt", "data/GersteLA_192x192x410_normal-edges.txt")
   #viewer.show_points( "data/GersteLA_128x128x410-vertices.txt", "data/GersteLA_128x128x410-edges.txt", color=(0,0,1))
-  if token == "us-vs-raw":
-      #viewer.show_points( "data/ground_vertices.txt", "data/ground_edges.txt")
-      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=0.005)
-      viewer.show_iso(Draw, 0.095 , "bone", 0.15)   # need 0.2 to get rid of noise
+  if token == "mass":
+      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=1,what=3)
+      #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
       if offscreen:
-        mkimg(fig, "us-vs-raw")
+        mkimg(fig, "mass")
         mlab.clf()
 
-  if token == "us-vs-ground":
-      viewer.show_points( "data/ground_vertices.txt", "data/ground_edges.txt")
-      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt")
-      #viewer.show_iso(Draw, 0.19 , "bone", 0.15)   # need 0.2 to get rid of noise
+  if token == "diameter":
+      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=0.4,what=4)
+      #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
       if offscreen:
-        mkimg(fig, "us-vs-ground")
+        mkimg(fig, "diameter")
         mlab.clf()
 
-  if token == "us-vs-ground-vs-raw":
-      viewer.show_points( "data/ground_vertices.txt", "data/ground_edges.txt")
-      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt")
-      viewer.show_iso(Draw, 0.19 , "bone", 0.15)   # need 0.2 to get rid of noise
+  if token == "wireframe":
+      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=0.5,what="wireframe")
+      viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
+      #viewer.show_volume(Draw, "bone", 0.01, 0.1)  # 0.03, 0.2 works well
       if offscreen:
-        mkimg(fig, "us-vs-ground")
+        mkimg(fig, "wireframe")
+        mlab.clf()
+
+  if token == "satoiso":
+      viewer.show_iso(Dsato, 0.002 , "Spectral", 0.2)
+      if offscreen:
+        mkimg(fig, "satoiso")
+        mlab.clf()
+
+  if token == "satovol":
+      viewer.show_volume(Dsato, "bone", 0.00001, 0.01)
+      if offscreen:
+        mkimg(fig, "satovol")
         mlab.clf()
 
   #DReis = np.load("data/reispflanze_wurzeln-laser.npy")
