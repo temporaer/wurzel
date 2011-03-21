@@ -12,49 +12,22 @@ from enthought.mayavi import mlab
 def mkimg(fig,name):
     scene = fig.scene
     #print "Rendering..."
-    #scene.camera.position = [340.40906071071839, 40.846184594957535, 187.06626070910627]
-    #scene.camera.focal_point = [185.219910913566, 123.09733843648607, 108.41372549551366]
-    #scene.camera.view_angle = 30.0
-    #scene.camera.view_up = [-0.42032768067096582, 0.071883920708805144, 0.9045205043586888]
-    #scene.camera.clipping_range = [0.75260136121495613, 752.60136121495611]
-    #scene.camera.compute_view_plane_normal()
-    #scene.render()
-    #print "Rendering..."
-    #mlab.savefig(name+"-1.png",magnification=2)
-    #scene.camera.position = [83.953707876827011, 311.92359815432201, 125.50936268716015]
-    #scene.camera.focal_point = [89.856495599231664, 153.7986247717472, 229.42062081848633]
-    #scene.camera.view_angle = 30.0
-    #scene.camera.view_up = [-0.8681739651971645, 0.24949546570724399, 0.42898249235296071]
-    #scene.camera.clipping_range = [0.59227624649847499, 592.27624649847496]
-    #scene.camera.compute_view_plane_normal()
-    #scene.render()
-    #mlab.savefig(name+"-2.png",magnification=2)
-
-    #scene.camera.position = [-282.14857380964736, 128.5, 128.5]
-    #scene.camera.focal_point = [128.5, 128.5, 128.5]
-    #scene.camera.view_angle = 30.0
-    #scene.camera.view_up = [0.0, 0.0, 1.0]
-    #scene.camera.clipping_range = [152.81708807155087, 736.19580241679205]
-    #scene.camera.compute_view_plane_normal()
-    #scene.render()
-    #mlab.savefig(name+"-3.png",magnification=1)
-
-    #scene.camera.position = [128.5, 591.45266609081978, 128.5]
-    #scene.camera.focal_point = [128.5, 128.5, 128.5]
-    #scene.camera.view_angle = 30.0
-    #scene.camera.view_up = [-0.014778103364283094, 0.0, 0.99989079786792456]
-    #scene.camera.clipping_range = [204.59813942991155, 789.28445608218215]
-    #scene.camera.compute_view_plane_normal()
-    #scene.render()
-    #mlab.savefig(name+"-4.png",magnification=1)
-    scene.camera.position = [421.63833162281662, 0.41217041015625, -1602.0273769039982]
-    scene.camera.focal_point = [421.63833162281662, 0.41217041015625, 0.0]
+    scene.camera.position = [463.9984860311863, 1809.2988117125938, 109.73671134438729]
+    scene.camera.focal_point = [421.51009012013674, 95.419905483722687, 94.895551919937134]
     scene.camera.view_angle = 30.0
-    scene.camera.view_up = [0.99991970691306742, -0.012672005637842045, 0.0]
-    scene.camera.clipping_range = [1574.0671031349582, 1641.0877875575584]
+    scene.camera.view_up = [0.99969286540503455, -0.02478022775248526, -0.00033936824643516789]
+    scene.camera.clipping_range = [1482.2672553487132, 2010.9001920572837]
     scene.camera.compute_view_plane_normal()
     scene.render()
     mlab.savefig(name+"-plain.png",magnification=2)
+    #scene.camera.position = [421.63833162281662, 0.41217041015625, -1602.0273769039982]
+    #scene.camera.focal_point = [421.63833162281662, 0.41217041015625, 0.0]
+    #scene.camera.view_angle = 30.0
+    #scene.camera.view_up = [0.99991970691306742, -0.012672005637842045, 0.0]
+    #scene.camera.clipping_range = [1574.0671031349582, 1641.0877875575584]
+    #scene.camera.compute_view_plane_normal()
+    #scene.render()
+    #mlab.savefig(name+"-polar.png",magnification=2)
 
 
 if __name__ == "__main__":
@@ -108,6 +81,17 @@ if __name__ == "__main__":
 
   #viewer.show_points( "data/GersteLA_192x192x410_normal-vertices.txt", "data/GersteLA_192x192x410_normal-edges.txt")
   #viewer.show_points( "data/GersteLA_128x128x410-vertices.txt", "data/GersteLA_128x128x410-edges.txt", color=(0,0,1))
+  if token == "raw":
+      viewer.show_iso(Draw, 0.015 , "bone", 0.15)
+      if offscreen:
+        mkimg(fig, "raw")
+        mlab.clf()
+  if token == "rawvol":
+      viewer.show_volume(Draw, "bone", 0.01, 0.1)
+      if offscreen:
+        mkimg(fig, "rawvol")
+        mlab.clf()
+
   if token == "mass":
       viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=1,what=3)
       #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
@@ -124,7 +108,8 @@ if __name__ == "__main__":
 
   if token == "wireframe":
       viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=0.5,what="wireframe")
-      viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
+      viewer.show_iso(Dsato, 0.002 , "bone", 0.1)
+      #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
       #viewer.show_volume(Draw, "bone", 0.01, 0.1)  # 0.03, 0.2 works well
       if offscreen:
         mkimg(fig, "wireframe")
