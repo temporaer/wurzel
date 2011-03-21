@@ -370,7 +370,7 @@ determine_vertex_normals(wurzelgraph_t& wg, const T& acc){
 	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
 	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
 	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
-		get_normal(normal_map[wv],eigenval_map[wv],pos_map[wv],acc);
+		get_normal(normal_map[wv],eigenval_map[wv],pos_map[wv],acc,1.0);
 	}
 	//std::cout << "done."<<std::endl;
 }
