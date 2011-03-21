@@ -100,7 +100,7 @@ class dataset(object):
         #print "Dims:", self.D.shape
         print "done."
     def get_smoothed(self, sigma):
-        return dataset(gaussian_filter(self.D,sigma))
+        return dataset(sigma * gaussian_filter(self.D,sigma))
 
     def load(self, picklename):
         with open(picklename) as f:
