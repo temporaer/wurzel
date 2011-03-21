@@ -483,7 +483,7 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 		//double stddev = (sqrt(l(1))+sqrt(l(2)))/2.0;
 		if(stddev != stddev)          stddev = 0.00001;
 		if(isinf(stddev))             stddev = 0.00001;
-		if(stddev > max_radius_mm)    stddev = max_radius_mm;
+		if(stddev > 2*max_radius_mm)  stddev = 2*max_radius_mm;
 		if(stddev <        0.00001  ) stddev = 0.00001;
 		//stddev *= params[0];
 		stddev_map[wv] = stddev;
