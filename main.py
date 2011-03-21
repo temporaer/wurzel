@@ -18,7 +18,6 @@ def c3d(d, sigma):
     gc.collect()
     eig = img3dops.get_ev_of_hessian(d.D)
     S = linestructure.get_curve_3D(eig,0.25,0.5,0.5)
-    #S *= sigma**2 # as in Sato et al
     #print "Saving S"
     #np.save("data/S-%02.01d.npy"%sigma, S)
     #comm.Send(S, dest=0, tag=77)
