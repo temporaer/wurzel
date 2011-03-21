@@ -397,26 +397,56 @@ move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
 	std::cout << "moving vertices in planes..."<<std::flush;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
-	double sum = 0.0;
-	int    cnt = 0;
+	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
+	double sum  = 0.0;
+	int    cnt1 = 0, cnt2 = 0;
 	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
 		covmat_t& m = normal_map[wv];
 		vec3_t&   p = pos_map[wv];
+
+		vec3_t eigval = eigenval_map[wv] + ublas::scalar_vector<double>(3,0.0001);
+		static const double thresh = 1.5;
+		bool plane_defined = eigval[0] > eigval[1]*thresh
+			&&           eigval[0] > eigval[2]*thresh;
 		
-		double dx1 = acc(p[0] + m(0,1), p[1] + m(1,1), p[2] + m(2,1));
-		double dx2 = acc(p[0] - m(0,1), p[1] - m(1,1), p[2] - m(2,1));
-                                                               
-		double dy1 = acc(p[0] + m(0,2), p[1] + m(1,2), p[2] + m(2,2));
-		double dy2 = acc(p[0] - m(0,2), p[1] - m(1,2), p[2] - m(2,2));
-		double norm = dx1+dx2+dy1+dy2;
-		double dx = (dx1-dx2)/norm*0.5;
-		double dy = (dy1-dy2)/norm*0.5;
-		p += dx * ublas::matrix_column<covmat_t>(m,1);
-		p += dy * ublas::matrix_column<covmat_t>(m,2);
-		sum += SQR(dx)+SQR(dy);
-		cnt ++;
+		if(!plane_defined){
+			vec3_t    avgp = ublas::scalar_vector<double>(3,0);
+			double    avgw = 0.0;
+			int       avgc = 0;
+			foreach(const wurzel_edge_descriptor& ve, out_edges(wv,wg)){
+				avgp += pos_map[target(ve,wg)];
+				avgc += 1;
+				avgw += acc[pos_map[target(ve,wg)]];
+			}
+			foreach(const wurzel_edge_descriptor& ve, in_edges(wv,wg)){
+				avgp += pos_map[source(ve,wg)];
+				avgc += 1;
+				avgw += acc[pos_map[source(ve,wg)]];
+			}
+			if(avgc==1)
+				continue;
+			avgw /= avgc;
+			avgp /= avgc;
+			vec3_t diff = 0.5*(avgp-p);
+			p += diff;
+			sum += ublas::norm_2(diff);
+			cnt1++;
+		}else{
+			double dx1 = acc(p[0] + m(0,1), p[1] + m(1,1), p[2] + m(2,1));
+			double dx2 = acc(p[0] - m(0,1), p[1] - m(1,1), p[2] - m(2,1));
+
+			double dy1 = acc(p[0] + m(0,2), p[1] + m(1,2), p[2] + m(2,2));
+			double dy2 = acc(p[0] - m(0,2), p[1] - m(1,2), p[2] - m(2,2));
+			double norm = dx1+dx2+dy1+dy2 + 0.00001; // avoid div by 0
+			double dx = (dx1-dx2)/norm*0.5;
+			double dy = (dy1-dy2)/norm*0.5;
+			p += dx * ublas::matrix_column<covmat_t>(m,1);
+			p += dy * ublas::matrix_column<covmat_t>(m,2);
+			sum += SQR(dx)+SQR(dy);
+			cnt2 ++;
+		}
 	}
-	std::cout << "done (avg norm="<<sum/cnt<<")"<<std::endl;
+	std::cout << "done (avg norm="<<sum/(cnt1+cnt2)<<"; "<<V(cnt1)<<V(cnt2)<<")"<<std::endl;
 }
 
 template<class T>
