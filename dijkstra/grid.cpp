@@ -386,7 +386,7 @@ determine_inertia_tensor(wurzelgraph_t& wg, const T& acc, const double& max_radi
 	const double r = max_radius_mm/wi.scale, step=0.25; // r and step in voxel
 
 	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
-		get_inertia_tensor(normal_map[wv],eigenval_map[wv],pos_map[wv],acc,r,step);
+		get_inertia_tensor(normal_map[wv],eigenval_map[wv],pos_map[wv],acc,r,step,wi.spross_intensity,wi.noise_cutoff);
 	}
 	//std::cout << "done."<<std::endl;
 }
