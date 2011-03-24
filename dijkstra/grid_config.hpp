@@ -28,6 +28,8 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			("total-len-frac,t", po::value<double>()->default_value(1.0),     "maximal total length fraction")
 			("avg-len-frac,a", po::value<double>()->default_value(0.20),      "maximal average length fraction")
 			("min-flow-thresh,f", po::value<double>()->default_value(0.0001), "minimal flow fraction")
+			("no-gauss-fit",  "save some time")
+			("no-subpix-pos", "save some time")
 			;
 		po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
 		po::notify(vm);
@@ -72,6 +74,9 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			wi.X = df.shape().x();
 			wi.Y = df.shape().y();
 			wi.Z = df.shape().z();
+			wi.read_XYZ = df.read_shape().x() 
+				*     df.read_shape().y()
+				*     df.read_shape().z() ;
 			wi.stem_plane = df.stem_plane();
 			wi.stem_axis  = df.stem_axis();
 			wi.scale      = df.scale();
