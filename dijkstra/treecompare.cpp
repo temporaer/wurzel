@@ -269,7 +269,7 @@ double total_length(wurzelgraph_t& wg){
 
 	return sum;
 }
-void distance(wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance){
+void distance(wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance, bool verbose){
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map1  = get(vertex_position, g1);
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map2  = get(vertex_position, g2);
 	int no_counterpart = 0;
@@ -358,16 +358,7 @@ void action_distance(std::vector<wurzel_info>& wis, std::vector<std::string>& ba
 	int n1 = num_vertices(g1);
 	int n2 = num_vertices(g2);
 	std::cout<<"Verticex count: "<<n1 << " vs "<< n2<<std::endl;
-	std::cout <<"Large against small: "<<std::endl;
-	if(n1>n2)
-		distance(g1,g2,tolerance);
-	else
-		distance(g2,g1,tolerance);
-	std::cout <<"Small against large: "<<std::endl;
-	if(n1>n2)
-		distance(g2,g1,tolerance);
-	else
-		distance(g1,g2,tolerance);
+	distance(g1,g2,tolerance, vm["verbose"].as<bool>());
 }
 
 template<class T>
