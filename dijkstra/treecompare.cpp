@@ -304,7 +304,7 @@ void distance(wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance, boo
 			no_counterpart ++;
 		s_distances(min_d);
 		v_cnt ++;
-		if(v_cnt % 1000==0)
+		if(v_cnt % 1000==0 && verbose)
 			std::cout <<"\rFraction not found: "<<((float)no_counterpart/v_cnt)<<" count: "<<v_cnt<< " mind: "<< min_d<<std::flush;
 	}
 	std::cout <<std::endl<< "Vertices w/o counterpart: "<<no_counterpart<<" at tolerance "<<tolerance<<std::endl;

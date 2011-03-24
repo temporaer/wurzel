@@ -21,6 +21,7 @@ get_config(std::vector<wurzel_info>& wis, int argc, char* argv[]){
 		desc.add_options()
 			("help",  "produce help message")
 			("action,a", po::value<std::vector<std::string> >(),"what to do")
+			("verbose,v", po::value<bool>()->default_value(false),"be verbose")
 			("base,b", po::value<std::vector<std::string> >(), "the base name of the dataset")
 			("tolerance", po::value<double>()->default_value(1.0),  "tolerance for matching")
 			("cfg,c", po::value<std::string>()->default_value("config.xml"),"the config-file containing dataset descriptions (XML)")
