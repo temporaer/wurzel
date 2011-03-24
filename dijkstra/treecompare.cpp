@@ -129,7 +129,7 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 	std::cout << "Total mass: "<<sum * weight_scale <<std::endl;
 	std::cout << "Horiz mass: "<<sum_horiz * weight_scale <<std::endl;
 	std::cout << "Vertc mass: "<<sum_vert  * weight_scale <<std::endl;
-	std::cout << "V/H       : "<<sum_vert/sum_horiz<<std::endl;
+	std::cout << "V/H   mass: "<<sum_vert/sum_horiz<<std::endl;
 	return sum*weight_scale;
 }
 
@@ -265,7 +265,7 @@ double total_length(wurzelgraph_t& wg){
 	std::cout << "Total len: "<<sum <<std::endl;
 	std::cout << "Horiz len: "<<sum_horiz <<std::endl;
 	std::cout << "Vertc len: "<<sum_vert  <<std::endl;
-	std::cout << "V/H      : "<<sum_vert/sum_horiz<<std::endl;
+	std::cout << "V/H   len: "<<sum_vert/sum_horiz<<std::endl;
 
 	return sum;
 }
