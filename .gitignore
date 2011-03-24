@@ -1,5 +1,5 @@
-./*.PNG
-./*.png
+*.PNG
+*.png
 *.pyc
 *.pyo
 *.mhd
@@ -12,6 +12,15 @@
 *.txt
 *.zraw
 *.swp
+*.o
+*.cxx
+*.hxx
+Session.vim
+dijkstra/gaussian_fit
+dijkstra/treecompare
+dijkstra/grid
+dijkstra/grid_dbg
+dijkstra/gg
 L2_Wurzelsystem.doc
 dijkstra/boost_1_45_0/*
 data/*
