@@ -98,17 +98,20 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 			continue;                                      
 		if(pos_map[t][wi.stem_axis] < minpos)
 			continue;
-		double length  = voxdist(pos_map[s].begin(),pos_map[t].begin());          // pos_map is in mm
+		const double length  = voxdist(pos_map[s].begin(),pos_map[t].begin());          // pos_map is in mm
 
-		double radiuss = 1.30 *stddev_map[s]*wi.scale;                                              // stddev_map is in voxel
-		double radiust = 1.30 *stddev_map[t]*wi.scale;                                              // stddev_map is in voxel
+		static const double k=1.2;
+		const double param1s = 1.0/(2.0*stddev_map[s]*stddev_map[s]*wi.scale*wi.scale);                              // determine param in exp of gauss again
+		const double param1t = 1.0/(2.0*stddev_map[t]*stddev_map[t]*wi.scale*wi.scale);                              // determine param in exp of gauss again
 
-		double param1s = 1.0/(2.0*stddev_map[s]*stddev_map[s]*wi.scale*wi.scale);                              // determine param in exp of gauss again
-		double param1t = 1.0/(2.0*stddev_map[t]*stddev_map[t]*wi.scale*wi.scale);                              // determine param in exp of gauss again
+		static const double vox_to_mm3 = wi.scale*wi.scale*wi.scale;
+		const double param0s = param0_map[s]/vox_to_mm3;
+		const double param0t = param0_map[t]/vox_to_mm3;
 
-		double vox_to_mm3 = wi.scale*wi.scale*wi.scale;
-		double masss   = -M_PI *param0_map[s]/vox_to_mm3 *(exp(-param1s *radiuss*radiuss)-1)/param1s;
-		double masst   = -M_PI *param0_map[t]/vox_to_mm3 *(exp(-param1t *radiust*radiust)-1)/param1t;
+		//double masss   = -M_PI *param0s *(exp(-param1s *stddevs*stddevs)-1)/param1s;
+		//double masst   = -M_PI *param0t *(exp(-param1t *stddevt*stddevt)-1)/param1t;
+		const double masss = M_PI*(2*param0s*(1-exp(-k*k/2.0)) + k*k*wi.noise_cutoff/4)/(2*param1s);
+		const double masst = M_PI*(2*param0t*(1-exp(-k*k/2.0)) + k*k*wi.noise_cutoff/4)/(2*param1t);
 
 		//mass_map[e]    = masss*length;
 		mass_map[e] = length / 3.0 * (masss +masst +sqrt(masss *masst));
@@ -116,7 +119,7 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 
 		const vec3_t& spos = pos_map[s];
 		const vec3_t& tpos = pos_map[t];
-		const vec3_t& diff = tpos-spos;
+		const vec3_t  diff = tpos-spos;
 		bool is_vert = diff[0]*diff[0] > (diff[1]*diff[1]+diff[2]*diff[2]);
 		if(is_vert) sum_vert  += mass_map[e];
 		else        sum_horiz += mass_map[e];
