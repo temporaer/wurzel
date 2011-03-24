@@ -17,7 +17,7 @@ def c3d(d, sigma):
     d = d.get_smoothed(sigma)
     gc.collect()
     eig = img3dops.get_ev_of_hessian(d.D)
-    S = linestructure.get_curve_3D(eig,0.25,0.5,0.5)
+    S = sigma**2 * linestructure.get_curve_3D(eig,0.25,0.5,0.5)
     #print "Saving S"
     #np.save("data/S-%02.01d.npy"%sigma, S)
     #comm.Send(S, dest=0, tag=77)
@@ -82,9 +82,9 @@ if __name__ == "__main__":
         print "Gathering..."
         mec.block=True
         sato = mec.gather("sato")
-        ev10 = mec.gather("ev10")
-        ev11 = mec.gather("ev11")
-        ev12 = mec.gather("ev12")
+        #ev10 = mec.gather("ev10")
+        #ev11 = mec.gather("ev11")
+        #ev12 = mec.gather("ev12")
     else:
         D = loaddata(basename)
         for c in cmdl:
@@ -93,13 +93,16 @@ if __name__ == "__main__":
             eval(c,globals(), locals())
 
     print "Finding maxima"
+    scales = np.zeros(sato[0].shape).astype("float32")
+    scales[:] = sigmas[0]
     #import pdb; pdb.set_trace()
     for s in xrange(1,len(sigmas)):
         arg = sato[0] < sato[s]
         sato[0][arg] = sato[s][arg]
-        ev10[0][arg] = ev10[s][arg]
-        ev11[0][arg] = ev11[s][arg]
-        ev12[0][arg] = ev12[s][arg]
+        scales[arg]  = sigmas[s]
+        #ev10[0][arg] = ev10[s][arg]
+        #ev11[0][arg] = ev11[s][arg]
+        #ev12[0][arg] = ev12[s][arg]
     x = sato[0]
     x -= x.min();
     x /= x.max()
@@ -108,9 +111,10 @@ if __name__ == "__main__":
     print x.flags
     np.save("res.npy", x)
     x.tofile(basename+".sato")
-    ev10[0].tofile(basename+".ev10")
-    ev11[0].tofile(basename+".ev11")
-    ev12[0].tofile(basename+".ev12")
+    scales.tofile(basename+".scales")
+    #ev10[0].tofile(basename+".ev10")
+    #ev11[0].tofile(basename+".ev11")
+    #ev12[0].tofile(basename+".ev12")
     
     #os.system("scp res.npy l_schulz@gitta:checkout/git/wurzel/data/neu.npy")
     #os.execl("/usr/bin/ssh", "ssh", "-X", "l_schulz@gitta","cd checkout/git/wurzel; ipython -wthread vis.py")
