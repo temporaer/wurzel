@@ -1,8 +1,8 @@
 # vim:ts=4:sw=4:sts=4:et:ai
 import sys
-#import numpy as np
+import numpy as np
 import wurzel.viewer as viewer
-from wurzel.dataset import dataset
+from wurzel.dataset import dataset, WurzelInfo
 #from enthought import mayavi 
 from enthought.mayavi import mlab
 #from scipy.ndimage.morphology import grey_closing
@@ -99,8 +99,19 @@ if __name__ == "__main__":
         mkimg(fig, "mass")
         mlab.clf()
 
+  if token == "scales":
+      info = WurzelInfo(basename+".scales")
+      Dscales = np.fromfile(basename+".scales", dtype="float32").reshape(info.shape)
+      #viewer.show_iso(Dscales, 0.3, "bone", 0.15)
+      arg0=Dsato<0.01
+      Dscales[arg0] = 0
+      viewer.show_volume(Dscales, "bone", 0.01, 0.8)  # 0.03, 0.2 works well
+      if offscreen:
+        mkimg(fig, "scales")
+        mlab.clf()
+
   if token == "diameter":
-      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=0.4,what=4)
+      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=1,what=4)
       #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
       if offscreen:
         mkimg(fig, "diameter")
