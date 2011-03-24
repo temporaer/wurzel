@@ -18,7 +18,7 @@
 #define SQR(X) ((X)*(X))
 template<class T>
 void
-get_normal(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc){
+get_normal(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc, const double& norm){
 	namespace ublas = boost::numeric::ublas;
 	namespace lapack = boost::numeric::bindings::lapack;
 	using namespace std;
@@ -30,11 +30,11 @@ get_normal(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc){
 	covmat_t A;
 	double x=v[0],y=v[1],z=v[2];
 	double sum = 0;
-	const int r = 3;
+	const int r = 5;
 	for(int i=-r;i<=r;i++){
 		for(int j=-r;j<=r;j++){
 			for(int k=-r;k<=r;k++){
-				double d = acc(x+i,y+j,z+k);
+				double d = acc(x+i,y+j,z+k)/norm;
 
 				// covariance matrix
 				A(0,0) += d * SQR(i);
@@ -49,7 +49,10 @@ get_normal(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc){
 			}
 		}
 	}
-	A /= sum;
+	A(0,0) += 0.01;
+	A(1,1) += 0.01;
+	A(2,2) += 0.01;
+	//A /= sum;
 
 	int info = lapack::syev('V', 'U', A, lambda, lapack::optimal_workspace());
 	if(info!=0)
@@ -68,7 +71,7 @@ get_normal(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc){
 
 template<class T>
 void
-get_inertia_tensor(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc, const double& r, const double& step){
+get_inertia_tensor(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc, const double& r, const double& step, const double& norm, const double& noise_cutoff){
 	namespace ublas = boost::numeric::ublas;
 	namespace lapack = boost::numeric::bindings::lapack;
 	using namespace std;
@@ -83,7 +86,8 @@ get_inertia_tensor(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc, const d
 	for(double i=-r;i<=r;i+=step){
 		for(double j=-r;j<=r;j+=step){
 			for(double k=-r;k<=r;k+=step){
-				double d = acc(x+i,y+j,z+k);
+				double d = acc(x+i,y+j,z+k)/norm;
+				d = max(0.0,d-noise_cutoff);
 				// inertia tensor
 				A(0,0) += d * (SQR(j)+SQR(k));
 				A(1,1) += d * (SQR(i)+SQR(k));
@@ -97,6 +101,10 @@ get_inertia_tensor(covmat_t&M,	vec3_t& l, const vec3_t& v, const T& acc, const d
 		}
 	}
 	//A /= sum;
+	
+	A(0,0) += 0.1;
+	A(1,1) += 0.1;
+	A(2,2) += 0.1;
 
 	int info = lapack::syev('V', 'U', A, lambda, lapack::optimal_workspace());
 	if(info!=0)
