@@ -711,7 +711,7 @@ int main(int argc, char* argv[]) {
 	  double vox_dist = 0.0;
 		voxel_vertex_descriptor v2 = v;
 	  unsigned int cnt = 0;
-	  float flow_add = vox2raw[v];
+	  float flow_add = vox2raw[v]/info.spross_intensity;
 	  voxel_vertex_descriptor tmp;
 	  while(cnt++<XYZ){ 
 		  Flow[v2[0]][v2[1]][v2[2]] += flow_add;
