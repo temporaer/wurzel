@@ -32,6 +32,7 @@
 #include "wurzel_info.hpp"
 #include "grid_config.hpp"
 #include "gaussian_fit.hpp"
+#include "profiler.hpp"
 
 #define V(X) #X<<":"<<(X)<<"  "
 #define foreach BOOST_FOREACH
@@ -377,13 +378,30 @@ determine_vertex_normals(wurzelgraph_t& wg, const T& acc){
 
 template<class T>
 void
+determine_radius_from_scales(wurzelgraph_t& wg, const T& acc, const double& max_radius_mm, const wurzel_info& wi){
+	//std::cout << "Determining vertex normals..."<<std::flush;
+	property_map<wurzelgraph_t,vertex_name_t>::type name_map         = get(vertex_name, wg);
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map      = get(vertex_position, wg);
+	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map     = get(vertex_normal, wg);
+	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
+
+	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
+		//double scale     = acc[name_map[wv]];
+		double scale     = acc[pos_map[wv]];
+		eigenval_map[wv][1] = scale*wi.scale;
+		eigenval_map[wv][2] = scale*wi.scale;
+	}
+	//std::cout << "done."<<std::endl;
+}
+template<class T>
+void
 determine_inertia_tensor(wurzelgraph_t& wg, const T& acc, const double& max_radius_mm, const wurzel_info& wi){
 	//std::cout << "Determining vertex normals..."<<std::flush;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
 	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
 
-	const double r = max_radius_mm/wi.scale, step=0.25; // r and step in voxel
+	const double r = max_radius_mm/wi.scale, step=1.0; // r and step in voxel
 
 	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
 		get_inertia_tensor(normal_map[wv],eigenval_map[wv],pos_map[wv],acc,r,step,wi.spross_intensity,wi.noise_cutoff);
@@ -608,6 +626,7 @@ int main(int argc, char* argv[]) {
   //float_grid ev10 = read3darray<float>(getfn(base,"","ev10"),X,Y,Z); g_ev10 = new vox2arr<float_grid>(ev10);
   //float_grid ev11 = read3darray<float>(getfn(base,"","ev11"),X,Y,Z); g_ev11 = new vox2arr<float_grid>(ev11);
   //float_grid ev12 = read3darray<float>(getfn(base,"","ev12"),X,Y,Z); g_ev12 = new vox2arr<float_grid>(ev12);
+  float_grid scales = read3darray<float>(getfn(base,"","scales"),X,Y,Z); 
 
   std::cout << "Sato stats in file: " << voxel_stats(graph,make_vox2arr(Sato)) <<std::endl;
 
@@ -649,7 +668,9 @@ int main(int argc, char* argv[]) {
   predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
   distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
+  { boost::prof::profiler prof("Dijkstra");
   find_shortest_paths(base,graph,strunk,p_map,d_map,force_recompute_dijkstra);
+  }
   std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
   std::cout << "Determining scaling factors..." <<std::endl;
@@ -659,7 +680,9 @@ int main(int argc, char* argv[]) {
   double start_threshold       = vm["start-threshold"].as<double>();
   double total_len_perc_thresh = vm["total-len-frac"].as<double>();
   double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
-  double min_flow_thresh       = vm["min-flow-thresh"].as<double>();
+  double min_flow_thresh       = vm["min-flow-thresh"].as<double>() * (info.XYZ/info.read_XYZ/2);
+  bool   no_gauss_fit          = vm.count("no-gauss-fit");
+  bool   no_subpix_pos         = vm.count("no-subpix-pos");
 
   start_threshold *= info.noise_cutoff;
 
@@ -667,6 +690,7 @@ int main(int argc, char* argv[]) {
   stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
   vox2arr<float_grid> vox2raw(Raw);
   vox2arr<float_grid> vox2sato(Sato);
+  { boost::prof::profiler prof("Tracing");
   foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
 	  // determine total path length statistic
 	  //if(vox2sato[v] < start_threshold)
@@ -719,6 +743,7 @@ int main(int argc, char* argv[]) {
 		  continue; // too long
 	  s_flow(Flow[v[0]][v[1]][v[2]]);
   }
+  } // profiling: Tracing
 
   std::cout << "Total   Pathlens: "<< s_pathlen<<std::endl;
   std::cout << "Average Pathlens: "<< s_avg_pathlen<<std::endl;
@@ -760,20 +785,33 @@ int main(int argc, char* argv[]) {
 
   const double maximum_radius_mm = 4;
   wurzelgraph_t wgraph;
+  { boost::prof::profiler prof("voxelgraph-to-root-graph");
   paths2adjlist(graph,wgraph,p_map,make_vox2arr(Paths));
+  }
+  { boost::prof::profiler prof("erode tree");
   erode_tree(wgraph, info.scale, maximum_radius_mm);
-  initialize_vertex_positions(wgraph);
-
+  }
+  { boost::prof::profiler prof("subpixel-positioning");
   std::cout << "Finding subpixel vertex positions..."<<std::flush;
-  for(int i=0;i<30;i++){
-          determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
-          move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
+  initialize_vertex_positions(wgraph);
+  if(!no_subpix_pos){
+	  for(int i=0;i<30;i++){
+		  determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
+		  move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
+	  }
   }
   std::cout << "done."<<std::endl;
-  wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), info.scale, maximum_radius_mm, info);
+  }
+  { boost::prof::profiler prof("gauss-fitting");
+    if(!no_gauss_fit)
+	    wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), info.scale, maximum_radius_mm, info);
+  }
 
   // substitute covariance stuff with inertia tensor, for radius estimation!
-  determine_inertia_tensor(wgraph, make_vox2arr_subpix(Raw), maximum_radius_mm, info);
+  { boost::prof::profiler prof("inertia-tensor");
+  //determine_inertia_tensor(wgraph, make_vox2arr_subpix(Raw), maximum_radius_mm, info);
+  determine_radius_from_scales(wgraph, make_vox2arr_subpix(scales), maximum_radius_mm, info);
+  }
 
   if(1){
 	  // serialize tree
