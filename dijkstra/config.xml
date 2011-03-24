@@ -37,6 +37,16 @@
 			<noise-cutoff>0.02666666666</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
+			<base-name>../data/reference</base-name>
+			<read-shape x="410" y="192" z="192"/>
+			<shape      x="872" y="192" z="192"/>
+			<stem-plane>5</stem-plane>
+			<stem-axis>0</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.47</scale>
+			<noise-cutoff>0.04</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
 			<base-name>../data/GersteLA_192x192x410_normal</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
