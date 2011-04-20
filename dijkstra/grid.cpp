@@ -301,14 +301,17 @@ void remove_nonmax_nodes(wurzelgraph_t& wg, const T& maxmap){
 	}
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
-void merge_deg2_nodes(wurzelgraph_t& wg){
+void merge_deg2_nodes(wurzelgraph_t& wg, float leave_fraction){
 	std::cout <<"Removing deg2nodes (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
 	wurzel_vertex_iterator wi,wend,next;
 	wurzel_in_edge_iterator ei,eend;
 	wurzelg_traits::adjacency_iterator      ai,aend;
 	wurzelgraph_t::inv_adjacency_iterator  iai,iaend;
-	bool changed = true;
-	while(changed){
+	bool             changed = true;
+	static const float prob  = 0.05f;
+	int              cnt     = 0;
+	unsigned int     target  = num_vertices(wg) *leave_fraction;
+	while(changed && num_vertices(wg)>leave_fraction){
 		changed = false;
 		tie(wi, wend) = vertices(wg);
 		for (next=wi; wi != wend;wi=next) {
@@ -316,6 +319,8 @@ void merge_deg2_nodes(wurzelgraph_t& wg){
 			if(out_degree(*wi,wg) != 1)
 				continue;
 			if(in_degree(*wi,wg) != 1)
+				continue;
+			if(drand48()>prob)
 				continue;
 			tie(ai,aend)   = adjacent_vertices(*wi,wg);
 			tie(iai,iaend) = inv_adjacent_vertices(*wi,wg);
@@ -812,6 +817,8 @@ int main(int argc, char* argv[]) {
   //determine_inertia_tensor(wgraph, make_vox2arr_subpix(Raw), maximum_radius_mm, info);
   determine_radius_from_scales(wgraph, make_vox2arr_subpix(scales), maximum_radius_mm, info);
   }
+  
+  merge_deg2_nodes(wgraph,0.25);
 
   if(1){
 	  // serialize tree
@@ -824,9 +831,6 @@ int main(int argc, char* argv[]) {
 
 
   //remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
-
-  //merge_deg2_nodes(wgraph);
-
   //write_voxelgrid<unsigned char>(getfn(base,"paths","dat"),graph,make_vox2arr(Paths));
   //write_voxelgrid<unsigned char>(getfn(base,"ranks","dat"),graph,make_vox2arr(Ranks));
 }
