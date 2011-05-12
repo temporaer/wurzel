@@ -52,12 +52,16 @@ class dataset(object):
                 sys.exit(1)
         else:
             with open(datafile) as fd:
+                print "Trying to read %s "%datafile
+                print "With shape: ",info.read_shape
+                print "With dtype: ",info.read_dtype
                 self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
             if info.read_dtype in [np.uint8, "uint8"]:
                 self.D /= 255.0
             if medianfilt:  self.median_filter()
             if remove_rohr: self.get_rid_of_roehrchen()
-            assert self.D.min()>= 0
+            #assert self.D.min()>= 0
+            self.D[self.D<0]=0
             self.upsample(upsample)
             if not medianfilt:
                 cnt = (self.D<0).sum()
