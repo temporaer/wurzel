@@ -4,8 +4,8 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <boost/foreach.hpp>
-#include "wurzel_info.hpp"
-#include "config.hxx"
+#include <wurzel_info.hpp>
+#include <config.hxx>
 #define foreach BOOST_FOREACH
 
 namespace po = boost::program_options;

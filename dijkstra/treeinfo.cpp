@@ -21,9 +21,9 @@
 #include <boost/foreach.hpp>
 #define foreach BOOST_FOREACH
 
-#include "voxel_accessors.hpp"
-#include "wurzel_tree.hpp"
-#include "treecompare_config.hpp"
+#include <voxel_accessors.hpp>
+#include <wurzel_tree.hpp>
+#include <treeinfo_config.hpp>
 
 using namespace boost::accumulators;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max, tag::variance, tag::count > > stat_t;

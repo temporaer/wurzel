@@ -36,11 +36,15 @@ def loaddata(fn,slave=True):
 if __name__ == "__main__":
     try:
         filename = sys.argv[1]
+        if len(sys.argv)>2:
+            use_ip   = sys.argv[2]=="-p"
     except:
-        print "usage: ", sys.argv[0], "[filename]"
+        print "usage: ", sys.argv[0], "[filename] [-p]"
+        print "filename     is the base name w/o extension of the raw MRI data"
+        print "-p           if this is given, use ipcluster to parallelize over multiple computers"
         sys.exit()
     basename = filename
-    D = loaddata(basename,slave=True)
+    D = loaddata(basename,slave=False)
 
     # Barley
     s = 1.20
@@ -53,7 +57,6 @@ if __name__ == "__main__":
     print "Sigmas: ", sigmas
     sigmas = [x * 0.52 / D.info.scale for x in sigmas]  # 0.52 is the scale of the dataset which the params above were adjusted for
 
-    use_ip = False
     if use_ip:
         from IPython.kernel import client
         mec = client.MultiEngineClient()

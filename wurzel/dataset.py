@@ -6,14 +6,14 @@ from scipy.ndimage import gaussian_filter
 from config import config
 
 class WurzelInfo:
-    def __init__(self, fn, config_file="dijkstra/config.xml"):
+    def __init__(self, fn, config_file="config.xml"):
         cfg = config(config_file)
 
         basename,ext = os.path.splitext(fn)
         basename = basename.replace("-upsampled","")
         basename = basename.replace("-vertices","")
         try:
-            print "All data: ", cfg.all_bases()
+            #print "All data: ", cfg.all_bases()
             cfg.shape(basename)
         except:
             print "Could not find dataset `%s' in config!"%basename

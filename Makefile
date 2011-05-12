@@ -1,13 +1,22 @@
-.PHONY: dijkstraf dijkstra all sato vis
+.PHONY: dijkstra all vis treeinfo
 BASE ?= data/L2_17aug
 WHAT ?= mass
-all: sato vis
-sato:
+all: $(BASE).sato $(BASE)-wgraph.ser  treeinfo
+
+# calculate tubularness measure
+$(BASE)-upsampled.dat $(BASE).sato: $(BASE).dat
 	python -O main.py $(BASE)
-dijkstraf:
-	make -C dijkstra runf
-dijkstra:
-	make -C dijkstra run
+
+# calculate distance map, predecessor map, serialized graph
+$(BASE)-d_map.dat $(BASE)-p_map.dat $(BASE)-wgraph.ser: $(BASE).sato $(BASE)-upsampled.dat
+	make -C dijkstra grid
+	cd dijkstra && LD_LIBRARY_PATH=boost_1_45_0/stage/lib ./grid ../$(BASE) --cfg=../config.xml -s 4 -f 8
+
+# print some info about the graph
+treeinfo: $(BASE)-wgraph.ser
+	make -C dijkstra treeinfo
+	cd dijkstra && LD_LIBRARY_PATH=boost_1_45_0/stage/lib ./treeinfo -b ../$(BASE) -c ../config.xml -a print
+
 vis:
 	ipython -wthread vis.py $(BASE)
 imgs:

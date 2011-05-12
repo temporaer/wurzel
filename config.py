@@ -20,9 +20,9 @@ class config:
 	def get(self, id):
 		s = "../%s" % id
 		for x in self.all_data:
-			print "compare: `%s'  with `%s'" %(id, x.find("base-name").text)
+			#print "compare: `%s'  with `%s'" %(id, x.find("base-name").text)
 			if x.find("base-name").text == s:
-				print "success."
+				#print "success."
 				return x
 	def all_bases(self):
 		return [x.find("base-name").text for x in self.all_data]
