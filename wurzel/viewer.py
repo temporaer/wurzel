@@ -25,7 +25,7 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True, normali
 
     v = mlab.pipeline.volume(src, vmin=R[0],vmax=R[1])
 
-    if not (cm == "Spectral"):
+    if False and not (cm == "Spectral"):
         ctf = ColorTransferFunction()
         ctf.range = R
         ctf.add_rgb_point(mind, 1,1,1)
@@ -36,19 +36,20 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True, normali
         v._ctf = ctf
         v.update_ctf = True
 
-    from enthought.tvtk.util.ctf import PiecewiseFunction
-    otf = PiecewiseFunction()
-    otf.add_point(mind, 0)
-    otf.add_point(R[0], 0)
-    #otf.add_point(R[0]+0.1*ptpd, 0.1)
-    #otf.add_point(R[0]+0.2*ptpd, 0.3)
-    #otf.add_point(R[0]+0.3*ptpd, 0.5)
-    otf.add_point(R[0]+0.2*ptpd, 0.7)
-    otf.add_point(R[1], 1.0)
-    otf.add_point(mind+ptpd, 1.0)
-    v._otf = otf
-    v._volume_property.set_scalar_opacity(otf)
-    v.update_ctf = True
+    if False:
+        from enthought.tvtk.util.ctf import PiecewiseFunction
+        otf = PiecewiseFunction()
+        otf.add_point(mind, 0)
+        otf.add_point(R[0], 0)
+        #otf.add_point(R[0]+0.1*ptpd, 0.1)
+        #otf.add_point(R[0]+0.2*ptpd, 0.3)
+        #otf.add_point(R[0]+0.3*ptpd, 0.5)
+        otf.add_point(R[0]+0.2*ptpd, 0.7)
+        otf.add_point(R[1], 1.0)
+        otf.add_point(mind+ptpd, 1.0)
+        v._otf = otf
+        v._volume_property.set_scalar_opacity(otf)
+        v.update_ctf = True
 
     
     print "done"
@@ -136,7 +137,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
     if scaled:
         L /= info.scale  # L is in mm, now it matches raw data again
     S *= dscale
-    S[S<0.1]=0.8
+    #S[S<0.5]=0.5
     #mlab.quiver3d(L[:,0],L[:,1],L[:,2], D[:,0],D[:,1],D[:,2], scale_factor=3.)
 
     if (L<0).sum() > 0 and False:
@@ -167,8 +168,8 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
         for line in f.readlines():
             vec = line.split()
             line = [int(x) for x in vec[:2]]
-            #if np.linalg.norm(L[line[0],:] - L[line[1],:]) > thresh:
-            #    continue
+            if np.linalg.norm(L[line[0],:] - L[line[1],:]) > thresh:
+               continue
             E.append(line)
 
         E = np.vstack(E)
