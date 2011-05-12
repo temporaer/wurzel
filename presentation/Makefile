@@ -49,6 +49,7 @@ dirs:
 
 clean:
 	rm -rf .mk
+	rm -f *.orig
 distclean:clean
 	rm -f $(TARGET).pdf
 	rm -f $(TARGET)_*.pdf

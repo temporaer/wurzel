@@ -1,6 +1,6 @@
 #include <cmath>
-#include "rprop.hpp"
-#include "ublas_functors.hpp"
+#include <rprop.hpp>
+#include <ublas_functors.hpp>
 
 #include <iostream>
 #include <boost/numeric/ublas/io.hpp>

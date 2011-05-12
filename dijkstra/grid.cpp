@@ -33,7 +33,7 @@
 #include "voxel_normals.hpp"
 #include "wurzel_info.hpp"
 #include "grid_config.hpp"
-#include "gaussian_fit.hpp"
+//#include "gaussian_fit.hpp"
 #include "profiler.hpp"
 #include "rprop.hpp"
 
