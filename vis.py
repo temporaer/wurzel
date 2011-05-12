@@ -12,22 +12,22 @@ from enthought.mayavi import mlab
 def mkimg(fig,name):
     scene = fig.scene
     #print "Rendering..."
-    scene.camera.position = [463.9984860311863, 1809.2988117125938, 109.73671134438729]
-    scene.camera.focal_point = [421.51009012013674, 95.419905483722687, 94.895551919937134]
-    scene.camera.view_angle = 30.0
-    scene.camera.view_up = [0.99969286540503455, -0.02478022775248526, -0.00033936824643516789]
-    scene.camera.clipping_range = [1482.2672553487132, 2010.9001920572837]
-    scene.camera.compute_view_plane_normal()
-    scene.render()
-    mlab.savefig(name+"-plain.png",magnification=2)
-    #scene.camera.position = [421.63833162281662, 0.41217041015625, -1602.0273769039982]
-    #scene.camera.focal_point = [421.63833162281662, 0.41217041015625, 0.0]
+    #scene.camera.position = [463.9984860311863, 1809.2988117125938, 109.73671134438729]
+    #scene.camera.focal_point = [421.51009012013674, 95.419905483722687, 94.895551919937134]
     #scene.camera.view_angle = 30.0
-    #scene.camera.view_up = [0.99991970691306742, -0.012672005637842045, 0.0]
-    #scene.camera.clipping_range = [1574.0671031349582, 1641.0877875575584]
+    #scene.camera.view_up = [0.99969286540503455, -0.02478022775248526, -0.00033936824643516789]
+    #scene.camera.clipping_range = [1482.2672553487132, 2010.9001920572837]
     #scene.camera.compute_view_plane_normal()
     #scene.render()
-    #mlab.savefig(name+"-polar.png",magnification=2)
+    #mlab.savefig(name+"-plain.png",magnification=2)
+    scene.camera.position = [421.63833162281662, 0.41217041015625, -1602.0273769039982]
+    scene.camera.focal_point = [421.63833162281662, 0.41217041015625, 0.0]
+    scene.camera.view_angle = 30.0
+    scene.camera.view_up = [0.99991970691306742, -0.012672005637842045, 0.0]
+    scene.camera.clipping_range = [1574.0671031349582, 1641.0877875575584]
+    scene.camera.compute_view_plane_normal()
+    scene.render()
+    mlab.savefig(name+"-polar.png",magnification=2)
 
 
 if __name__ == "__main__":
@@ -112,15 +112,16 @@ if __name__ == "__main__":
 
   if token == "diameter":
       viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=1,what=4)
-      #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
+      viewer.show_iso(Draw, 0.150 , "bone", 0.40)   # lupine
       if offscreen:
         mkimg(fig, "diameter")
         mlab.clf()
 
   if token == "wireframe":
       viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=0.5,what="wireframe")
-      viewer.show_iso(Dsato, 0.002 , "bone", 0.1)
-      #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
+      #viewer.show_iso(Dsato, 0.002 , "bone", 0.1)
+      #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # barley
+      viewer.show_iso(Draw, 0.150 , "bone", 0.40)   # lupine
       #viewer.show_volume(Draw, "bone", 0.01, 0.1)  # 0.03, 0.2 works well
       if offscreen:
         mkimg(fig, "wireframe")
@@ -133,7 +134,8 @@ if __name__ == "__main__":
         mlab.clf()
 
   if token == "satovol":
-      viewer.show_volume(Dsato, "bone", 0.00001, 0.01)
+      #viewer.show_volume(Dsato, "bone", 0.00001, 0.01) # barley
+      viewer.show_volume(Dsato, "bone", 0.01, 0.04) # lupine
       if offscreen:
         mkimg(fig, "satovol")
         mlab.clf()
