@@ -1,15 +1,17 @@
-LDFLAGS=-L boost_1_45_0/stage/lib -l boost_system -l boost_filesystem -l lapack -l boost_program_options -lxerces-c -lblas -L ../../../plain/levmar-2.5 -llevmar -lboost_serialization
+LDFLAGS=-L boost_1_45_0/stage/lib -l boost_system -l boost_filesystem -l lapack -l boost_program_options -lxerces-c -lblas -L ../../../plain/levmar-2.5 -llevmar -lboost_serialization -ltbb
 CCFLAGS=-I $(HOME)/pool/include/boost-numeric-bindings/ -Wall -O3 -g0 -DNDEBUG -march=native -mtune=native --fast-math -fno-builtin -std=gnu++0x -I boost_1_45_0
 #CCFLAGS=-I $(HOME)/pool/include/boost-numeric-bindings/ -Wall -O1 -g3 -march=native -mtune=native --fast-math -fno-builtin -std=gnu++0x
 BASE ?= data/L2_17aug
-GCC ?= g++-4.4
+GCC ?= g++-4.5
 
 all:grid treecompare
 
-grid: grid.o config.o config-pskel.o gaussian_fit.o
-	$(GCC) -o grid grid.o config.o config-pskel.o gaussian_fit.o $(LDFLAGS) 
+grid: grid.o rprop.o config.o config-pskel.o gaussian_fit.o 
+	$(GCC) -o grid grid.o config.o config-pskel.o gaussian_fit.o rprop.o $(LDFLAGS) 
 grid.o: grid.cpp grid_graph.hpp voxelgrid.hpp wurzel_tree.hpp grid_config.hpp voxel_accessors.hpp voxel_normals.hpp config.hxx config.xsd
 	$(GCC) $(CCFLAGS) -c -o grid.o grid.cpp
+rprop.o: rprop.cpp rprop.hpp
+	$(GCC) $(CCFLAGS) -c -o rprop.o rprop.cpp
 
 gaussian_fit.o: gaussian_fit.cpp gaussian_fit.hpp
 	$(GCC) $(CCFLAGS) -c -o gaussian_fit.o gaussian_fit.cpp
