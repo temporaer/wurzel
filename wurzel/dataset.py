@@ -6,8 +6,8 @@ from scipy.ndimage import gaussian_filter
 from config import config
 
 class WurzelInfo:
-    def __init__(self, fn):
-        cfg = config("dijkstra/config.xml")
+    def __init__(self, fn, config_file="dijkstra/config.xml"):
+        cfg = config(config_file)
 
         basename,ext = os.path.splitext(fn)
         basename = basename.replace("-upsampled","")
@@ -52,9 +52,6 @@ class dataset(object):
                 sys.exit(1)
         else:
             with open(datafile) as fd:
-                print "Trying to read %s "%datafile
-                print "With shape: ",info.read_shape
-                print "With dtype: ",info.read_dtype
                 self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
             if info.read_dtype in [np.uint8, "uint8"]:
                 self.D /= 255.0
