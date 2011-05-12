@@ -52,12 +52,16 @@ class dataset(object):
                 sys.exit(1)
         else:
             with open(datafile) as fd:
+                print "Trying to read %s "%datafile
+                print "With shape: ",info.read_shape
+                print "With dtype: ",info.read_dtype
                 self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
             if info.read_dtype in [np.uint8, "uint8"]:
                 self.D /= 255.0
             if medianfilt:  self.median_filter()
             if remove_rohr: self.get_rid_of_roehrchen()
-            assert self.D.min()>= 0
+            #assert self.D.min()>= 0
+            self.D[self.D<0]=0
             self.upsample(upsample)
             if not medianfilt:
                 cnt = (self.D<0).sum()
@@ -100,7 +104,7 @@ class dataset(object):
         #print "Dims:", self.D.shape
         print "done."
     def get_smoothed(self, sigma):
-        return dataset(sigma * gaussian_filter(self.D,sigma))
+        return dataset(gaussian_filter(self.D,sigma))
 
     def load(self, picklename):
         with open(picklename) as f:

@@ -1,13 +1,20 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
+
+#include <boost/unordered_map.hpp>
 
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
+#include <boost/accumulators/statistics/median.hpp>
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
 #include <boost/accumulators/statistics/count.hpp>
 #include <boost/accumulators/statistics/variance.hpp>
+
+#include <boost/graph/breadth_first_search.hpp>
+#include <boost/graph/reverse_graph.hpp>
 
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -20,6 +27,9 @@
 
 using namespace boost::accumulators;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max, tag::variance, tag::count > > stat_t;
+typedef accumulator_set< double, features< tag::median, tag::count > > medstat_t;
+
+std::map<void*,double> g_radius;
 
 
 // (a2b3 − a3b2, a3b1 − a1b3, a1b2 − a2b1)
@@ -56,6 +66,79 @@ void loadtree(std::string basename, wurzelgraph_t& g){
 	std::ifstream ifs((basename+"-wgraph.ser").c_str());
 	boost::archive::text_iarchive ia(ifs);
 	ia >> g;
+}
+
+template<class T>
+struct kv_helper{
+  std::string k;
+  T v;
+};
+template<class T>
+kv_helper<T> kv(std::string s, T o){ kv_helper<T> x;x.k=s; x.v=o; return x;}
+template<class T>
+std::ostream& operator<<(std::ostream& o, kv_helper<T> kvh){
+	o << " "<<kvh.k<<"=\""<<kvh.v<<"\" ";
+	return o;
+}
+
+void to_xml_node(std::ofstream& o, unsigned int& idx, const wurzel_vertex_descriptor& v, const wurzelgraph_t& g){
+	property_map<wurzelgraph_t,vertex_index_t>::const_type  index_map = get(vertex_index, g);
+	property_map<wurzelgraph_t,vertex_position_t>::const_type  pos_map = get(vertex_position, g);
+	property_map<wurzelgraph_t,root_stddev_t>::const_type   stddev_map = get(root_stddev, g);
+	property_map<wurzelgraph_t,edge_mass_t>::const_type       mass_map = get(edge_mass, g);
+	property_map<wurzelgraph_t,vertex_param0_t>::const_type param0_map = get(vertex_param0, g);
+
+	o << "<Node "
+	  << kv("id", idx)
+	  << kv("bo", 1)
+	  << kv("rad", g_radius[v]/200.0) // meters, i suppose...
+	  << kv("x", pos_map[v][2]/100.0-0.5)
+	  << kv("y", pos_map[v][1]/100.0-0.5)
+	  << kv("z", pos_map[v][0]/100.0-0.5)
+	  << ">"<<std::endl;
+	foreach(const wurzel_vertex_descriptor& w, adjacent_vertices(v,g)){
+		to_xml_node(o,++idx,w,g);
+	}
+	o << "</Node>"<<std::endl;
+}
+
+void to_xml_forest(std::string basename, const wurzelgraph_t& g){
+	// find root
+	wurzel_vertex_descriptor root;
+	bool found=false;
+	foreach(const wurzel_vertex_descriptor &v, vertices(g)){
+		if(in_degree(v,g)==0){
+			root = v;
+			found = true;
+			break;
+		}
+	}
+	assert(found);
+
+	std::ofstream ofs((basename+".xml").c_str());
+	ofs <<"<?xml version=\"1.0\" ?>"<<std::endl;
+	ofs << std::setprecision(10)
+	    <<"<Forest "
+            <<kv("id",848)
+            <<kv("bo",95) 
+	    <<kv("cm",1023)
+	    <<kv("cn",8)
+	    <<kv("d",1.000000)
+	    <<kv("dlx",132.0)
+	    <<kv("dly",100.0)
+	    <<kv("dlz",100.000000)
+	    <<kv("sl",1.000000)
+	    <<kv("zFac",-1.000000)
+	    <<kv("iso",40.0)
+	    <<kv("dataset",basename)
+	    <<kv("transferFunc","data/lup_red.xml")
+	    <<">"
+	    <<std::endl;
+	ofs << "<Tree id=\"1\">"<<std::endl;
+	unsigned int idx=0;
+	to_xml_node(ofs,idx,root,g);
+	ofs << "</Tree>"<<std::endl;
+	ofs<<"/Forest>"<<std::endl;
 }
 
 void graph_stats(wurzelgraph_t& g){
@@ -387,10 +470,32 @@ void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map,
 	}
 	ofs.close();
 }
+
+template<class WidthMap>
+struct bfs_median_visitor:public default_bfs_visitor {
+  bfs_median_visitor(WidthMap wmap, int num, medstat_t* m):m_stats(m),m_map(wmap), m_num(num){ }
+  template < typename Vertex, typename Graph >
+  void discover_vertex(Vertex u, const Graph & g) 
+  {
+	  (*m_stats)( m_map[u]);
+	  if(count(*m_stats)==m_num){
+	          throw median(*m_stats);
+	  }
+  }
+  medstat_t* m_stats;
+  WidthMap m_map;
+  unsigned int      m_num;
+};
+template<class WidthMap>
+bfs_median_visitor<WidthMap> make_bfs_median_visitor(WidthMap wm, int i, medstat_t* m){
+	return bfs_median_visitor<WidthMap>(wm, i, m);
+}
+
 template<class T>
 void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
 	std::ofstream ofs(name.c_str());
 	unsigned int idx=0;
+	property_map<wurzelgraph_t,vertex_index_t>::type index_map = get(vertex_index, wg);
 	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
@@ -414,14 +519,35 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 			cnt ++;
 		}
 		if(cnt>0) mass /= cnt;
-		mass = std::max(mass, 0.05);
-		mass = std::min(mass, 6.00);
+		mass = std::max(mass, 0.05); // just for visualization!
+		mass = std::min(mass, 6.00); // just for visualization!
 
-		double d1 = pow(ev_map[wd][1], 0.25);
-		double d2 = pow(ev_map[wd][2], 0.25);
+		//double d1 = pow(ev_map[wd][1], 2.00);
+		//double d2 = pow(ev_map[wd][2], 2.00);
+
+		double d1 = stddev_map[wd];
+		double d2 = stddev_map[wd];
+		medstat_t s_median;
+		std::map<wurzel_vertex_descriptor,default_color_type> vertex2color;
+		boost::associative_property_map< std::map<wurzel_vertex_descriptor, default_color_type> >
+			    cmap(vertex2color);
+		int smooth = 16;
+		try{ breadth_first_visit(wg, wd,
+				       	visitor(make_bfs_median_visitor(stddev_map,   smooth, &s_median)).
+				       	color_map(cmap));
+		}catch(double m){}
+		try{ breadth_first_visit(make_reverse_graph(wg), wd,
+				       	visitor(make_bfs_median_visitor(stddev_map,  2*smooth, &s_median)).
+				       	color_map(cmap));
+		}catch(double m){}
+		d1 = d2 = 2.0 * median(s_median);
+
+		//double d1 = pow(ev_map[wd][1], 0.25);
+		//double d2 = pow(ev_map[wd][2], 0.25);
 		//std::cout << "d1: "<<d1<< " d2: "<< d2<<std::endl;
-		double diameter = 0.5 * (d1+d2);
-		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<mass<<" "<<diameter<<" "<<0<<" "<<0<<std::endl;
+		double radius = 0.5 * (d1+d2)    * 0.8;
+		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<mass<<" "<<radius<<" "<<0<<" "<<0<<std::endl;
+		g_radius[wd]=radius;
 	}
 	ofs.close();
 }
@@ -438,6 +564,7 @@ void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& bases
   avg_len_btw_splits(g);
   print_wurzel_vertices(getfn(bases[0],"vertices","txt"),g,idx_map);
   print_wurzel_edges(   getfn(bases[0],"edges","txt"),g,idx_map,wis[0]);
+  to_xml_forest(bases[0],g);
 }
 
 int main(int argc, char* argv[]){

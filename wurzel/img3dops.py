@@ -7,7 +7,7 @@ from scipy.weave import inline, converters
 def grad(img, ax):
     return nd.convolve1d(img, weights=[-.5,.0,.5], axis=ax)
 
-def hessian(img, sigma=-1):
+def hessian(img, sigma,gamma=1):
     assert img.ndim == 3
     Dx  = grad(img, 0)
     Dy  = grad(img, 1)
@@ -22,9 +22,9 @@ def hessian(img, sigma=-1):
 
     Dyz = grad(Dy, 2)
     D = {"Dxx": Dxx, "Dyy": Dyy, "Dzz": Dzz, "Dxy": Dxy, "Dxz": Dxz, "Dyz": Dyz}
-    if sigma>0:
-        for k,v in D.items():
-            D[k] = nd.gaussian_filter(v, sigma)
+    for k in D:
+        v = D[k]
+        v[:] *= sigma**(2*gamma)  # we derived twice (!)
     return D
 
 def eig3x3(hessian):
@@ -61,7 +61,7 @@ def eig3x3(hessian):
               A(1,2) = Dyz(i,j,k);
 
               //lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
-                lapack::syev('V','U',A,lambda,lapack::workspace(work));
+                lapack::syev('N','U',A,lambda,lapack::workspace(work));
               idx = distance(lambda.begin(),min_element(lambda.begin(),lambda.end(), cmp_abs()));
               ev10(i,j,k)    = A(0,idx);
               ev11(i,j,k)    = A(1,idx);
@@ -117,9 +117,9 @@ def eig3x3(hessian):
     assert np.isnan(ev12).sum()==0
     return {"lambda1":lambda1,"lambda2": lambda2, "lambda3":lambda3, "ev10": ev10, "ev11": ev11, "ev12": ev12}
 
-def get_ev_of_hessian(D,sigma=-1):
+def get_ev_of_hessian(D,sigma,gamma=1):
     print "Calculating Hessian"
-    res = hessian(D, sigma)
+    res = hessian(D, sigma, gamma)
     print "Calculating Symev"
     eig = eig3x3(res)
     print "done"

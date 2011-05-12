@@ -16,8 +16,8 @@ def c3d(d, sigma):
     print "c3d with sigma", sigma
     d = d.get_smoothed(sigma)
     gc.collect()
-    eig = img3dops.get_ev_of_hessian(d.D)
-    S = sigma**2 * linestructure.get_curve_3D(eig,0.25,0.5,0.5)
+    eig = img3dops.get_ev_of_hessian(d.D,sigma,gamma=1)
+    S = linestructure.get_curve_3D(eig,0.25,0.5,0.5)
     #print "Saving S"
     #np.save("data/S-%02.01d.npy"%sigma, S)
     #comm.Send(S, dest=0, tag=77)
@@ -42,14 +42,18 @@ if __name__ == "__main__":
     basename = filename
     D = loaddata(basename,slave=True)
 
+    # Barley
     s = 1.20
     sigma0 = 1.0
+    # Lupine
+    s = 1.30
+    sigma0 = 1.0
     sigmas = []
-    sigmas.extend([sigma0 * s**i for i in xrange(0,6)])
+    sigmas.extend([sigma0 * s**i for i in xrange(0,10)])
     print "Sigmas: ", sigmas
     sigmas = [x * 0.52 / D.info.scale for x in sigmas]  # 0.52 is the scale of the dataset which the params above were adjusted for
 
-    use_ip = True
+    use_ip = False
     if use_ip:
         from IPython.kernel import client
         mec = client.MultiEngineClient()
@@ -71,9 +75,10 @@ if __name__ == "__main__":
         mec.scatter('sigmas',   sigmas)
     cmdl = ["res = [c3d(D,s) for s in sigmas]",
             "sato = [x['sato'] for x in res]",
-            "ev10 = [x['ev10'] for x in res]",
-            "ev11 = [x['ev11'] for x in res]",
-            "ev12 = [x['ev12'] for x in res]",]
+            #"ev10 = [x['ev10'] for x in res]",
+            #"ev11 = [x['ev11'] for x in res]",
+            #"ev12 = [x['ev12'] for x in res]",
+            ]
 
     print "Executing..."
     if use_ip:

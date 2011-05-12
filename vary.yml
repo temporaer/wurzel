@@ -2,14 +2,14 @@
 default_section:   global
 settletime:   1000000
 want_ini: 0
-at_start: echo > dijkstra/props.txt
+at_end: cd dijkstra ; perl data2tab.pl | tee props.txt
 run_blocks: [dijkstra]
 #run_blocks: [rbm_nips_mnist_01, rbm_nips_bars_and_stripes_001]
 #precond: test ! -e /tmp/block_remote_jobs
 blocks:
-  - name: props
-    local_abort_conf: test ! -e data/${base}-d_map.dat
-    run: cd dijkstra ; LD_LIBRARY_PATH=boost_1_45_0/stage/lib ./treecompare length -a mass ../data/${base}  | tee -a props.txt
+  - name: dijkstra
+    #local_abort_conf: test ! -e data/${base}-d_map.dat
+    run: cd dijkstra ; ./grid ../data/${base} -s 2.0 -a 1.0 -f 5
     vary:
       - name: base
         vals:
@@ -18,28 +18,10 @@ blocks:
           - GersteLA_96x96x410
           - GersteLA_128x128x410
           - GersteLA_256x256x410
-          #- GersteLA_192x192x410_noise2
+          - GersteLA_192x192x410_noise2
           #- GersteLA_192x192x410_filter6-16
           #- GersteLA_192x192x410_filter7-16
           #- GersteLA_192x192x410_filter8-16
-          #- GersteLA_192x192x410_noise3
-          #- GersteLA_192x192x410_noise4
-          #- GersteLA_192x192x410_noise5
-  - name: dijkstra
-    #local_abort_conf: test ! -e data/${base}-d_map.dat
-    run: cd dijkstra ; ./grid ../data/${base} -s 2.0 -a 1.0 -f 5 --force
-    vary:
-      - name: base
-        vals:
-          #- GersteLA_192x192x410_normal
-          #- GersteLA_64x64x410
-          #- GersteLA_96x96x410
-          #- GersteLA_128x128x410
-          #- GersteLA_256x256x410
-          - GersteLA_192x192x410_noise2
-          - GersteLA_192x192x410_filter6-16
-          - GersteLA_192x192x410_filter7-16
-          - GersteLA_192x192x410_filter8-16
           - GersteLA_192x192x410_noise3
           - GersteLA_192x192x410_noise4
           - GersteLA_192x192x410_noise5
@@ -54,10 +36,10 @@ blocks:
           #- GersteLA_96x96x410
           #- GersteLA_128x128x410
           #- GersteLA_256x256x410
-          #- GersteLA_192x192x410_noise2
-          - GersteLA_192x192x410_filter6-16
-          - GersteLA_192x192x410_filter7-16
-          - GersteLA_192x192x410_filter8-16
+          - GersteLA_192x192x410_noise2
+          #- GersteLA_192x192x410_filter6-16
+          #- GersteLA_192x192x410_filter7-16
+          #- GersteLA_192x192x410_filter8-16
           - GersteLA_192x192x410_noise3
           - GersteLA_192x192x410_noise4
           - GersteLA_192x192x410_noise5

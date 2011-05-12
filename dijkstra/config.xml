@@ -164,7 +164,7 @@
 			<stem-plane>24</stem-plane>
 			<stem-axis>2</stem-axis>
 			<has-rohr>true</has-rohr>
-			<scale>2.56</scale>
+			<scale>0.390625</scale>
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="uint8">
@@ -174,7 +174,7 @@
 			<stem-plane>24</stem-plane>
 			<stem-axis>2</stem-axis>
 			<has-rohr>true</has-rohr>
-			<scale>2.56</scale>
+			<scale>0.390625</scale>
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="uint8">
@@ -184,7 +184,7 @@
 			<stem-plane>24</stem-plane>
 			<stem-axis>2</stem-axis>
 			<has-rohr>true</has-rohr>
-			<scale>2.56</scale>
+			<scale>0.390625</scale>
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 	</datafiles>

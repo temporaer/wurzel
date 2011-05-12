@@ -11,7 +11,7 @@ dijkstra:
 vis:
 	ipython -wthread vis.py $(BASE)
 imgs:
-	ipython -wthread -- vis.py $(BASE) -o
+	ipython -wthread -- vis.py -t $(WHAT) $(BASE) -o
 
 demo:
 	ipython -wthread -- vis.py -t $(WHAT)  $(BASE) 
