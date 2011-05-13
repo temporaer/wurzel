@@ -42,6 +42,14 @@ vec3_t cross_product(
         c[2] = a[0] * b[1] - a[1] * b[0];
         return c;
 }
+
+/**
+ * construct a file name from the parts in the parameters
+ * @param base   basename of fiel w/o ext
+ * @param marker is attached to base with a dash in between
+ * @param ext    is the extention of the generated filename
+ * @return new complete filename
+ */
 std::string
 getfn(const std::string& base, const std::string& marker, const std::string& ext){
 	std::stringstream ss;
@@ -54,6 +62,10 @@ getfn(const std::string& base, const std::string& marker, const std::string& ext
 }
 
 
+/**
+ * maps edges to weights
+ * this is only here because otherwise we can't link
+ */
 voxel_edge_weight_map::reference 
 voxel_edge_weight_map::operator[](key_type e) const {
 	voxel_vertex_descriptor s = source(e,m_graph);
@@ -62,25 +74,45 @@ voxel_edge_weight_map::operator[](key_type e) const {
 }
 
 
+/**
+ * load a serialized tree from a file
+ */
 void loadtree(std::string basename, wurzelgraph_t& g){
 	std::ifstream ifs((basename+"-wgraph.ser").c_str());
 	boost::archive::text_iarchive ia(ifs);
 	ia >> g;
 }
 
+/**
+ * key-value pair for XML
+ */
 template<class T>
 struct kv_helper{
   std::string k;
   T v;
 };
+
+/**
+ * key and value constructor for XML
+ *
+ * this is abbreviated, imagine it is called make_kv_helper(...)
+ * to match with the standard naming convention :)
+ */
 template<class T>
 kv_helper<T> kv(std::string s, T o){ kv_helper<T> x;x.k=s; x.v=o; return x;}
+
+/**
+ * print a key-value pair to a stream
+ */
 template<class T>
 std::ostream& operator<<(std::ostream& o, kv_helper<T> kvh){
 	o << " "<<kvh.k<<"=\""<<kvh.v<<"\" ";
 	return o;
 }
 
+/**
+ * print a vertex to an XML file, includin properties
+ */
 void to_xml_node(std::ofstream& o, unsigned int& idx, const wurzel_vertex_descriptor& v, const wurzelgraph_t& g){
 	property_map<wurzelgraph_t,vertex_index_t>::const_type  index_map = get(vertex_index, g);
 	property_map<wurzelgraph_t,vertex_position_t>::const_type  pos_map = get(vertex_position, g);
@@ -102,6 +134,9 @@ void to_xml_node(std::ofstream& o, unsigned int& idx, const wurzel_vertex_descri
 	o << "</Node>"<<std::endl;
 }
 
+/**
+ * print a wurzel graph (=a single tree) to an XML-Forest file
+ */
 void to_xml_forest(std::string basename, const wurzelgraph_t& g){
 	// find root
 	wurzel_vertex_descriptor root;
@@ -141,6 +176,9 @@ void to_xml_forest(std::string basename, const wurzelgraph_t& g){
 	ofs<<"/Forest>"<<std::endl;
 }
 
+/**
+ * determine extent of bounding box for g
+ */
 void graph_stats(wurzelgraph_t& g){
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, g);
 
@@ -166,6 +204,9 @@ void graph_stats(wurzelgraph_t& g){
 	std::cout << "zmin: "<< zmin<<std::endl;
 	std::cout << "zmax: "<< zmax<<std::endl << std::endl;
 }
+/**
+ * calulate mass statistics
+ */
 double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 	double sum = 0.0;
 	double minpos = wi.scale * /*wi.stem_plane*/14 * wi.X/410.0; // TODO: make this work for other datasets!!
@@ -216,6 +257,9 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 	return sum*weight_scale;
 }
 
+/**
+ * a segment is a sequence of connected edges without crossings
+ */
 struct wurzel_segment{
 	const wurzelgraph_t& wg;
 	wurzel_segment(const wurzelgraph_t& g):wg(g){}
@@ -267,6 +311,9 @@ struct wurzel_segment{
 	}
 };
 
+/**
+ * recursively find all segments in a wurzelgraph
+ */
 void build_seg(const wurzel_edge_descriptor& e, wurzel_segment seg, std::list<wurzel_segment>& segments, const wurzelgraph_t& wg){
 	const wurzel_vertex_descriptor& t = target(e,wg);
 	if(out_degree(t,wg)==0){// ends in leaf
@@ -288,6 +335,9 @@ void build_seg(const wurzel_edge_descriptor& e, wurzel_segment seg, std::list<wu
 	build_seg(*out_edges(t,wg).first, seg,segments,wg);
 }
 
+/**
+ * determine average segment length
+ */
 double avg_len_btw_splits(wurzelgraph_t& wg){
 	std::list<wurzel_segment> segments;
 	std::map<wurzel_edge_descriptor,bool> foundmap;
@@ -329,6 +379,10 @@ double avg_len_btw_splits(wurzelgraph_t& wg){
 	std::cout <<"Avg seg num: "<< mean(s_nums)<<" +/- "<<sqrt(variance(s_nums))<< " pieces"<<std::endl;
 	return mean(s_lens);
 }
+
+/**
+ * determine total length
+ */
 double total_length(wurzelgraph_t& wg){
 	double sum = 0.0, sum_horiz=0.0, sum_vert=0.0;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
@@ -352,6 +406,13 @@ double total_length(wurzelgraph_t& wg){
 
 	return sum;
 }
+/**
+ * determine distance between two graphs
+ * @param g1 1st graph
+ * @param g2 2nd graph
+ * @param tolerance  distance up to which nodes are considered "the same"
+ * @param verbose show progress
+ */
 void distance(wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance, bool verbose){
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map1  = get(vertex_position, g1);
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map2  = get(vertex_position, g2);
@@ -395,6 +456,9 @@ void distance(wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance, boo
 	
 }
 
+/**
+ * scale all lengths to mm
+ */
 void scale_to_mm(wurzelgraph_t& g, const wurzel_info& wi){
 	std::cout << "scaling: "<< wi.scale <<std::endl;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, g);
@@ -404,6 +468,9 @@ void scale_to_mm(wurzelgraph_t& g, const wurzel_info& wi){
 	}
 }
 
+/**
+ * print the total length
+ */
 void action_length(std::vector<wurzel_info>& wis, std::vector<std::string>& bases, const po::variables_map& vm){
 	std::string base = bases[0];
 
@@ -415,6 +482,9 @@ void action_length(std::vector<wurzel_info>& wis, std::vector<std::string>& base
 	std::cout << "total length("<<base<<"): "<< total_length(g)<<std::endl;
 
 }
+/**
+ * print the total mass
+ */
 void action_mass(std::vector<wurzel_info>& wis, std::vector<std::string>& bases, const po::variables_map& vm){
 	std::string base = bases[0];
 
@@ -426,6 +496,9 @@ void action_mass(std::vector<wurzel_info>& wis, std::vector<std::string>& bases,
 	std::cout << "total mass ("<<base<<"): "<< total_mass(g, wis[0])<<std::endl;
 
 }
+/**
+ * print the distance btw two graphs (non-symmetric!!!)
+ */
 void action_distance(std::vector<wurzel_info>& wis, std::vector<std::string>& bases, const po::variables_map& vm){
 	std::string base1 = bases[0];
 	std::string base2 = bases[1];
@@ -444,6 +517,9 @@ void action_distance(std::vector<wurzel_info>& wis, std::vector<std::string>& ba
 	distance(g1,g2,tolerance, vm["verbose"].as<bool>());
 }
 
+/**
+ * print all edges to a file for viewing
+ */
 template<class T>
 void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map, const wurzel_info& wi){
 	std::ofstream ofs(name.c_str());
@@ -471,6 +547,10 @@ void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map,
 	ofs.close();
 }
 
+/**
+ * a visitor which keeps a median statistic and stops when fixed amount of data
+ * collected
+ */
 template<class WidthMap>
 struct bfs_median_visitor:public default_bfs_visitor {
   bfs_median_visitor(WidthMap wmap, int num, medstat_t* m):m_stats(m),m_map(wmap), m_num(num){ }
@@ -491,6 +571,11 @@ bfs_median_visitor<WidthMap> make_bfs_median_visitor(WidthMap wm, int i, medstat
 	return bfs_median_visitor<WidthMap>(wm, i, m);
 }
 
+/**
+ * print vertices to a file and add additional information for viewing
+ *
+ * uses the median filter above to smooth the radius
+ */
 template<class T>
 void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
 	std::ofstream ofs(name.c_str());
@@ -552,6 +637,9 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 	ofs.close();
 }
 
+/**
+ * print some interesting information about a graph
+ */
 void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& bases, const po::variables_map& vm){
   std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
 
@@ -569,6 +657,8 @@ void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& bases
 
 int main(int argc, char* argv[]){
 	std::vector<wurzel_info> wis;
+
+	// read commandline params
 	po::variables_map vm = get_config(wis,argc,argv);
 	std::vector<std::string> actions = vm["action"].as<std::vector<std::string> >();
 	std::vector<std::string> bases   = vm["base"].as<std::vector<std::string> >();
@@ -576,6 +666,7 @@ int main(int argc, char* argv[]){
 	//graph_stats(g1);
 	//graph_stats(g2);
 	
+	// select action
 	foreach(const std::string& a, actions){
 		if(a=="distance"){
 			action_distance(wis,bases,vm);
