@@ -1,0 +1,6 @@
+Dependencies:
+
+- gcc-4.5
+- libtbb-dev
+- libboost-dev >= 1.45
+
