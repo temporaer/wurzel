@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as et
 
 class config:
+	""" reads config.xml file and provides easy read-access to stored data """
 	def __init__(self,fn):
 		dom       = et.parse(fn)
 		root      = dom.getroot()

@@ -6,24 +6,29 @@ from scipy.ndimage import gaussian_filter
 from config import config
 
 class WurzelInfo:
+    """ determines and provides access to commonly used features of root files.
+       The data is determined based on the basename of the file as a key
+       to the information stored in config.xml.
+    """
     def __init__(self, fn, config_file="config.xml"):
+        # load config file
         cfg = config(config_file)
 
+        # remove extensions
         basename,ext = os.path.splitext(fn)
+        # remove common suffixes
         basename = basename.replace("-upsampled","")
         basename = basename.replace("-vertices","")
         try:
-            #print "All data: ", cfg.all_bases()
-            cfg.shape(basename)
+            self.read_shape = cfg.read_shape(basename)
+            self.shape      = cfg.shape(basename)
+            self.read_dtype = cfg.read_dtype(basename)
+            self.has_rohr   = cfg.has_rohr(basename)
+            self.scale      = cfg.scale(basename)
         except:
             print "Could not find dataset `%s' in config!"%basename
             import sys
             sys.exit(1)
-        self.read_shape = cfg.read_shape(basename)
-        self.shape      = cfg.shape(basename)
-        self.read_dtype = cfg.read_dtype(basename)
-        self.has_rohr   = cfg.has_rohr(basename)
-        self.scale      = cfg.scale(basename)
 
         print "WurzelInfo: ", self.read_shape, self.shape, self.read_dtype, self.has_rohr
 
@@ -34,7 +39,15 @@ class WurzelInfo:
             self.read_dtype = "float32"
 
 class dataset(object):
-    def __init__(self,datafile,crop=False,usepickled=True,upsample=None,medianfilt=True,dz=120, remove_rohr=False):
+    def __init__(self,datafile,crop=False,usepickled=True,upsample=None,medianfilt=True,remove_rohr=False):
+        """
+        Loads and stores the actual data and info about it.
+        @param crop         shape to crop this to (if you want to try algorithm a lot, make dataset smaller to reduce time)
+        @param usepickled   when true, do not load original data, instead take previously loaded+preprocessed pickled data
+        @param upsample     whether to upsample the data according to information in WurzelInfo
+        @param medianfilt   remove "sheet" structures occurring in Lupine data
+        @param remove_rohr  remove reference tube in Lupine data
+        """
         if not isinstance(datafile,str):
             self.D = datafile
             return
@@ -73,6 +86,7 @@ class dataset(object):
                 self.save(picklename)
 
     def median_filter(self):
+        """ filter sheet artifacts in Lupine data """
         print "Median-Filtering..."
         D  = self.D
         x = np.median(np.median(D,axis=1),axis=1)
@@ -81,6 +95,7 @@ class dataset(object):
         self.D = D
         print "done."
     def upsample(self, method):
+        """ change resolution to enable processing with isotropic filters """
         from scipy.signal import resample
         from scipy.ndimage.interpolation import zoom
         #print "mm: 100 x 100 x 131"
@@ -101,18 +116,22 @@ class dataset(object):
         #print "Dims:", self.D.shape
         print "done."
     def get_smoothed(self, sigma):
+        """ return a gauss-filtered version of the data """
         return dataset(gaussian_filter(self.D,sigma))
 
     def load(self, picklename):
+        """ load pickled data """
         with open(picklename) as f:
             self.D = cPickle.load(f)
     def save(self, datafile):
+        """ save a pickle, and an -upsampled.dat raw data file """
         with open(datafile,"wb") as f:
             cPickle.dump(self.D, f, cPickle.HIGHEST_PROTOCOL)
         upsname = datafile.replace(".pickle","-upsampled.dat")
         print "Saving to upsampled: ", self.D.shape
         self.D.tofile(upsname)
     def get_rid_of_roehrchen(self):
+        """ remove measureing tube present in Lupine data """
         D = self.D
         X = D.sum(axis=2)
         Y = gaussian_filter(X, 5)

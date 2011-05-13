@@ -5,9 +5,12 @@ import scipy.ndimage as nd
 from scipy.weave import inline, converters
 
 def grad(img, ax):
+    """ return centered derivative of img along axis """
     return nd.convolve1d(img, weights=[-.5,.0,.5], axis=ax)
 
 def hessian(img, sigma,gamma=1):
+    """ calculate normalized hessian at each position in img
+    (assuming data is already smoothed by a gaussian(sigma)) """
     assert img.ndim == 3
     Dx  = grad(img, 0)
     Dy  = grad(img, 1)
@@ -28,6 +31,9 @@ def hessian(img, sigma,gamma=1):
     return D
 
 def eig3x3(hessian):
+    """
+    Calculate eigenvalues of hessian at each position in an image (given by its hessian).
+    """
     nx,ny,nz = hessian["Dxx"].shape
     lambda1  = np.empty(hessian["Dxx"].shape,dtype="float32")
     lambda2  = np.empty(hessian["Dxx"].shape,dtype="float32")
@@ -37,7 +43,7 @@ def eig3x3(hessian):
     ev11     = np.empty(hessian["Dxx"].shape,dtype="float32")
     ev12     = np.empty(hessian["Dxx"].shape,dtype="float32")
     code = """
-      #line 40 "structure_tensor.py"
+      #line 46 "structure_tensor.py"
       namespace ublas = boost::numeric::ublas;
       namespace lapack = boost::numeric::bindings::lapack;
       using namespace std;
@@ -118,6 +124,12 @@ def eig3x3(hessian):
     return {"lambda1":lambda1,"lambda2": lambda2, "lambda3":lambda3, "ev10": ev10, "ev11": ev11, "ev12": ev12}
 
 def get_ev_of_hessian(D,sigma,gamma=1):
+    """
+    Get eigenvalues of normalized hessian of an image.
+    @param D     3D image
+    @param sigma the kernel width with which D was smoothed
+    @param gamma normalization parameter
+    """
     print "Calculating Hessian"
     res = hessian(D, sigma, gamma)
     print "Calculating Symev"
