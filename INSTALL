@@ -3,4 +3,5 @@ Dependencies:
 - gcc-4.5
 - libtbb-dev
 - libboost-dev >= 1.45
-
+- mayavi2 for visualization
+- boost numeric bindings http://mathema.tician.de/software/boost-numeric-bindings
