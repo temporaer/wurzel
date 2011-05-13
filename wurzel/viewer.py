@@ -1,4 +1,8 @@
 # vim:ts=4:sw=4:sts=4:et:ai
+
+# Copyright 2011 University of Bonn
+# Author: Hannes Schulz
+
 import numpy as np
 from enthought.mayavi import mlab
 from enthought.tvtk.util.ctf import ColorTransferFunction

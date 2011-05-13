@@ -1,3 +1,7 @@
+//=======================================================================
+// Copyright 2011 University Bonn
+// Author: Hannes Schulz
+//=======================================================================
 #ifndef __WURZEL_TREE_HPP__
 #define __WURZEL_TREE_HPP__
 #include <boost/graph/adjacency_list.hpp>

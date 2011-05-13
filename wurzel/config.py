@@ -1,5 +1,8 @@
 import xml.etree.ElementTree as et
 
+# Copyright 2011 University of Bonn
+# Author: Hannes Schulz
+
 class config:
 	""" reads config.xml file and provides easy read-access to stored data """
 	def __init__(self,fn):

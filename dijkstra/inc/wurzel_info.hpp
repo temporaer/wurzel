@@ -1,3 +1,7 @@
+//=======================================================================
+// Copyright 2011 University Bonn
+// Author: Hannes Schulz
+//=======================================================================
 #ifndef __WURZEL_INFO_HPP__
 #define __WURZEL_INFO_HPP__
 #include <boost/array.hpp>

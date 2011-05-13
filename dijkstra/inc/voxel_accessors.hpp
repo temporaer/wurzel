@@ -1,5 +1,9 @@
 #ifndef __VOXEL_ACCESSORS_HPP__
 #define __VOXEL_ACCESSORS_HPP__
+//=======================================================================
+// Copyright 2011 University Bonn
+// Author: Hannes Schulz
+//=======================================================================
 
 #include "voxelgrid.hpp"
 #include "wurzel_tree.hpp"

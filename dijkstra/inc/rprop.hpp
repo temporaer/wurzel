@@ -1,5 +1,9 @@
 #ifndef __RPROP_HPP__
 #define __RPROP_HPP__
+//=======================================================================
+// Copyright 2011 University Bonn
+// Author: Hannes Schulz
+//=======================================================================
 
 #include <boost/numeric/ublas/vector.hpp>
 

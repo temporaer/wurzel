@@ -1,5 +1,9 @@
 #ifndef __GRID_CONFIG_HPP__
 #define __GRID_CONFIG_HPP__
+//=======================================================================
+// Copyright 2011 University Bonn
+// Author: Hannes Schulz
+//=======================================================================
 
 #include <iostream>
 #include <boost/program_options.hpp>

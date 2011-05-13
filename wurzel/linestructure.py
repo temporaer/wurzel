@@ -1,5 +1,8 @@
 import numpy as np
 
+# Copyright 2011 University of Bonn
+# Author: Hannes Schulz
+
 def cnan(x):
     """ check for not-a-number in parameter x """
     if np.isnan(x).sum()>0:

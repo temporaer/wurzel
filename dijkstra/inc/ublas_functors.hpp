@@ -1,5 +1,9 @@
 #ifndef __UBLAS_FUNCTORS_HPP__
 #define __UBLAS_FUNCTORS_HPP__
+//=======================================================================
+// Copyright 2011 University Bonn
+// Author: Hannes Schulz
+//=======================================================================
 
 //vector<double> v( 100 );
 // // ... fill v ...

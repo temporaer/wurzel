@@ -1,4 +1,9 @@
 # vim:ts=4:sw=4:sts=4:et:ai
+
+# Copyright 2011 University of Bonn
+# Author: Hannes Schulz
+
+
 import gc, os, sys
 from wurzel import linestructure
 from wurzel import img3dops

@@ -6,6 +6,11 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 //=======================================================================
+//
+//=======================================================================
+// Modifications by Hannes Schulz
+// - changed vertex adjacency iterator to cover a 26-neighborhood
+//=======================================================================
 
 #ifndef BOOST_GRAPH_GRID_GRAPH_HPP
 #define BOOST_GRAPH_GRID_GRAPH_HPP

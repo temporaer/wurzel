@@ -1,5 +1,9 @@
 #ifndef __VOXEL_NORMALS_HPP__
 #define __VOXEL_NORMALS_HPP__
+//=======================================================================
+// Copyright 2011 University Bonn
+// Author: Hannes Schulz
+//=======================================================================
 
 
 #include <boost/numeric/bindings/lapack/syev.hpp>
