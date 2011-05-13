@@ -3,7 +3,8 @@
 
 #include <boost/numeric/ublas/vector.hpp>
 
-/// RProp class takes care of gradients
+/// RProp class does unconstrained gradient descent
+///   see Riedmiller&Braun, 1993
 class RProp{
 	public:
 		typedef double precision;
