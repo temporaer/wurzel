@@ -53,6 +53,14 @@ typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > stat_t;
 
+
+/**
+ * Return a file name which is built from the parts in the parameters
+ * @param base    the name without extention
+ * @param marker  this will be attached to base with a "-"
+ * @param ext     this will be the extention
+ * @return a file name which is built from the parts in the parameters
+ */
 std::string
 getfn(const std::string& base, const std::string& marker, const std::string& ext){
 	std::stringstream ss;
@@ -64,18 +72,34 @@ getfn(const std::string& base, const std::string& marker, const std::string& ext
 	return ss.str();
 }
 
-
+/**
+ * Print statistics to a stream for convenience
+ * @param o  the stream
+ * @param s  statistic
+ * @return the stream
+ */
 std::ostream& 
 operator<<(std::ostream& o, const stat_t& s) {
 	o<<"min: "<<min(s)<<"  mean: "<<mean(s)<<"  max:"<<max(s);
   return o;
 }
+/**
+ * print a vertex to a stream for convenience
+ * @param o   the stream
+ * @param vertex_to_print  the vertex
+ * @return the stream
+ */
 std::ostream& 
 operator<<(std::ostream& o, const voxelg_traits::vertex_descriptor& vertex_to_print) {
   o << "(" << vertex_to_print[0] << ", " << vertex_to_print[1] <<
     ", " << vertex_to_print[2] << ")";
   return o;
 }
+
+/**
+ * For a given vertex, print all its neighbors to std::cout,
+ * with additional integer info taken from map.
+ */
 template<class G, class M>
 void print_neighbors(G& graph, voxelg_traits::vertex_descriptor v, const M& map){
 	std::cout<< "start vertex: "<<v<<std::endl;
@@ -90,11 +114,13 @@ void print_neighbors(G& graph, voxelg_traits::vertex_descriptor v, const M& map)
 }
 
 
-
 vox2arr<float_grid>* g_sato, *g_ev10, *g_ev11, *g_ev12;
 boost::array<vidx_t, 3> g_strunk;
 
-// map from edges to weights
+/**
+ * @return   the weight of an edge in the graph
+ * @param e  the edge
+ */
 voxel_edge_weight_map::reference 
 voxel_edge_weight_map::operator[](key_type e) const {
 	voxel_vertex_descriptor s = source(e,m_graph);
@@ -119,6 +145,12 @@ voxel_edge_weight_map::operator[](key_type e) const {
 	return v * d;
 }
 
+/**
+ * write the data of a whole voxelgrid to a raw file
+ * @param name   filename
+ * @param graph  determines connectivity and order
+ * @param map    the information written to the file
+ */
 template<class F, class T>
 void write_voxelgrid(const std::string& name, voxelgraph_t& graph, const T& map){
   std::cout << "Writing results "<<name<<"..." <<std::flush;
@@ -131,6 +163,15 @@ void write_voxelgrid(const std::string& name, voxelgraph_t& graph, const T& map)
   std::cout << "done." <<std::endl;
 }
 
+/**
+ * find the shortest path through a voxel graph
+ * @param base   basename of the file, used to load/store cached p_map/d_map
+ * @param graph  determines connectivtity
+ * @param strunk the position from which we start the search
+ * @param p_map  predecessor-map
+ * @param d_map  distance to strunk map
+ * @param force  force recomputing, even when cached d_map/p_map found
+ */
 void find_shortest_paths(const std::string& base, 
 		voxelgraph_t& graph, 
 		voxel_vertex_descriptor& strunk,
@@ -167,6 +208,12 @@ void find_shortest_paths(const std::string& base,
 	
 }
 
+/**
+ * calculate the statistics of a map
+ * @param graph  determines connectivity
+ * @param map    where the values are stored
+ * @return       statistics-object
+ */
 template<class M>
 stat_t voxel_stats(voxelgraph_t& graph, const M& map){
 	stat_t acc;
@@ -176,6 +223,13 @@ stat_t voxel_stats(voxelgraph_t& graph, const M& map){
 	return acc;
 }
 
+/**
+ * Transform a voxelgraph (=dense grid) to a wurzelgraph (=sparse list)
+ * @param vg  voxelgraph (unchanged)
+ * @param wg  wurzelgraph (created)
+ * @param p_map  predecessor map
+ * @param inclusion_map marks nodes which are to be included in wurzelgraph
+ */
 template<class T>
 void paths2adjlist(voxelgraph_t& vg, wurzelgraph_t& wg, predecessor_map_t& p_map, const T& inclusion_map){
 	std::cout << "Building adjacency list tree..."<<std::flush;
@@ -197,12 +251,20 @@ void paths2adjlist(voxelgraph_t& vg, wurzelgraph_t& wg, predecessor_map_t& p_map
 			if(w == v) continue;
 			reverse_t::iterator res = reverse_lookup.find(w);
 			if(res == reverse_lookup.end()) continue;
-			add_edge((*res).second,wv,wg);
+			add_edge(res->second,wv,wg);
 		}
 	}
 	std::cout <<"done ("<<V(num_vertices(wg))<<")"<<std::endl;
 }
 
+/**
+ * rank nodes of a graph to check whether they are a local maximum
+ * @param base  basename where result is stored for visualization
+ * @param vg    voxelgraph
+ * @param rankmap   ranks are stored here
+ * @param valuemap  values are taken from here
+ * @param tracesmap only nodes marked in here are considered
+ */
 template<class T, class U, class V>
 void rank_op(const std::string& base, voxelgraph_t& vg, T rankmap, const U& valuemap, const V& tracesmap){
 	std::ofstream ofs(getfn(base,"ranks","txt").c_str());
@@ -230,6 +292,14 @@ void rank_op(const std::string& base, voxelgraph_t& vg, T rankmap, const U& valu
 	}
 	std::cout <<"Determined "<< cnt<<" of "<<cnt_all<<" to be maxima"<<std::endl;
 }
+
+/**
+ * Removes edge sequences starting at leafs from a wurzelgraph 
+ * which are less than minlen steps or less than max_radius_mm long long
+ * @param wg       the graph
+ * @param scale    factor to get from voxel to mm
+ * @param max_radius_mm  minimum length of a edge sequence
+ */
 void erode_tree(wurzelgraph_t& wg, const double& scale, const double& max_radius_mm){
 	std::cout <<"Eroding tree (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
 	bool modified=true;
@@ -254,7 +324,7 @@ void erode_tree(wurzelgraph_t& wg, const double& scale, const double& max_radius
 			voxel_vertex_descriptor     v = get(vertex_name,wg)[*vi];
 			wurzel_vertex_descriptor pred = source(*ei,wg);
 			unsigned int cnt = 0;
-			static const unsigned int minlen = 9;
+			static const unsigned int minlen = 9; // TODO: make a parameter!
 			while(cnt++<minlen){
 				if(out_degree(pred,wg)>1)
 					break;
@@ -264,8 +334,8 @@ void erode_tree(wurzelgraph_t& wg, const double& scale, const double& max_radius
 			}
 			if(cnt >= minlen)
 				continue;
-			//if(voxdist(get(vertex_name,wg)[pred].begin(),v.begin())*scale > max_radius_mm)
-			//        continue;
+			if(voxdist(get(vertex_name,wg)[pred].begin(),v.begin())*scale > max_radius_mm)
+			        continue;
 			clear_vertex(*vi,wg);
 			remove_vertex(*vi,wg);
 			modified=true;
@@ -274,6 +344,11 @@ void erode_tree(wurzelgraph_t& wg, const double& scale, const double& max_radius
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
 
+/**
+ * remove nodes which are not leafs and are not in the maximum map 
+ * @param wg      the graph
+ * @param maxmap  the map telling which nodes to include
+ */
 template<class T>
 void remove_nonmax_nodes(wurzelgraph_t& wg, const T& maxmap){
 	std::cout <<"Removing nonmaximum nodes (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
@@ -304,6 +379,12 @@ void remove_nonmax_nodes(wurzelgraph_t& wg, const T& maxmap){
 	}
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
+
+/**
+ * randomly remove degree-two-nodes, merging their properties into their neighbors
+ * @param wg             the graph
+ * @param leave_fraction fraction of nodes to be left in the graph
+ */
 void merge_deg2_nodes(wurzelgraph_t& wg, float leave_fraction){
 	std::cout <<"Removing deg2nodes (num_nodes: "<< num_vertices(wg)<<")..."<<std::flush;
 	wurzel_vertex_iterator wi,wend,next;
@@ -319,7 +400,7 @@ void merge_deg2_nodes(wurzelgraph_t& wg, float leave_fraction){
 
 	bool             changed = true;
 	static const float prob  = 0.01f;
-	int              cnt     = 0;
+	//int              cnt     = 0;
 	unsigned int     target  = num_vertices(wg) *leave_fraction;
 	while(changed && num_vertices(wg)>target){
 		changed = false;
@@ -351,7 +432,14 @@ void merge_deg2_nodes(wurzelgraph_t& wg, float leave_fraction){
 	}
 	std::cout <<"done (num_nodes: "<< num_vertices(wg)<<")."<<std::endl;
 }
-
+/**
+ * read a 3D-map from file
+ * @param fn filename
+ * @param X  size of 1st dimension (innermost)
+ * @param Y  size of 2nd dimension 
+ * @param Z  size of 3rd dimension
+ * @return a reference to the space in memory
+ */
 template<class T>
 boost::multi_array_ref<T, 3> 
 read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
@@ -371,6 +459,11 @@ read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
   return boost::multi_array_ref<T,3>(data,boost::extents[X][Y][Z]);
 }
 
+/**
+ * fills the vertex_position map from the vertex_name map and
+ * sets the normals and eigenvalues maps to zero.
+ * @param wg
+ */
 void
 initialize_vertex_positions(wurzelgraph_t& wg){
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
@@ -387,6 +480,11 @@ initialize_vertex_positions(wurzelgraph_t& wg){
 	}
 }
 
+/**
+ * Determine normals and eigenvectors for all vertices. 
+ * @param wg the graph with the vertices
+ * @param acc an accessor which allows (interpolated) access to a 3D array
+ */
 template<class T>
 void
 determine_vertex_normals(wurzelgraph_t& wg, const T& acc){
@@ -401,6 +499,13 @@ determine_vertex_normals(wurzelgraph_t& wg, const T& acc){
 	//std::cout << "done."<<std::endl;
 }
 
+/**
+ * estimate the root radius for each vertex using the scale at which it was maximal
+ * @param wg   the graph with the vertices
+ * @param acc  an (interpolated) accessor to an array which contains the sigmas=scale where vesselness was maximal
+ * @param max_radius_mm  not used
+ * @param wi   contains scale so that radius can be determined in mm
+ */
 template<class T>
 void
 determine_radius_from_scales(wurzelgraph_t& wg, const T& acc, const double& max_radius_mm, const wurzel_info& wi){
@@ -418,6 +523,14 @@ determine_radius_from_scales(wurzelgraph_t& wg, const T& acc, const double& max_
 	}
 	//std::cout << "done."<<std::endl;
 }
+
+/**
+ * estimates inertia tensor around each vertex
+ * @param wg graph with the vertices
+ * @param acc 3D interpolated accessor with "mass" data
+ * @param max_radius_mm -- used to determine integration area
+ * @param wi determines scale so that radius can be interpreted in voxels
+ */
 template<class T>
 void
 determine_inertia_tensor(wurzelgraph_t& wg, const T& acc, const double& max_radius_mm, const wurzel_info& wi){
@@ -434,6 +547,11 @@ determine_inertia_tensor(wurzelgraph_t& wg, const T& acc, const double& max_radi
 	//std::cout << "done."<<std::endl;
 }
 
+/**
+ * move vertex towards the center-of-mass in its vicinity
+ * @param wg   graph with vertices
+ * @param acc  3D interpolated accessor to "mass" data
+ */
 template<class T>
 void
 move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
@@ -497,6 +615,18 @@ move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
 	std::cout << "done (avg norm="<<sum/(cnt1+cnt2)<<"; "<<V(cnt1)<<V(cnt2)<<")"<<std::endl;
 }
 
+/**
+ * Determine radius of root at each vertex.
+ * 
+ * The function fits a gaussian bell-shaped function to the data around 
+ * each voxel, projected to the plane orthogonal to its "normal"
+ * 
+ * @param wg   graph vertices are taken from
+ * @param acc  3D interpolated accessor to mass data
+ * @param scale factor voxel->mm
+ * @param max_radius_mm maximum radius of a root in mm
+ * @param wi   additional root information
+ */
 template<class T>
 void
 wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const double max_radius_mm, const wurzel_info& wi){
@@ -650,6 +780,11 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 	//std::cout <<V(s_thickness)<< " done."<<std::endl;
 }
 
+/**
+ * Adjust radius at each node such that the roots only get a larger or equal
+ * diameter towards the root, never smaller.
+ * @param wg
+ */
 void
 smooth_thickness(wurzelgraph_t& wg){
 	std::cout << "Smoothing Wurzel thickness..."<<std::flush;
@@ -668,6 +803,15 @@ smooth_thickness(wurzelgraph_t& wg){
 	}
 }
 
+/**
+ * Determine the position of the plant stem in a given image plane
+ * @param dims shape of the 3D data
+ * @param spross_intensity returns the intensity at the determined position
+ * @param acc  accessor to raw 3D data (not interpolated)
+ * @param plane  index of plane which stem grows through
+ * @param axis   index of dimension which contains plane
+ * @return the position of the stem within the given plane
+ */
 template<class T>
 boost::array<vidx_t, 3> 
 locate_stem(boost::array<vidx_t,3>& dims, double& spross_intensity, const T& acc, unsigned int plane, unsigned int axis){
@@ -717,228 +861,245 @@ locate_stem(boost::array<vidx_t,3>& dims, double& spross_intensity, const T& acc
 int main(int argc, char* argv[]) {
 	wurzel_info info;
 
+	// read commandline parameters
 	po::variables_map vm = get_config(info,argc,argv);
 	static const unsigned int X=info.X,Y=info.Y,Z=info.Z,XYZ=info.XYZ;
 	bool force_recompute_dijkstra = vm.count("force");
 	std::string base = vm["base"].as<std::string>();
-	
-  // Define a 3x5x7 grid_graph where the second dimension doesn't wrap
-  boost::array<vidx_t, 3> lengths = { { X, Y, Z } };
-  voxelgraph_t graph(lengths, false); // no dim is wrapped
 
-  float_grid Raw  = read3darray<float>(getfn(base,"upsampled","dat"),X,Y,Z);
-  boost::array<vidx_t, 3> strunk   // locate the stem
-	  =  locate_stem(lengths, info.spross_intensity, make_vox2arr(Raw), info.stem_plane, info.stem_axis); //{ { 109, 129,  24 } };
+	// Define a grid_graph where dimensions don't wrap
+	boost::array<vidx_t, 3> lengths = { { X, Y, Z } };
+	voxelgraph_t graph(lengths, false); // no dim is wrapped
 
-  //std::cout << "Barley settings!!!"<<std::endl;
-  //info.spross_intensity = 425000;
-  std::cout << "Lupine settings!!!"<<std::endl;
-  info.spross_intensity = 0.9;
+	// read upsampled raw data
+	float_grid Raw  = read3darray<float>(getfn(base,"upsampled","dat"),X,Y,Z);
+	boost::array<vidx_t, 3> strunk   // locate the stem
+		=  locate_stem(lengths, info.spross_intensity, make_vox2arr(Raw), info.stem_plane, info.stem_axis); //{ { 109, 129,  24 } };
 
-  float_grid Sato = read3darray<float>(getfn(base,"","sato"),X,Y,Z); g_sato = new vox2arr<float_grid>(Sato);
-  //float_grid ev10 = read3darray<float>(getfn(base,"","ev10"),X,Y,Z); g_ev10 = new vox2arr<float_grid>(ev10);
-  //float_grid ev11 = read3darray<float>(getfn(base,"","ev11"),X,Y,Z); g_ev11 = new vox2arr<float_grid>(ev11);
-  //float_grid ev12 = read3darray<float>(getfn(base,"","ev12"),X,Y,Z); g_ev12 = new vox2arr<float_grid>(ev12);
-  float_grid scales = read3darray<float>(getfn(base,"","scales"),X,Y,Z); 
+	//std::cout << "Barley settings!!!"<<std::endl;
+	//info.spross_intensity = 425000;
+	std::cout << "Lupine settings!!!"<<std::endl;
+	info.spross_intensity = 0.9;
 
-  std::cout << "Sato stats in file: " << voxel_stats(graph,make_vox2arr(Sato)) <<std::endl;
+	// read additional data: Vesselness measure and (if desired) eigenvalues and scales
+	float_grid Sato = read3darray<float>(getfn(base,"","sato"),X,Y,Z); g_sato = new vox2arr<float_grid>(Sato);
+	//float_grid ev10 = read3darray<float>(getfn(base,"","ev10"),X,Y,Z); g_ev10 = new vox2arr<float_grid>(ev10);
+	//float_grid ev11 = read3darray<float>(getfn(base,"","ev11"),X,Y,Z); g_ev11 = new vox2arr<float_grid>(ev11);
+	//float_grid ev12 = read3darray<float>(getfn(base,"","ev12"),X,Y,Z); g_ev12 = new vox2arr<float_grid>(ev12);
+	float_grid scales = read3darray<float>(getfn(base,"","scales"),X,Y,Z); 
 
-  g_strunk = strunk;
+	std::cout << "Sato stats in file: " << voxel_stats(graph,make_vox2arr(Sato)) <<std::endl;
 
-  unsigned char* paths = new unsigned char[XYZ];
-  std::fill(paths, paths+XYZ, (unsigned char) 0);
-  uc_grid Paths(paths,boost::extents[X][Y][Z]);
+	g_strunk = strunk; // ugh. ugly: use global variable.
 
-  unsigned char* ranks = new unsigned char[XYZ];
-  std::fill(ranks, ranks+XYZ, (unsigned char) 255);
-  uc_grid Ranks(ranks,boost::extents[X][Y][Z]);
+	// allocate helper arrays: Path
+	unsigned char* paths = new unsigned char[XYZ];
+	std::fill(paths, paths+XYZ, (unsigned char) 0);
+	uc_grid Paths(paths,boost::extents[X][Y][Z]);
 
-  float* flow = new float[XYZ];
-  std::fill(flow, flow+XYZ, (float) 0);
-  float_grid Flow(flow,boost::extents[X][Y][Z]);
+	// allocate helper arrays: ranks
+	unsigned char* ranks = new unsigned char[XYZ];
+	std::fill(ranks, ranks+XYZ, (unsigned char) 255);
+	uc_grid Ranks(ranks,boost::extents[X][Y][Z]);
+
+	// allocate helper arrays: flow
+	float* flow = new float[XYZ];
+	std::fill(flow, flow+XYZ, (float) 0);
+	float_grid Flow(flow,boost::extents[X][Y][Z]);
 
 
-  voxel_vertex_descriptor first_vertex = vertex((vidx_t)0, graph);
-  voxel_vertex_iterator vi, vend;
-
-  wurzel_vertex_iterator wi,wend;
-  stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
+	// normalize vesselness such that it is >=0 and max is 1
+	stat_t s_raw  = voxel_stats(graph, make_vox2arr(Raw));
 	foreach(const voxel_vertex_descriptor& v, vertices(graph)) {
 		float& f = Sato[v[0]][v[1]][v[2]];
-			//f = std::max(0.f, f-0.2f) * 1.f/0.7f;
-			//f  = exp(-10.f * log(1.f+f)/log(2.f) );
-			//f  = exp(-15.f * f );
+		//f = std::max(0.f, f-0.2f) * 1.f/0.7f;
+		//f  = exp(-10.f * log(1.f+f)/log(2.f) );
+		//f  = exp(-15.f * f );
 
 		float& g = Raw[v[0]][v[1]][v[2]];
-	  //f *= 1.0f+2.0f*g;
-	  //      g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
+		//f *= 1.0f+2.0f*g;
+		//      g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
 		f += std::max(g,0.f)/max(s_raw);
 	}
-  stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
-  std::cout << "Raw:  " << s_raw <<std::endl;
-  std::cout << "Sato: " << s_sato <<std::endl;
+	stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
+	std::cout << "Raw:  " << s_raw <<std::endl;
+	std::cout << "Sato: " << s_sato <<std::endl;
 
-  predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
-  distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
+	predecessor_map_t         p_map(num_vertices(graph), get(vertex_index, graph)); 
+	distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
-  { boost::prof::profiler prof("Dijkstra");
-  find_shortest_paths(base,graph,strunk,p_map,d_map,force_recompute_dijkstra);
-  }
-  std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
+	// Run dijkstra to find shortest paths
+	{       boost::prof::profiler prof("Dijkstra");
+		find_shortest_paths(base,graph,strunk,p_map,d_map,force_recompute_dijkstra);
+	}
+	std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
-  std::cout << "Determining scaling factors..." <<std::endl;
-  stat_t s_allpaths = voxel_stats(graph,d_map);
+	std::cout << "Determining scaling factors..." <<std::endl;
+	stat_t s_allpaths = voxel_stats(graph,d_map);
 
-  std::cout << "Tracing paths... " <<std::flush;
-  double start_threshold       = vm["start-threshold"].as<double>();
-  double total_len_perc_thresh = vm["total-len-frac"].as<double>();
-  double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
-  double min_flow_thresh       = vm["min-flow-thresh"].as<double>() * (info.XYZ/info.read_XYZ/2);
-  bool   no_gauss_fit          = vm.count("no-gauss-fit");
-  bool   no_subpix_pos         = vm.count("no-subpix-pos");
+	/*******************************************************
+	 *
+	 * Trace paths to determine what is soil/noise and what is root
+	 *
+	 * *****************************************************/
+	std::cout << "Tracing paths... " <<std::flush;
+	double start_threshold       = vm["start-threshold"].as<double>();
+	double total_len_perc_thresh = vm["total-len-frac"].as<double>();
+	double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
+	double min_flow_thresh       = vm["min-flow-thresh"].as<double>() * (info.XYZ/info.read_XYZ/2);
+	bool   no_gauss_fit          = vm.count("no-gauss-fit");
+	bool   no_subpix_pos         = vm.count("no-subpix-pos");
 
-  start_threshold *= info.noise_cutoff;
+	start_threshold *= info.noise_cutoff;
 
-  voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
-  stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
-  vox2arr<float_grid> vox2raw(Raw);
-  vox2arr<float_grid> vox2sato(Sato);
-  { boost::prof::profiler prof("Tracing");
-  foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-	  // determine total path length statistic
-	  //if(vox2sato[v] < start_threshold)
-	  if(vox2raw[v]/info.spross_intensity < start_threshold)
-		  continue;
-	  s_pathlen(d_map[v]);
-  }
-  std::cout << ". " <<std::flush;
+	voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
+	stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
+	vox2arr<float_grid> vox2raw(Raw);
+	vox2arr<float_grid> vox2sato(Sato);
+	{ boost::prof::profiler prof("Tracing");
+		foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
+			// determine total path length statistic
+			//if(vox2sato[v] < start_threshold)
+			if(vox2raw[v]/info.spross_intensity < start_threshold)
+				continue;
+			s_pathlen(d_map[v]);
+		}
+		std::cout << ". " <<std::flush;
 
-  property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
-  foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-	  // determine avg path costs statistic
-	  //if(vox2sato[v] < start_threshold)
-	  if(vox2raw[v]/info.spross_intensity < start_threshold)
-		  continue;
-	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
-		  continue;
-	  double vox_dist = 0.0;
-		voxel_vertex_descriptor v2 = v;
-	  unsigned int cnt = 0;
-	  float flow_add = vox2raw[v]/info.spross_intensity;
-	  voxel_vertex_descriptor tmp;
-	  while(cnt++<XYZ){ 
-		  Flow[v2[0]][v2[1]][v2[2]] += flow_add;
-		  //Paths[v2[0]][v2[1]][v2[2]] = 255;
-		  if(vertex_index_map[v2] == strunk_idx)
-			  break;
-		  tmp = p_map[v2];
-		  vox_dist += voxdist(tmp.begin(), v2.begin());
-		  v2 = tmp;
-	  }
-	  if(cnt>=XYZ){
-		  std::cout << "endless loop!"<<std::endl;
-		  exit(1);
-	  }
-	  s_cnt(vox_dist);
-	  if(vox_dist>0)
-		  s_avg_pathlen(d_map[v]/vox_dist);
-  }
-  std::cout << ". " <<std::flush;
-  //write_voxelgrid<unsigned char>(getfn(base,"paths1","dat"),graph,make_vox2arr(Paths));
-  //std::fill(paths, paths+XYZ, (unsigned char) 0);
+		property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
+		foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
+			// determine avg path costs statistic
+			//if(vox2sato[v] < start_threshold)
+			if(vox2raw[v]/info.spross_intensity < start_threshold)
+				continue;
+			if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
+				continue;
+			double vox_dist = 0.0;
+			voxel_vertex_descriptor v2 = v;
+			unsigned int cnt = 0;
+			float flow_add = vox2raw[v]/info.spross_intensity;
+			voxel_vertex_descriptor tmp;
+			while(cnt++<XYZ){ 
+				Flow[v2[0]][v2[1]][v2[2]] += flow_add;
+				//Paths[v2[0]][v2[1]][v2[2]] = 255;
+				if(vertex_index_map[v2] == strunk_idx)
+					break;
+				tmp = p_map[v2];
+				vox_dist += voxdist(tmp.begin(), v2.begin());
+				v2 = tmp;
+			}
+			if(cnt>=XYZ){
+				std::cout << "endless loop!"<<std::endl;
+				exit(1);
+			}
+			s_cnt(vox_dist);
+			if(vox_dist>0)
+				s_avg_pathlen(d_map[v]/vox_dist);
+		}
+		std::cout << ". " <<std::flush;
+		//write_voxelgrid<unsigned char>(getfn(base,"paths1","dat"),graph,make_vox2arr(Paths));
+		//std::fill(paths, paths+XYZ, (unsigned char) 0);
 
-  foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-	  // determine flow statistic
-	  //if(vox2sato[v] < start_threshold)
-	  if(vox2raw[v]/info.spross_intensity < start_threshold)
-		  continue; // too weak at start
-	  if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
-		  continue; // too long
-	  s_flow(Flow[v[0]][v[1]][v[2]]);
-  }
-  } // profiling: Tracing
+		foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
+			// determine flow statistic
+			//if(vox2sato[v] < start_threshold)
+			if(vox2raw[v]/info.spross_intensity < start_threshold)
+				continue; // too weak at start
+			if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
+				continue; // too long
+			s_flow(Flow[v[0]][v[1]][v[2]]);
+		}
+	} // profiling: Tracing
 
-  std::cout << "Total   Pathlens: "<< s_pathlen<<std::endl;
-  std::cout << "Average Pathlens: "<< s_avg_pathlen<<std::endl;
-  std::cout << "Hop     Pathlens: "<< s_cnt<<std::endl;
+	std::cout << "Total   Pathlens: "<< s_pathlen<<std::endl;
+	std::cout << "Average Pathlens: "<< s_avg_pathlen<<std::endl;
+	std::cout << "Hop     Pathlens: "<< s_cnt<<std::endl;
 
-  foreach (const voxel_vertex_descriptor& v0, vertices(graph)) {
-	  //if(vox2sato[v0] < start_threshold)
-	  if(vox2raw[v0]/info.spross_intensity < start_threshold)
-		  continue;                  // weak signal at start point
-	  float total_dist   = d_map[v0];
-	  if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
-		  continue;                  // too long
-	  float flow = Flow[v0[0]][v0[1]][v0[2]];
-	  //if((flow-min(s_flow))/(max(s_flow)-min(s_flow)) < min_flow_thresh)
-	  if(flow < min_flow_thresh * info.noise_cutoff)
-		  continue;                  // not enough mass here
-	  voxel_vertex_descriptor v = v0;
-	  double vox_dist = 0.0;
-	  while(1){ 
-		  if(boost::get(vertex_index,graph,v) == strunk_idx)
-			  break;
-		  vox_dist += voxdist(p_map[v].begin(), v.begin());
-		  v = p_map[v];
-	  }
-	  if(total_dist/vox_dist > max(s_avg_pathlen)*avg_len_perc_thresh)
-		  continue;
-	  v = v0;
-	  while(1){ 
-		  Paths[v[0]][v[1]][v[2]] = 255;
-		  if(boost::get(vertex_index,graph,v) == strunk_idx)
-			  break;
-		  v = p_map[v];
-	  }
-  }
-
-  
-  // find local ranks
-  //rank_op(base,graph,make_vox2arr(Ranks),make_vox2arr(Sato),make_vox2arr(Paths));
-
-  const double maximum_radius_mm = 1;
-  wurzelgraph_t wgraph;
-  { boost::prof::profiler prof("voxelgraph-to-root-graph");
-  paths2adjlist(graph,wgraph,p_map,make_vox2arr(Paths));
-  }
-  { boost::prof::profiler prof("erode tree");
-  erode_tree(wgraph, info.scale, maximum_radius_mm);
-  }
-  { boost::prof::profiler prof("subpixel-positioning");
-  std::cout << "Finding subpixel vertex positions..."<<std::flush;
-  initialize_vertex_positions(wgraph);
-  if(!no_subpix_pos){
-	  for(int i=0;i<30;i++){
-		  determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
-		  move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
-	  }
-  }
-  std::cout << "done."<<std::endl;
-  }
-  { boost::prof::profiler prof("gauss-fitting");
-    if(!no_gauss_fit)
-	    wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), info.scale, maximum_radius_mm, info);
-  }
-
-  // substitute covariance stuff with inertia tensor, for radius estimation!
-  { boost::prof::profiler prof("inertia-tensor");
-  //determine_inertia_tensor(wgraph, make_vox2arr_subpix(Raw), maximum_radius_mm, info);
-  determine_radius_from_scales(wgraph, make_vox2arr_subpix(scales), maximum_radius_mm, info);
-  }
-  
-  merge_deg2_nodes(wgraph,0.25);
-
-  if(1){
-	  // serialize tree
-	  std::ofstream ofs_serializer(getfn(base,"wgraph","ser").c_str());
-	  boost::archive::text_oarchive oa(ofs_serializer);
-	  oa << wgraph;
-  }
-
-  //smooth_thickness(wgraph);
+	foreach (const voxel_vertex_descriptor& v0, vertices(graph)) {
+		//if(vox2sato[v0] < start_threshold)
+		if(vox2raw[v0]/info.spross_intensity < start_threshold)
+			continue;                  // weak signal at start point
+		float total_dist   = d_map[v0];
+		if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
+			continue;                  // too long
+		float flow = Flow[v0[0]][v0[1]][v0[2]];
+		//if((flow-min(s_flow))/(max(s_flow)-min(s_flow)) < min_flow_thresh)
+		if(flow < min_flow_thresh * info.noise_cutoff)
+			continue;                  // not enough mass here
+		voxel_vertex_descriptor v = v0;
+		double vox_dist = 0.0;
+		while(1){ 
+			if(boost::get(vertex_index,graph,v) == strunk_idx)
+				break;
+			vox_dist += voxdist(p_map[v].begin(), v.begin());
+			v = p_map[v];
+		}
+		if(total_dist/vox_dist > max(s_avg_pathlen)*avg_len_perc_thresh)
+			continue;
+		v = v0;
+		while(1){ 
+			Paths[v[0]][v[1]][v[2]] = 255;
+			if(boost::get(vertex_index,graph,v) == strunk_idx)
+				break;
+			v = p_map[v];
+		}
+	}
 
 
-  //remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
-  //write_voxelgrid<unsigned char>(getfn(base,"paths","dat"),graph,make_vox2arr(Paths));
-  //write_voxelgrid<unsigned char>(getfn(base,"ranks","dat"),graph,make_vox2arr(Ranks));
+	// find local ranks
+	//rank_op(base,graph,make_vox2arr(Ranks),make_vox2arr(Sato),make_vox2arr(Paths));
+
+	const double maximum_radius_mm = 1;
+	wurzelgraph_t wgraph;
+	// transform voxelgrid to adjacency-list graph
+	{ 	boost::prof::profiler prof("voxelgraph-to-root-graph");
+		paths2adjlist(graph,wgraph,p_map,make_vox2arr(Paths));
+	}
+
+	// remove short sequences at leafs
+	{ 	boost::prof::profiler prof("erode tree");
+		erode_tree(wgraph, info.scale, maximum_radius_mm);
+	}
+
+	// find positions of voxels which can be more precise than the 
+	// voxel resolution
+	{ 	boost::prof::profiler prof("subpixel-positioning");
+		std::cout << "Finding subpixel vertex positions..."<<std::flush;
+		initialize_vertex_positions(wgraph);
+		if(!no_subpix_pos){
+			for(int i=0;i<30;i++){
+				determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
+				move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
+			}
+		}
+		std::cout << "done."<<std::endl;
+	}
+
+	// locally fit gaussian functions to the root to determine its radius
+	{ 	boost::prof::profiler prof("gauss-fitting");
+		if(!no_gauss_fit)
+			wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), info.scale, maximum_radius_mm, info);
+	}
+
+	// substitute covariance stuff with inertia tensor, for radius estimation!
+	{ 	boost::prof::profiler prof("inertia-tensor");
+		//determine_inertia_tensor(wgraph, make_vox2arr_subpix(Raw), maximum_radius_mm, info);
+		determine_radius_from_scales(wgraph, make_vox2arr_subpix(scales), maximum_radius_mm, info);
+	}
+
+	// reduce amount of nodes (good if the output needs to be passed on to another program)
+	//merge_deg2_nodes(wgraph,0.25);
+
+	if(1){ // serialize tree
+		std::ofstream ofs_serializer(getfn(base,"wgraph","ser").c_str());
+		boost::archive::text_oarchive oa(ofs_serializer);
+		oa << wgraph;
+	}
+
+	//smooth_thickness(wgraph);
+
+
+	//remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
+	//write_voxelgrid<unsigned char>(getfn(base,"paths","dat"),graph,make_vox2arr(Paths));
+	//write_voxelgrid<unsigned char>(getfn(base,"ranks","dat"),graph,make_vox2arr(Ranks));
 }
