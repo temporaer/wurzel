@@ -1,6 +1,6 @@
 # Release-Mode or Debug-Mode?
-#OPTFLAGS=-O3 -g0 -DNDEBUG -march=native -mtune=native --fast-math -fno-builtin
-OPTFLAGS=-O0 -g3
+OPTFLAGS=-O3 -g0 -DNDEBUG -march=native -mtune=native --fast-math -fno-builtin
+#OPTFLAGS=-O0 -g3
 
 INCLUDE=-I $(HOME)/pool/include/boost-numeric-bindings/ -I boost_1_45_0 -I inc -I.
 LDFLAGS=-L boost_1_45_0/stage/lib -l boost_system -l boost_filesystem -l lapack -l boost_program_options -lxerces-c -lblas -lboost_serialization -ltbb
