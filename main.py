@@ -52,7 +52,8 @@ if __name__ == "__main__":
         print "-p           if this is given, parallelize over multiple computers using a running ipcluster"
         sys.exit()
 
-    D = loaddata(basename,slave=False)
+    # when parallelizing over multiple computers, assure here that data is upsampled /exactly/ once!
+    D = loaddata(basename,slave=[True,False][parallelize])
 
     # ##########################################
     #  Determine set of scales
