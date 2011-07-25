@@ -41,6 +41,7 @@ def loaddata(fn,slave=True):
     return D
 
 if __name__ == "__main__":
+    parallelize = False
     try:
         basename = sys.argv[1]
         if len(sys.argv)>2:
