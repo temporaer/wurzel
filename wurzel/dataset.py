@@ -17,6 +17,7 @@ class WurzelInfo:
     def __init__(self, fn, config_file="config.xml"):
         # load config file
         cfg = config(config_file)
+        self.datapath = cfg.datapath.text
 
         # remove extensions
         basename,ext = os.path.splitext(fn)
@@ -60,7 +61,7 @@ class dataset(object):
         if not info.has_rohr: remove_rohr = False
         if not info.has_rohr: medianfilt = False
 
-        picklename = datafile.replace(".dat",".pickle")
+        picklename = os.path.join(info.datapath, datafile.replace(".dat",".pickle"))
         if usepickled and os.path.exists(picklename):
             self.load(picklename)
             if not all([x==y for x,y in zip(self.D.shape, info.shape )]):
@@ -68,7 +69,7 @@ class dataset(object):
                 import sys
                 sys.exit(1)
         else:
-            with open(datafile) as fd:
+            with open(os.path.join(info.datapath, datafile)) as fd:
                 self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
             if info.read_dtype in [np.uint8, "uint8"]:
                 self.D /= 255.0

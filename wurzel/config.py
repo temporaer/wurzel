@@ -10,6 +10,7 @@ class config:
 		root      = dom.getroot()
 		datafiles = root.find("datafiles")
 		D         = datafiles.findall("datafile")
+		self.datapath  = root.find("datapath")
 		self.all_data = D
 	def read_dtype(self, id):
 		return self.get(id).get("read-dtype")
@@ -22,10 +23,9 @@ class config:
 	def scale(self, id):
 		return float(self.get(id).find("scale").text)
 	def get(self, id):
-		s = "../%s" % id
 		for x in self.all_data:
 			#print "compare: `%s'  with `%s'" %(id, x.find("base-name").text)
-			if x.find("base-name").text == s:
+			if x.find("base-name").text == id:
 				#print "success."
 				return x
 	def all_bases(self):
