@@ -61,9 +61,10 @@ if __name__ == "__main__":
     # Barley
     s = 1.20
     sigma0 = 1.0
-    # Lupine
-    s = 1.30
-    sigma0 = 1.0
+    if basename.find("L2")>=0:
+        print "Lupine Scales selected!"
+        s = 1.30
+        sigma0 = 1.0
     sigmas = []
     sigmas.extend([sigma0 * s**i for i in xrange(0,10)])
     print "Sigmas: ", sigmas
