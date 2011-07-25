@@ -650,12 +650,12 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 		std::vector<double> values, coors;
 		values.reserve(2*r/step*2*r/step*3);
 		coors .reserve(2*r/step*2*r/step*3);
-		ublas::vector<double> params(3);
+		ublas::vector<double> params(2);
 
 		double centerval = acc( p[0], p[1], p[2])/wi.spross_intensity;
 		params[0] = centerval;
 		params[1] = 1.0/(2*sr*sr);
-		params[2] = 0;
+		//params[2] = 0;
 		for(double z = -1; z <= 1; z+=1){
 			for(double i = -r; i <= r; i+=step){
 				for (double j = -r; j <= r; j+=step)
