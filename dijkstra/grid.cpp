@@ -11,7 +11,7 @@
 #include <map>
 #include <boost/tuple/tuple.hpp>
 #include <boost/array.hpp>
-#include <boost/range/irange.hpp>
+//#include <boost/range/irange.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/accumulators/accumulators.hpp>
@@ -27,15 +27,15 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <tbb/parallel_for_each.h>
 #include <tbb/atomic.h>
-#include "voxelgrid.hpp"
-#include "wurzel_tree.hpp"
-#include "voxel_accessors.hpp"
-#include "voxel_normals.hpp"
-#include "wurzel_info.hpp"
-#include "grid_config.hpp"
+#include "inc/voxelgrid.hpp"
+#include "inc/wurzel_tree.hpp"
+#include "inc/voxel_accessors.hpp"
+#include "inc/voxel_normals.hpp"
+#include "inc/wurzel_info.hpp"
+#include "inc/grid_config.hpp"
 //#include "gaussian_fit.hpp"
-#include "profiler.hpp"
-#include "rprop.hpp"
+#include "inc/profiler.hpp"
+#include "inc/rprop.hpp"
 
 #define V(X) #X<<":"<<(X)<<"  "
 #define foreach BOOST_FOREACH
@@ -865,7 +865,7 @@ int main(int argc, char* argv[]) {
 	po::variables_map vm = get_config(info,argc,argv);
 	static const unsigned int X=info.X,Y=info.Y,Z=info.Z,XYZ=info.XYZ;
 	bool force_recompute_dijkstra = vm.count("force");
-	std::string base = vm["base"].as<std::string>();
+	std::string base = (fs::path(info.directory) / vm["base"].as<std::string>()).string();
 
 	// Define a grid_graph where dimensions don't wrap
 	boost::array<vidx_t, 3> lengths = { { X, Y, Z } };

@@ -16,15 +16,18 @@
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/reverse_graph.hpp>
 
+#include <boost/filesystem.hpp>
+
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/foreach.hpp>
 #define foreach BOOST_FOREACH
 
-#include <voxel_accessors.hpp>
-#include <wurzel_tree.hpp>
-#include <treeinfo_config.hpp>
+#include "inc/voxel_accessors.hpp"
+#include "inc/wurzel_tree.hpp"
+#include "inc/treeinfo_config.hpp"
 
+namespace fs = boost::filesystem;
 using namespace boost::accumulators;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max, tag::variance, tag::count > > stat_t;
 typedef accumulator_set< double, features< tag::median, tag::count > > medstat_t;
@@ -662,6 +665,10 @@ int main(int argc, char* argv[]){
 	po::variables_map vm = get_config(wis,argc,argv);
 	std::vector<std::string> actions = vm["action"].as<std::vector<std::string> >();
 	std::vector<std::string> bases   = vm["base"].as<std::vector<std::string> >();
+
+	for(int i=0;i<wis.size(); i++){
+		bases[i] = (fs::path(wis[i].directory) / bases[i]).string();
+	}
 
 	//graph_stats(g1);
 	//graph_stats(g2);

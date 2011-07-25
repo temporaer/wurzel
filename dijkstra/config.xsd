@@ -37,6 +37,7 @@
 
   <xs:complexType name="config_t">
     <xs:sequence>
+      <xs:element name="datapath" type="xs:string" maxOccurs="1" minOccurs="1"/>
       <xs:element name="datafiles" type="datafiles_t" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>

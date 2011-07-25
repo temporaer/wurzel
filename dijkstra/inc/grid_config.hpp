@@ -6,8 +6,10 @@
 #define __GRID_CONFIG_HPP__
 
 #include <iostream>
+#include <fstream>
 #include <boost/program_options.hpp>
 #include <boost/foreach.hpp>
+#include <inc/wurzel_tree.hpp>
 #include "wurzel_info.hpp"
 #include "../config.hxx"
 #define foreach BOOST_FOREACH
@@ -85,6 +87,7 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			wi.stem_axis  = df.stem_axis();
 			wi.scale      = df.scale();
 			wi.noise_cutoff = df.noise_cutoff();
+			wi.directory  = cfg->datapath();
 			found++;
 		}
 	}

@@ -16,6 +16,7 @@ struct wurzel_info
 	double       scale;   ///< multiply with this to get milli meter
 	double       spross_intensity;   ///< normalize data by this
 	double       noise_cutoff; ///< signal below this is "noise"
+	std::string  directory; ///< where data is stored
 	boost::array<vidx_t, 3> strunk;
 };
 

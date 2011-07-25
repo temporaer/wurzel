@@ -2,12 +2,13 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="config.xsd"
         xsi:schemaLocation="http://www.w3.org/XML/1998/namespace xml.xsd">
+	<datapath>/home/VI/staff/schulz/checkout/git/wurzel/data</datapath>
 	<datafiles>
 		<!-- ******************** -->
 		<!--      Gerste          -->
 		<!-- ******************** -->
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_64x64x410</base-name>
+			<base-name>GersteLA_64x64x410</base-name>
 			<read-shape x="410" y="64" z="64"/>
 			<shape      x="410" y="90" z="90"/>
 			<stem-plane>5</stem-plane>
@@ -17,7 +18,7 @@
 			<noise-cutoff>0.0133333333</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_96x96x410</base-name>
+			<base-name>GersteLA_96x96x410</base-name>
 			<read-shape x="410" y="96" z="96"/>
 			<shape      x="436" y="96" z="96"/>
 			<stem-plane>5</stem-plane>
@@ -27,7 +28,7 @@
 			<noise-cutoff>0.02</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_128x128x410</base-name>
+			<base-name>GersteLA_128x128x410</base-name>
 			<read-shape x="410" y="128" z="128"/>
 			<shape      x="582" y="128" z="128"/>
 			<stem-plane>5</stem-plane>
@@ -37,7 +38,7 @@
 			<noise-cutoff>0.02666666666</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/reference</base-name>
+			<base-name>reference</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -47,7 +48,7 @@
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_192x192x410_normal</base-name>
+			<base-name>GersteLA_192x192x410_normal</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -57,7 +58,7 @@
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_256x256x410</base-name>
+			<base-name>GersteLA_256x256x410</base-name>
 			<read-shape x="410" y="256" z="256"/>
 			<shape      x="1163" y="256" z="256"/>
 			<stem-plane>5</stem-plane>
@@ -67,7 +68,7 @@
 			<noise-cutoff>0.0533333333</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_290909</base-name>
+			<base-name>GersteLA_290909</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -81,7 +82,7 @@
 		<!--    Gerste Noise      -->
 		<!-- ******************** -->
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_192x192x410_noise2</base-name>
+			<base-name>GersteLA_192x192x410_noise2</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -91,7 +92,7 @@
 			<noise-cutoff>0.08</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_192x192x410_noise3</base-name>
+			<base-name>GersteLA_192x192x410_noise3</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -101,7 +102,7 @@
 			<noise-cutoff>0.12</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_192x192x410_noise4</base-name>
+			<base-name>GersteLA_192x192x410_noise4</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -111,7 +112,7 @@
 			<noise-cutoff>0.16</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_192x192x410_noise5</base-name>
+			<base-name>GersteLA_192x192x410_noise5</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -124,7 +125,7 @@
 		<!--    Gerste Filter     -->
 		<!-- ******************** -->
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_192x192x410_filter6-16</base-name>
+			<base-name>GersteLA_192x192x410_filter6-16</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -134,7 +135,7 @@
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_192x192x410_filter7-16</base-name>
+			<base-name>GersteLA_192x192x410_filter7-16</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -144,7 +145,7 @@
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>../data/GersteLA_192x192x410_filter8-16</base-name>
+			<base-name>GersteLA_192x192x410_filter8-16</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -158,7 +159,7 @@
 		<!--      Lupine          -->
 		<!-- ******************** -->
 		<datafile read-dtype="uint8">
-			<base-name>../data/L2_6aug</base-name>
+			<base-name>L2_6aug</base-name>
 			<read-shape x="256" y="256" z="120"/>
 			<shape      x="256" y="256" z="256"/>
 			<stem-plane>24</stem-plane>
@@ -168,7 +169,7 @@
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="uint8">
-			<base-name>../data/L2_17aug</base-name>
+			<base-name>L2_17aug</base-name>
 			<read-shape x="256" y="256" z="120"/>
 			<shape      x="256" y="256" z="256"/>
 			<stem-plane>24</stem-plane>
@@ -178,7 +179,7 @@
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="uint8">
-			<base-name>../data/L2_22aug</base-name>
+			<base-name>L2_22aug</base-name>
 			<read-shape x="256" y="256" z="120"/>
 			<shape      x="256" y="256" z="256"/>
 			<stem-plane>24</stem-plane>

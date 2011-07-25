@@ -137,6 +137,7 @@ if __name__ == "__main__":
     x = sato[0]
     x -= x.min();
     x /= x.max()
+    basename = os.path.join(D.info.datapath, basename)
     print "Saving to ", basename+".sato", "data range:", x.min(),x.max()
     x.tofile(basename+".sato")
     scales.tofile(basename+".scales")
