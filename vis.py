@@ -63,8 +63,9 @@ if __name__ == "__main__":
   #Ddist1 = dataset(basename+"-paths1.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
   #Ddist = dataset(basename+"-d_map.dat", dz=256, dtype="float64", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  Dsato = dataset(basename+".sato", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
-  Draw  = dataset(basename+"-upsampled.dat", dz=256, upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  Dsato = dataset(basename+".sato", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  Draw  = dataset(basename+"-upsampled.dat", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+  #Draw  = np.fromfile("/home/local/cuv/build/nlmeanresult.dat", dtype="float32").reshape(410,192,192)
   #dmin = Dsato.min()
   #dptp = Dsato.ptp()
   #minv = dmin+0.15*dptp
