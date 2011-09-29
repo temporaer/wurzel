@@ -32,7 +32,7 @@ using namespace boost::accumulators;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max, tag::variance, tag::count > > stat_t;
 typedef accumulator_set< double, features< tag::median, tag::count > > medstat_t;
 
-std::map<void*,double> g_radius;
+std::map<void*,double> g_diameter;
 
 
 // (a2b3 − a3b2, a3b1 − a1b3, a1b2 − a2b1)
@@ -126,7 +126,7 @@ void to_xml_node(std::ofstream& o, unsigned int& idx, const wurzel_vertex_descri
 	o << "<Node "
 	  << kv("id", idx)
 	  << kv("bo", 1)
-	  << kv("rad", g_radius[v]/200.0) // meters, i suppose...
+	  << kv("rad", g_diameter[v]/200.0) // meters, i suppose...
 	  << kv("x", pos_map[v][2]/100.0-0.5)
 	  << kv("y", pos_map[v][1]/100.0-0.5)
 	  << kv("z", pos_map[v][0]/100.0-0.5)
@@ -583,6 +583,7 @@ template<class T>
 void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_map){
 	std::ofstream ofs(name.c_str());
 	unsigned int idx=0;
+	stat_t s_diameter, s_mass;
 	property_map<wurzelgraph_t,vertex_index_t>::type index_map = get(vertex_index, wg);
 	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
@@ -609,6 +610,7 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 		if(cnt>0) mass /= cnt;
 		mass = std::max(mass, 0.05); // just for visualization!
 		mass = std::min(mass, 6.00); // just for visualization!
+		s_mass(mass);
 
 		//double d1 = pow(ev_map[wd][1], 2.00);
 		//double d2 = pow(ev_map[wd][2], 2.00);
@@ -633,11 +635,18 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 		//double d1 = pow(ev_map[wd][1], 0.25);
 		//double d2 = pow(ev_map[wd][2], 0.25);
 		//std::cout << "d1: "<<d1<< " d2: "<< d2<<std::endl;
-		double radius = 0.5 * (d1+d2)    * 0.8;
-		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<mass<<" "<<radius<<" "<<0<<" "<<0<<std::endl;
-		g_radius[wd]=radius;
+		double diameter = 0.5 * (d1+d2)    * 0.50;
+		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<mass<<" "<<diameter<<" "<<0<<" "<<0<<std::endl;
+		g_diameter[wd]=diameter;
+		s_diameter(diameter);
 	}
 	ofs.close();
+	std::cout << "Average diameter (mm): "<<mean(s_diameter)<<std::endl;
+	std::cout << "Max     diameter (mm): "<<max(s_diameter)<<std::endl;
+	std::cout << "Min     diameter (mm): "<<min(s_diameter)<<std::endl;
+	std::cout << "Average     mass (mg): "<<mean(s_mass)<<std::endl;
+	std::cout << "Max         mass (mg): "<<max(s_mass)<<std::endl;
+	std::cout << "Min         mass (mg): "<<min(s_mass)<<std::endl;
 }
 
 /**
