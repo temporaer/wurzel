@@ -141,9 +141,9 @@ if __name__ == "__main__":
     x -= x.min();
     x /= x.max()
     basename = os.path.join(D.info.datapath, basename)
-    print "Saving to ", basename+".sato", "data range:", x.min(),x.max()
-    x.tofile(basename+".sato")
-    scales.tofile(basename+".scales")
+    print "Saving to ", os.path.join(basename,"sato.dat"), "data range:", x.min(),x.max()
+    x.tofile(os.path.join(basename,"sato.dat"))
+    scales.tofile(os.path.join(basename,"scales.dat"))
     #ev10[0].tofile(basename+".ev10")
     #ev11[0].tofile(basename+".ev11")
     #ev12[0].tofile(basename+".ev12")

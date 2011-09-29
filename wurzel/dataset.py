@@ -61,7 +61,7 @@ class dataset(object):
         if not info.has_rohr: remove_rohr = False
         if not info.has_rohr: medianfilt = False
 
-        picklename = os.path.join(info.datapath, datafile.replace(".dat",".pickle"))
+        picklename = os.path.join(info.datapath, datafile.replace(".dat",""), "upsampled.pickle")
         if usepickled and os.path.exists(picklename):
             self.load(picklename)
             if not all([x==y for x,y in zip(self.D.shape, info.shape )]):
@@ -88,6 +88,7 @@ class dataset(object):
                 sys.exit(1)
 
             if medianfilt or remove_rohr or upsample:
+                print "Saving upsampled as ", picklename
                 self.save(picklename)
 
     def median_filter(self):
@@ -132,7 +133,7 @@ class dataset(object):
         """ save a pickle, and an -upsampled.dat raw data file """
         with open(datafile,"wb") as f:
             cPickle.dump(self.D, f, cPickle.HIGHEST_PROTOCOL)
-        upsname = datafile.replace(".pickle","-upsampled.dat")
+        upsname = datafile.replace(".pickle",".dat")
         print "Saving to upsampled: ", self.D.shape
         self.D.tofile(upsname)
     def get_rid_of_roehrchen(self):

@@ -57,9 +57,9 @@ std::string
 getfn(const std::string& base, const std::string& marker, const std::string& ext){
 	std::stringstream ss;
 	if(marker.length()>0){
-		ss << base << "-"<<marker << "."<<ext;
+		ss << base << "/"<<marker << "."<<ext;
 	}else{
-		ss << base << "."<<ext;
+		ss << base << "/"<<ext;
 	}
 	return ss.str();
 }

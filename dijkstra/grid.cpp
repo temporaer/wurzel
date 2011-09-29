@@ -65,9 +65,9 @@ std::string
 getfn(const std::string& base, const std::string& marker, const std::string& ext){
 	std::stringstream ss;
 	if(marker.length()>0){
-		ss << base << "-"<<marker << "."<<ext;
+		ss << base << "/"<<marker << "."<<ext;
 	}else{
-		ss << base << "."<<ext;
+		ss << base << "/"<<ext;
 	}
 	return ss.str();
 }
@@ -882,11 +882,11 @@ int main(int argc, char* argv[]) {
 	info.spross_intensity = 0.9;
 
 	// read additional data: Vesselness measure and (if desired) eigenvalues and scales
-	float_grid Sato = read3darray<float>(getfn(base,"","sato"),X,Y,Z); g_sato = new vox2arr<float_grid>(Sato);
+	float_grid Sato = read3darray<float>(getfn(base,"sato","dat"),X,Y,Z); g_sato = new vox2arr<float_grid>(Sato);
 	//float_grid ev10 = read3darray<float>(getfn(base,"","ev10"),X,Y,Z); g_ev10 = new vox2arr<float_grid>(ev10);
 	//float_grid ev11 = read3darray<float>(getfn(base,"","ev11"),X,Y,Z); g_ev11 = new vox2arr<float_grid>(ev11);
 	//float_grid ev12 = read3darray<float>(getfn(base,"","ev12"),X,Y,Z); g_ev12 = new vox2arr<float_grid>(ev12);
-	float_grid scales = read3darray<float>(getfn(base,"","scales"),X,Y,Z); 
+	float_grid scales = read3darray<float>(getfn(base,"scales","dat"),X,Y,Z); 
 
 	std::cout << "Sato stats in file: " << voxel_stats(graph,make_vox2arr(Sato)) <<std::endl;
 
