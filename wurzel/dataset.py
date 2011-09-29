@@ -53,7 +53,7 @@ class dataset(object):
         @param medianfilt   remove "sheet" structures occurring in Lupine data
         @param remove_rohr  remove reference tube in Lupine data
         """
-        if not isinstance(datafile,str):
+        if not isinstance(datafile,str) and not isinstance(datafile, unicode):
             self.D = datafile
             return
         self.info = WurzelInfo(datafile)
