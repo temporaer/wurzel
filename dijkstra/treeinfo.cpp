@@ -481,6 +481,26 @@ struct wurzel_segment{
 	const wurzelgraph_t& wg;
 	wurzel_segment(const wurzelgraph_t& g):wg(g){}
 	std::list<wurzel_edge_descriptor> edges;
+	void average_mass_in_segment(wurzelgraph_t& g){
+		double edge_mass_sum = 0.0;
+		double total_len     = 0.0;
+		property_map<wurzelgraph_t,vertex_position_t>::type pos_map   = get(vertex_position, g);
+		property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, g);
+		foreach(const wurzel_edge_descriptor &e, edges){
+			const wurzel_vertex_descriptor& s = source(e,g);
+			const wurzel_vertex_descriptor& t = target(e,g);
+
+			edge_mass_sum += mass_map[e];
+			total_len     += voxdist(pos_map[s].begin(),pos_map[t].begin());
+		}
+		foreach(const wurzel_edge_descriptor &e, edges){
+			const wurzel_vertex_descriptor& s = source(e,g);
+			const wurzel_vertex_descriptor& t = target(e,g);
+			double len = voxdist(pos_map[s].begin(),pos_map[t].begin());
+			//mass_map[e] = edge_mass_sum / total_len * len;
+			mass_map[e] = edge_mass_sum / total_len; // converts mass to units per length(!)
+		}
+	}
 	void add(const wurzel_edge_descriptor& e){
 		edges.push_back(e);
 	}
