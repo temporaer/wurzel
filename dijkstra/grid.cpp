@@ -236,6 +236,33 @@ void find_shortest_paths(const std::string& base,
 }
 
 /**
+ * calculate the statistics of a grid
+ * @param map    where the values are stored
+ * @return       statistics-object
+ */
+template<class Stats>
+stat_t voxel_stats(const float_grid& map, Stats& acc ){
+	for(int i=0;i<map.shape()[0];i++)
+		for(int j=0;j<map.shape()[1];j++)
+			for(int k=0;k<map.shape()[2];k++)
+				acc(map[i][j][k]);
+	return acc;
+}
+/**
+ * calculate the statistics of a grid
+ * @param map    where the values are stored
+ * @return       statistics-object
+ */
+template<class M>
+stat_t voxel_stats(const M& map){
+	stat_t acc;
+	for(unsigned int i=0;i<map.shape()[0];i++)
+		for(unsigned int j=0;j<map.shape()[1];j++)
+			for(unsigned int k=0;k<map.shape()[2];k++)
+				acc(map[i][j][k]);
+	return acc;
+}
+/**
  * calculate the statistics of a map
  * @param graph  determines connectivity
  * @param map    where the values are stored
