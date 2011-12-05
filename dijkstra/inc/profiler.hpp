@@ -163,11 +163,11 @@ namespace prof {
           stats_policy::on_report();
         }
       private:
+        string name;
+        bool timing;
+        double elapsed;
         bool underflow;
         bool overflow;
-        bool timing;
-        string name;
-        double elapsed;
         timer_t t;
     };
   #else
