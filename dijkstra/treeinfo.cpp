@@ -634,6 +634,33 @@ void build_seg(const wurzel_edge_descriptor& e, wurzel_segment seg, std::list<wu
 	build_seg(*out_edges(t,wg).first, seg,segments,wg);
 }
 
+void determine_nodes_far_away_from_crossings(wurzelgraph_t& wg, bool average_radius_in_segment, bool average_mass_in_segment){
+	std::list<wurzel_segment> segments;
+	std::map<wurzel_edge_descriptor,bool> foundmap;
+	wurzel_vertex_descriptor root;
+	bool found = false;
+	foreach(const wurzel_vertex_descriptor& v, vertices(wg)){
+		if(in_degree(v,wg)==0){
+			root = v;
+			found = true;
+			break;
+		}
+	}
+	if(!found){
+		std::cout << "Could not find root node...."<<std::endl;
+		exit(1);
+	}
+	foreach(const wurzel_edge_descriptor& e2, out_edges(root,wg)){
+		build_seg(e2,wurzel_segment(wg), segments, wg);
+	}
+	foreach(wurzel_segment& seg,segments){
+		seg.mark_non_ending_vertices(wg,average_radius_in_segment);
+		if(average_mass_in_segment)
+			seg.average_mass_in_segment(wg);
+	}
+	
+}
+
 /**
  * determine average segment length
  */
