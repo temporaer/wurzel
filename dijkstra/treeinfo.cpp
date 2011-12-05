@@ -456,22 +456,7 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 			continue;
 		const double length  = voxdist(pos_map[s].begin(),pos_map[t].begin());          // pos_map is in mm
 
-		static const double k=1.2;
-		const double param1s = 1.0/(2.0*stddev_map[s]*stddev_map[s]*wi.scale*wi.scale);                              // determine param in exp of gauss again
-		const double param1t = 1.0/(2.0*stddev_map[t]*stddev_map[t]*wi.scale*wi.scale);                              // determine param in exp of gauss again
-
-		static const double vox_to_mm3 = wi.scale*wi.scale*wi.scale;
-		const double param0s = param0_map[s]/vox_to_mm3;
-		const double param0t = param0_map[t]/vox_to_mm3;
-
-		//double masss   = -M_PI *param0s *(exp(-param1s *stddevs*stddevs)-1)/param1s;
-		//double masst   = -M_PI *param0t *(exp(-param1t *stddevt*stddevt)-1)/param1t;
-		const double masss = M_PI*(2*param0s*(1-exp(-k*k/2.0)) + k*k*wi.noise_cutoff/4)/(2*param1s);
-		const double masst = M_PI*(2*param0t*(1-exp(-k*k/2.0)) + k*k*wi.noise_cutoff/4)/(2*param1t);
-
-		//mass_map[e]    = masss*length;
-		mass_map[e] = length / 3.0 * (masss +masst +sqrt(masss *masst));
-		sum += mass_map[e];
+		sum += mass_map[e] * length;
 
 		const vec3_t& spos = pos_map[s];
 		const vec3_t& tpos = pos_map[t];
@@ -480,12 +465,12 @@ double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 		if(is_vert) sum_vert  += mass_map[e];
 		else        sum_horiz += mass_map[e];
 	}
-	double weight_scale     = 0.2712; // milli-gram
-	weight_scale /= wi.X*wi.Y*wi.Z  / 192.0 / 192.0 / 410.0; // change 0.27 so that it fits the resolution
-	std::cout << "Total mass: "<<sum * weight_scale <<std::endl;
-	std::cout << "Horiz mass: "<<sum_horiz * weight_scale <<std::endl;
-	std::cout << "Vertc mass: "<<sum_vert  * weight_scale <<std::endl;
-	std::cout << "V/H   mass: "<<sum_vert/sum_horiz<<std::endl;
+	double weight_scale     = 1.0000; // milli-gram
+	//weight_scale /= wi.X*wi.Y*wi.Z  / 192.0 / 192.0 / 410.0; // change 0.27 so that it fits the resolution
+	std::cout << "mass_total= "<<sum * weight_scale <<std::endl;
+	std::cout << "mass_total_horiz= "<<sum_horiz * weight_scale <<std::endl;
+	std::cout << "mass_total_mass= "<<sum_vert  * weight_scale <<std::endl;
+	std::cout << "mass_V_H_ratio= "<<sum_vert/sum_horiz<<std::endl;
 	return sum*weight_scale;
 }
 
