@@ -44,7 +44,7 @@ get_config(std::vector<wurzel_info>& wis, int argc, char* argv[]){
 		exit(1);
 	}
 	std::string config_file = vm["cfg"].as<std::string>();
-	std::cout << "Reading config from file `"<<config_file<<"'."<<std::endl;
+	std::cout << "# Reading config from file `"<<config_file<<"'."<<std::endl;
 
 	std::ifstream config_ifs(config_file.c_str());
 	std::auto_ptr<config_t> cfg;
