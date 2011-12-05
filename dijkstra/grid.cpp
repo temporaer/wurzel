@@ -384,7 +384,8 @@ void erode_tree(wurzelgraph_t& wg, const double& scale, const double& max_radius
 			}
 			if(cnt >= minlen)
 				continue;
-			if(voxdist(get(vertex_name,wg)[pred].begin(),v.begin())*scale > max_radius_mm)
+			double d = voxdist(get(vertex_name,wg)[pred].begin(),v.begin());
+			if(d*scale > max_radius_mm)
 			        continue;
 			clear_vertex(*vi,wg);
 			remove_vertex(*vi,wg);
