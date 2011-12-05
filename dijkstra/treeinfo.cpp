@@ -76,14 +76,243 @@ voxel_edge_weight_map::operator[](key_type e) const {
 	return 0.0;
 }
 
+/**
+ * read a 3D-map from file
+ * @param fn filename
+ * @param X  size of 1st dimension (innermost)
+ * @param Y  size of 2nd dimension 
+ * @param Z  size of 3rd dimension
+ * @return a reference to the space in memory
+ */
+template<class T>
+boost::multi_array_ref<T, 3> 
+read3darray(std::string fn, unsigned int X, unsigned int Y, unsigned int Z){
+  std::cout << "# Reading `"<<fn<<"', bytes="<<sizeof(T)<<" size="<<X<<","<<Y<<","<<Z<<std::endl;
+  std::ifstream dat(fn.c_str(), std::ios::in | std::ios::binary);
+  if(!dat.is_open())	{
+	  std::cerr << "Could not open `"<<fn<<"' --> exiting."<<std::endl;
+	  exit(1);
+  }
+  T* data = new T[X*Y*Z];
+  dat.read((char*)data,X*Y*Z*sizeof(T));
+  if(dat.fail()){
+	  std::cerr << "Error while reading `"<<fn<<"' --> exiting."<<std::endl;
+	  exit(1);
+  }
+  dat.close();
+  return boost::multi_array_ref<T,3>(data,boost::extents[X][Y][Z]);
+}
+
+// for ground truth graphs
+void determine_mass_from_vol(std::string basename,wurzelgraph_t& g, const wurzel_info& info){
+	auto   edge_mass_map = get(edge_mass, g);
+	auto      radius_map = get(vertex_radius, g);
+	auto        pos_map  = get(vertex_position, g);
+
+	foreach(const wurzel_edge_descriptor& e, edges(g)){
+		edge_mass_map[e] = 0.0;
+		const vec3_t& pes = pos_map[source(e,g)]; // source of e
+		const vec3_t& pet = pos_map[target(e,g)]; // target of e
+		vec3_t e_dir      = pet-pes;               // normalized direction of e
+		double h = ublas::norm_2(e_dir);
+		double R = radius_map[source(e,g)];
+		double r = radius_map[target(e,g)];
+		double V = h*M_PI/3.0 * (R*R + R*r + r*r);
+		edge_mass_map[e] = V;
+	}
+}
+void determine_mass_from_raw(std::string basename,wurzelgraph_t& g, const wurzel_info& info){
+	// NOTE: this assumes that the root has VOXEL coordinates, NOT mm!
+	static const unsigned int X=info.X,Y=info.Y,Z=info.Z;
+	boost::array<vidx_t, 3> lengths = { { X, Y, Z } };
+
+	fs::path datadir = info.directory;
+	float_grid Raw  = read3darray<float>(getfn((datadir / basename).string(),"upsampled","dat"),X,Y,Z);
+	property_map<wurzelgraph_t,vertex_name_t>::type name_map  = get(vertex_name, g);
+	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, g);
+	property_map<wurzelgraph_t,vertex_radius_t>::type radius_map = get(vertex_radius, g);
+	property_map<wurzelgraph_t,marked_vertex_t>::type   mark_map = get(marked_vertex, g);
+	property_map<wurzelgraph_t,edge_mass_t>::type   edge_mass_map = get(edge_mass, g);
+	auto raw_acc = make_vox2arr(Raw);
+	static const double sample_step_len = 0.2; // mm
+	foreach(const wurzel_edge_descriptor& e, edges(g)){
+		edge_mass_map[e] = 0.0;
+		const vec3_t& pes = pos_map[source(e,g)]; // source of e
+		const vec3_t& pet = pos_map[target(e,g)]; // target of e
+		vec3_t e_dir      = pet-pes;               // normalized direction of e
+		e_dir            /= ublas::norm_2(e_dir);
+
+		std::vector<std::pair<vec3_t,vec3_t> > sub_edges;
+		{
+			double len_e     = ublas::norm_2(pes-pet);
+			double first_dist = std::min(len_e, sample_step_len); // if shorter than sample_step_len, use whole edge
+			double dist       = first_dist;
+			vec3_t prev_pv   = pes;                    // the `last' vertex we compared to
+			for(; dist<len_e; dist+=sample_step_len){
+				const vec3_t pv = pes + dist * e_dir;
+				sub_edges .push_back(std::make_pair(prev_pv,pv));
+				prev_pv = pv;
+			}
+			const vec3_t pv = pes + std::max(dist-sample_step_len,0.0) * e_dir;
+			sub_edges.push_back(std::make_pair(pv,pet));
+		}
+		// calculate two vectors orthogonal to e
+		vec3_t tmp = e_dir;
+		tmp[0] += 1;
+		vec3_t v1 = cross_product(tmp,e_dir);
+		vec3_t v2 = cross_product(v1,e_dir);
+		v1 /= ublas::norm_2(v1);
+		v2 /= ublas::norm_2(v2);
+
+		double edgemass_sum = 0.;
+		for(unsigned int subedge=0;subedge<sub_edges.size();subedge++){
+			const vec3_t prev_pv = sub_edges[subedge].first;
+			const vec3_t p      = sub_edges[subedge].second;
+			// p now is the center of a slice we want to sample
+			double dist   = ublas::norm_2(p-pes)/ublas::norm_2(pet-pes);
+			double radius =    dist  * radius_map[source(e,g)]  +
+					(1-dist) * radius_map[target(e,g)];
+
+			
+			for(double dx=-sqrt(2.0)*radius; dx<=sqrt(2.0)*radius;dx+=0.5){
+				for(double dy=-sqrt(2.0)*radius; dy<=sqrt(2.0)*radius;dy+=0.5){
+					if(sqrt(dx*dx + dy*dy)>1.1*radius)
+						continue;
+					vec3_t pr = p + dx*v1+dy*v2;
+					// for rounding: add 0.5 to all components
+					pr[0] += 0.5;
+					pr[1] += 0.5;
+					pr[2] += 0.5;
+					float& r = Raw[(unsigned int)pr[0]][(unsigned int)pr[1]][(unsigned int)pr[2]];
+					edgemass_sum += r;
+					r = 0;
+				}
+			}
+		}
+		edge_mass_map[e] = edgemass_sum;
+	}
+}
 
 /**
  * load a serialized tree from a file
  */
 void loadtree(std::string basename, wurzelgraph_t& g){
-	std::ifstream ifs((basename+"-wgraph.ser").c_str());
+	std::ifstream ifs((basename+"/wgraph.ser").c_str());
 	boost::archive::text_iarchive ia(ifs);
 	ia >> g;
+}
+/**
+ * load a ground truth tree from a file
+ */
+void load_gt_tree(std::string basename, wurzelgraph_t& g, const wurzel_info& wi){
+	property_map<wurzelgraph_t,vertex_position_t>::type  pos_map = get(vertex_position, g);
+	property_map<wurzelgraph_t,vertex_radius_t>::type radius_map = get(vertex_radius, g);
+
+	fs::path p(basename);
+
+	std::string fn = std::string("../data/") + p.leaf() +"/rootsegmentdata.dat";
+	std::cout << "# reading data from "<<fn<<std::endl;
+	std::ifstream ifs(fn.c_str());
+	char str[512];
+	ifs.getline(str,512); // header
+	typedef std::map<wurzel_vertex_descriptor,int> next_t;
+	typedef std::map<int,wurzel_vertex_descriptor> index_t;
+	next_t next_map;
+	index_t index_map;
+	int idx = -1;
+	bool is_stub=false;
+	bool is_leaf=false;
+
+	vec3_t offset;
+	double read_xdim   = wi.read_XYZ / 832 / 64;
+	double offset_fact = (256.0 - read_xdim)/(256-64); // 1 if read_xdim==64, 0 if read_xdim==256
+	if(read_xdim != 64)
+		offset_fact = 0.0;
+	offset[0] = offset_fact * 0.60 / wi.scale; // in voxels
+	offset[1] = offset_fact * 0.00 / wi.scale; // in voxels
+	offset[2] = offset_fact * 0.60 / wi.scale; // in voxels
+
+	std::cout << "# offset: "<<offset<<std::endl;
+
+	while(!ifs.eof()){
+		idx++;
+		float x,y,z, diameter,length, nx,ny,nz, len2;
+		int prev, next;
+		ifs  >> x >> y >> z;
+		ifs  >> prev >> next;
+		ifs  >> nx >> ny >> nz;
+		ifs  >> diameter >> length >> len2;
+		//std::cout << V(x) << V(y)<<V(z)<<V(next)<<V(diameter)<<V(length)<<std::endl;
+		is_leaf = next==-1;
+		if(is_leaf && is_stub){
+			is_stub = false;
+			continue;
+		}
+		
+		if(length<0.01 && !is_leaf){
+			is_stub = true;
+			continue; // less than a millimeter long roots are stubs that should be ignored
+		}
+
+
+		wurzel_vertex_descriptor v = add_vertex(g);    
+		pos_map[v][0] = z*10./wi.scale + 17 + 5.5*10./wi.scale; // cm --> mm, swap x/z, -->voxel
+		pos_map[v][1] = y*10./wi.scale + 6  + 40.5*10./wi.scale; // cm --> mm, -->voxel
+		pos_map[v][2] = x*10./wi.scale + 17 + 5.5*10./wi.scale; // cm --> mm, swap x/z, -->voxel
+		pos_map[v] += offset;
+		radius_map[v] = diameter / 2. * 10. / wi.scale; // cm --> mm, -->voxel
+		next_map[v] = next;
+		index_map[idx] = v;
+	}
+	for (index_t::iterator it = index_map.begin(); it != index_map.end(); ++it)
+	{
+		int current_idx = it->first;
+		wurzel_vertex_descriptor current_v = it->second;
+		if(!current_v)
+			continue;
+		int next_idx = next_map[current_v];
+		if(next_idx < 0) 
+			continue;
+		wurzel_vertex_descriptor next_v = index_map[next_idx];
+		if(next_v)
+			//add_edge(next_v,current_v,g);
+			add_edge(current_v,next_v,g);
+	}
+	std::cout << "# done "<<fn<<std::endl;
+
+	auto inside_bb_check 	= [&](const wurzel_vertex_descriptor& v)->bool{
+		double x = pos_map[v][0];
+		double y = pos_map[v][1];
+		double z = pos_map[v][2];
+		if(x<0   +17) return false;
+		if(x>=221+17) return false;
+		if(y<0   + 6) return false;
+		if(y>=821+ 6) return false;
+		if(z<0   +17) return false;
+		if(z>=221+17) return false;
+		return true;
+	};
+
+	bool changed=true;
+	while(changed){
+		changed = false;
+		foreach(wurzel_edge_descriptor e, edges(g)){
+			bool is_s_inside = inside_bb_check(source(e,g));
+			bool is_t_inside = inside_bb_check(target(e,g));
+			if(!is_s_inside || !is_t_inside){
+				if(!is_s_inside){
+					clear_vertex(source(e,g),g);
+					remove_vertex(source(e,g),g);
+				}
+				if(!is_t_inside){
+					clear_vertex(target(e,g),g);
+					remove_vertex(target(e,g),g);
+				}
+				changed = true;
+				break;
+			}
+		}
+	}
 }
 
 /**
