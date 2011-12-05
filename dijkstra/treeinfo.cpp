@@ -429,12 +429,12 @@ void graph_stats(wurzelgraph_t& g){
 		if(zmax[2]<pv1[2])zmax = pv1;
 		if(zmin[2]>pv1[2])zmin = pv1;
 	}
-	std::cout << "xmin: "<< xmin<<std::endl;
-	std::cout << "xmax: "<< xmax<<std::endl;
-	std::cout << "ymin: "<< ymin<<std::endl;
-	std::cout << "ymax: "<< ymax<<std::endl;
-	std::cout << "zmin: "<< zmin<<std::endl;
-	std::cout << "zmax: "<< zmax<<std::endl << std::endl;
+	std::cout << "xmin= "<< xmin<<std::endl;
+	std::cout << "xmax= "<< xmax<<std::endl;
+	std::cout << "ymin= "<< ymin<<std::endl;
+	std::cout << "ymax= "<< ymax<<std::endl;
+	std::cout << "zmin= "<< zmin<<std::endl;
+	std::cout << "zmax= "<< zmax<<std::endl << std::endl;
 }
 /**
  * calulate mass statistics
@@ -686,7 +686,7 @@ double avg_len_btw_splits(wurzelgraph_t& wg){
 	}
 	
 	
-	std::cout << "Found #segments: "<<segments.size()<<std::endl;
+	std::cout << "num_segments= "<<segments.size()<<std::endl;
 	stat_t s_lens, s_lens_hor, s_lens_ver;
 	stat_t s_nums;
 	foreach(wurzel_segment& seg,segments){
@@ -699,10 +699,14 @@ double avg_len_btw_splits(wurzelgraph_t& wg){
 		else
 			s_lens_hor(seg.length());
 	}
-	std::cout <<"Avg seg len: "<< mean(s_lens)<<" +/- "<<sqrt(variance(s_lens))<< " mm"<<std::endl;
-	std::cout <<"        ver: "<< mean(s_lens_ver)<<" +/- "<<sqrt(variance(s_lens_ver))<< " mm"<<std::endl;
-	std::cout <<"        hor: "<< mean(s_lens_hor)<<" +/- "<<sqrt(variance(s_lens_hor))<< " mm"<<std::endl;
-	std::cout <<"Avg seg num: "<< mean(s_nums)<<" +/- "<<sqrt(variance(s_nums))<< " pieces"<<std::endl;
+	std::cout <<"seg_avg_len_mm= "<< mean(s_lens)<<std::endl;
+	std::cout <<"seg_avg_len_std_mm= "<<sqrt(variance(s_lens))<<std::endl;
+	std::cout <<"seg_avg_len_vertical_mm=   "<< mean(s_lens_ver)<<std::endl;
+	std::cout <<"seg_avg_len_vertical_std_mm = "<<sqrt(variance(s_lens_ver))<<std::endl;
+	std::cout <<"seg_avg_len_horizontal_mm= "<< mean(s_lens_hor)<<std::endl;
+	std::cout <<"seg_avg_len_horizontal_std_mm="<<sqrt(variance(s_lens_hor))<<std::endl;
+	std::cout <<"seg_avg_pieces= "<< mean(s_nums)<<std::endl;
+	std::cout <<"seg_avg_std_pieces="<<sqrt(variance(s_nums))<<std::endl;
 	return mean(s_lens);
 }
 
@@ -725,10 +729,10 @@ double total_length(wurzelgraph_t& wg){
 		if(is_vert) sum_vert  += length;
 		else        sum_horiz += length;
 	}
-	std::cout << "Total len: "<<sum <<std::endl;
-	std::cout << "Horiz len: "<<sum_horiz <<std::endl;
-	std::cout << "Vertc len: "<<sum_vert  <<std::endl;
-	std::cout << "V/H   len: "<<sum_vert/sum_horiz<<std::endl;
+	std::cout << "len_total= "<<sum <<std::endl;
+	std::cout << "len_total_horiz= "<<sum_horiz <<std::endl;
+	std::cout << "len_total_vertical= "<<sum_vert  <<std::endl;
+	std::cout << "len_V_H_ratio= "<<sum_vert/sum_horiz<<std::endl;
 
 	return sum;
 }
@@ -739,58 +743,157 @@ double total_length(wurzelgraph_t& wg){
  * @param tolerance  distance up to which nodes are considered "the same"
  * @param verbose show progress
  */
-void distance(wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance, bool verbose){
+void distance(const std::string& ident, std::ofstream& ofs, std::ofstream& scat, wurzelgraph_t& g1, wurzelgraph_t& g2, const double& tolerance, bool verbose){
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map1  = get(vertex_position, g1);
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map2  = get(vertex_position, g2);
+	property_map<wurzelgraph_t,vertex_radius_t>::type radius_map1 = get(vertex_radius, g1);
+	property_map<wurzelgraph_t,marked_vertex_t>::type   mark_map1 = get(marked_vertex, g1);
+	property_map<wurzelgraph_t,marked_vertex_t>::type   mark_map2 = get(marked_vertex, g2);
+	property_map<wurzelgraph_t,vertex_radius_t>::type radius_map2 = get(vertex_radius, g2);
+	auto   edge_mass_map1 = get(edge_mass, g1);
+	auto   edge_mass_map2 = get(edge_mass, g2);
 	int no_counterpart = 0;
 	int v_cnt = 0;
-	stat_t s_distances;
+	stat_t s_distances, s_masses;
+	accumulator_set<double, stats<tag::variance, tag::covariance<double,tag::covariate1> > > s_radius1;
+	accumulator_set<double, stats<tag::variance, tag::covariance<double,tag::covariate1> > > s_radius2;
+	double sum_length_no_counterpart=0.0;
+	double sum_length_matched       =0.0;
+	double sum_mass_no_counterpart=0.0;
+	double sum_mass_matched       =0.0;
+	vec3_t offsets = ublas::scalar_vector<double>(3,0);
 
-	foreach(const wurzel_vertex_descriptor& v1, vertices(g1)){
-		const vec3_t& pv1 = pos_map1[v1];
-		double min_d = 1E6;
-		foreach(const wurzel_edge_descriptor& e2, edges(g2)){
-			const vec3_t& pe2s = pos_map2[source(e2,g2)];
-			const vec3_t& pe2t = pos_map2[target(e2,g2)];
-			double dp = ublas::inner_prod(pe2s-pv1, pe2t-pe2s);
-			double  t = dp / pow(ublas::norm_2(pe2t-pe2s),2);
-			//if(t<-tolerance) continue;
-			if(t<0){
-				min_d = std::min(min_d, ublas::norm_2(pv1-pe2s));
-				continue;
+	static const double sample_step_len = 0.2; // mm
+	foreach(const wurzel_edge_descriptor& e1, edges(g1)){
+		const vec3_t& pe1s = pos_map1[source(e1,g1)]; // source of e1
+		const vec3_t& pe1t = pos_map1[target(e1,g1)]; // target of e1
+		vec3_t e1_dir      = pe1t-pe1s;               // normalized direction of e1
+		e1_dir            /= ublas::norm_2(e1_dir);
+		bool use_radius1 = mark_map1[source(e1,g1)] && mark_map1[target(e1,g1)];
+
+		std::vector<std::pair<vec3_t,vec3_t> > sub_edges;
+		{
+			double len_e1     = ublas::norm_2(pe1s-pe1t);
+			double first_dist = std::min(len_e1, sample_step_len); // if shorter than sample_step_len, use whole edge
+			double dist       = first_dist;
+			vec3_t prev_pv1   = pe1s;                    // the `last' vertex we compared to
+			for(; dist<len_e1; dist+=sample_step_len){
+				const vec3_t pv1 = pe1s + dist * e1_dir;
+				sub_edges .push_back(std::make_pair(prev_pv1,pv1));
+				prev_pv1 = pv1;
 			}
-			//if(t-1>tolerance) continue;
-			else if(t>1){
-				min_d = std::min(min_d, ublas::norm_2(pv1-pe2t));
-				continue;
-			}
-			else{
-				double d = ublas::norm_2(cross_product(pv1-pe2s,pv1-pe2t))/ublas::norm_2(pe2t-pe2s);
-				//if(d<tolerance)
-				min_d = std::min(min_d, d);
-			}
+			const vec3_t pv1 = pe1s + std::max(dist-sample_step_len,0.0) * e1_dir;
+			sub_edges.push_back(std::make_pair(pv1,pe1t));
+			//std::cout << "splitting a line of len="<<len_e1<< " to piecnum="<<sub_edges.size()<< V(first_dist)<<std::endl;
 		}
-		if(min_d>tolerance)
-			no_counterpart ++;
-		s_distances(min_d);
-		v_cnt ++;
-		if(v_cnt % 1000==0 && verbose)
-			std::cout <<"\rFraction not found: "<<((float)no_counterpart/v_cnt)<<" count: "<<v_cnt<< " mind: "<< min_d<<std::flush;
+		for(unsigned int subedge=0;subedge<sub_edges.size();subedge++){
+			const vec3_t prev_pv1 = sub_edges[subedge].first;
+			const vec3_t pv1      = sub_edges[subedge].second;
+			double min_d          = 1E6;
+			double radius2        = 1E6;
+			bool use_radius2      = false;
+			double mass_radius2          = 1E6;
+			wurzel_edge_descriptor best_e2;
+			foreach(const wurzel_edge_descriptor& e2, edges(g2)){
+				const vec3_t& pe2s = pos_map2[source(e2,g2)];
+				const vec3_t& pe2t = pos_map2[target(e2,g2)];
+				double dp          = ublas::inner_prod(pv1-pe2s, pe2t-pe2s);
+				double  t          = dp / ublas::inner_prod(pe2t-pe2s,pe2t-pe2s);
+				double d, r;
+				if(t<0){
+					d = ublas::norm_2(pv1-pe2s);
+					if(min_d>d){
+						r = radius_map2[source(e2,g2)];
+					}
+				}
+				else if(t>1){
+					d = ublas::norm_2(pv1-pe2t);
+					if(min_d>d){
+						r = radius_map2[target(e2,g2)];
+					}
+				}
+				else{
+					vec3_t ul = (pe2t-pe2s)/ublas::norm_2(pe2t-pe2s);
+					vec3_t w  = pv1-pe2s;
+					d = ublas::norm_2( w - ul * ublas::inner_prod(w,ul));
+					if(min_d>d){
+						double dist2 = ublas::norm_2(pv1-pe1s)/ublas::norm_2(pe1t-pe1s);
+						r =        dist2  * radius_map2[source(e2,g2)]  +
+							(1-dist2) * radius_map2[target(e2,g2)];
+					}
+				}
+				if(min_d>d){
+					min_d   = d;
+					radius2 = r;
+					use_radius2 = mark_map2[source(e2,g2)] && mark_map2[target(e2,g2)];
+					best_e2 = e2;
+
+					double m = edge_mass_map2[e2];
+					mass_radius2   = sqrt(m / M_PI); // m has been divided by len already!
+				}
+			}
+			double dist = ublas::norm_2(pv1-pe1s)/ublas::norm_2(pe1t-pe1s);
+			double radius1 =    dist  * radius_map1[source(e1,g1)]  +
+					(1-dist) * radius_map1[target(e1,g1)];
+			double mass_radius1 = sqrt(edge_mass_map1[e1]/M_PI);
+			if(min_d>tolerance){
+				ofs << pv1[0]<<"\t"<<pv1[1]<<"\t"<<pv1[2]<<"\t"<<prev_pv1[0]<<"\t"<<prev_pv1[1]<<"\t"<<prev_pv1[2]<<"\t"<<radius1<<"\t"<<std::endl;
+				no_counterpart ++;
+				double len = ublas::norm_2(pv1-prev_pv1);
+				sum_length_no_counterpart += len;
+				sum_mass_no_counterpart += len * edge_mass_map1[e1];
+			}else{
+				if(ublas::norm_2(pv1-pos_map2[source(best_e2,g2)]) < ublas::norm_2(pv1-pos_map2[target(best_e2,g2)]))
+					offsets += pv1 - pos_map2[source(best_e2,g2)];
+				else
+					offsets += pv1 - pos_map2[target(best_e2,g2)];
+				double length_matched = ublas::norm_2(pv1-prev_pv1);
+				sum_length_matched   += length_matched;
+				sum_mass_matched     += length_matched * edge_mass_map1[e1];
+				s_distances(min_d);
+				if(use_radius1 && use_radius2){
+					scat << radius1 << "\t"<<radius2 <<"\t" << length_matched << "\t"<< length_matched*M_PI*radius1*radius1 << "\t"<<length_matched*M_PI*radius2*radius2 << "\t" << mass_radius1 << "\t"<<mass_radius2  << std::endl;
+					s_radius1(radius1, boost::accumulators::covariate1=radius2);
+					s_radius2(radius2, boost::accumulators::covariate1=radius1);
+				}
+			}
+			v_cnt ++;
+		}
+
 	}
-	std::cout <<std::endl<< "Vertices w/o counterpart: "<<no_counterpart<<" at tolerance "<<tolerance<<std::endl;
-	std::cout <<std::endl<< "Average distance: "<<mean(s_distances)<< " var:"<<variance(s_distances)<<std::endl;
+	offsets /= count(s_distances);
+	std::cout << ident<<"_tolerance = "<<tolerance<<std::endl;
+	std::cout << ident<<"_vertices_wo_counterpart = "<<no_counterpart<<std::endl;
+	std::cout << ident<<"_mass_wo_counterpart = "<<sum_mass_no_counterpart<<std::endl;
+	std::cout << ident<<"_mass_matched = "<<sum_mass_matched<<std::endl;
+	std::cout << ident<<"_length_wo_counterpart = "<<sum_length_no_counterpart<<std::endl;
+	std::cout << ident<<"_length_matched = "<<sum_length_matched<<std::endl;
+	std::cout << ident<<"_distance_mean = "<<mean(s_distances)<<std::endl;
+	std::cout << ident<<"_distance_std = "<<sqrt(variance(s_distances))<<std::endl;
+	std::cout << ident<<"_offsets = "<<offsets[0]<<", "<<offsets[1]<<", "<<offsets[2]<<std::endl;
+
 	
+	std::cout << ident<<"_radius_corr1 = "<<covariance(s_radius1)/(sqrt(variance(s_radius1))*sqrt(variance(s_radius2)))<<std::endl;
+	std::cout << ident<<"_radius_corr2 = "<<covariance(s_radius2)/(sqrt(variance(s_radius1))*sqrt(variance(s_radius2)))<<std::endl;
+	std::cout << ident<<"_cnt          = "<<v_cnt<<std::endl;
 }
 
 /**
  * scale all lengths to mm
  */
 void scale_to_mm(wurzelgraph_t& g, const wurzel_info& wi){
-	std::cout << "scaling: "<< wi.scale <<std::endl;
+	std::cout << "# scaling: "<< wi.scale <<std::endl;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, g);
+	property_map<wurzelgraph_t,vertex_radius_t>::type radius_map = get(vertex_radius, g);
+	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, g);
+	auto   edge_mass_map = get(edge_mass, g);
 	foreach(wurzel_vertex_descriptor& v, vertices(g)){
-		vec3_t& p = pos_map[v];
-		p *= wi.scale;
+		pos_map[v]    *= wi.scale;
+		radius_map[v] *= wi.scale;
+		stddev_map[v] *= wi.scale;
+	}
+	foreach(wurzel_edge_descriptor e, edges(g)){
+		edge_mass_map[e] *= wi.scale * wi.scale * wi.scale;
 	}
 }
 
@@ -964,12 +1067,12 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 		s_diameter(diameter);
 	}
 	ofs.close();
-	std::cout << "Average diameter (mm): "<<mean(s_diameter)<<std::endl;
-	std::cout << "Max     diameter (mm): "<<max(s_diameter)<<std::endl;
-	std::cout << "Min     diameter (mm): "<<min(s_diameter)<<std::endl;
-	std::cout << "Average     mass (mg): "<<mean(s_mass)<<std::endl;
-	std::cout << "Max         mass (mg): "<<max(s_mass)<<std::endl;
-	std::cout << "Min         mass (mg): "<<min(s_mass)<<std::endl;
+	std::cout << "diameter_avg_mm= "<<mean(s_diameter)<<std::endl;
+	std::cout << "diameter_max_mm= "<<max(s_diameter)<<std::endl;
+	std::cout << "diameter_min_mm= "<<min(s_diameter)<<std::endl;
+	std::cout << "mass_avg_mg= "<<mean(s_mass)<<std::endl;
+	std::cout << "mass_max_mg= "<<max(s_mass)<<std::endl;
+	std::cout << "mass_min_mg= "<<min(s_mass)<<std::endl;
 }
 
 /**
