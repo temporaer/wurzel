@@ -225,10 +225,6 @@ void find_shortest_paths(const std::string& base,
 				  .visitor(vis)
 				  );
 	  } catch(const dijkstra_finish&) {}
-	  dijkstra_shortest_paths(graph, strunk
-			 ,predecessor_map(p_map)
-			 .distance_map(d_map)
-			 );
 	  write_voxelgrid<double>(getfn(base,"d_map","dat"), graph, d_map);
 	  write_voxelgrid<voxel_vertex_descriptor>(getfn(base,"p_map","dat"), graph, p_map);
   }
