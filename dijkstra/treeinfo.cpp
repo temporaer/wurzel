@@ -481,6 +481,68 @@ struct wurzel_segment{
 	const wurzelgraph_t& wg;
 	wurzel_segment(const wurzelgraph_t& g):wg(g){}
 	std::list<wurzel_edge_descriptor> edges;
+	void mark_non_ending_vertices(wurzelgraph_t& g, bool average_radius_in_segment){
+		property_map<wurzelgraph_t,vertex_position_t>::type pos_map   = get(vertex_position, g);
+		property_map<wurzelgraph_t,marked_vertex_t>::type   mark_map  = get(marked_vertex, g);
+		property_map<wurzelgraph_t,vertex_radius_t>::type radius_map  = get(vertex_radius, g);
+		property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, g);
+		std::vector<wurzel_vertex_descriptor> ends;
+		foreach(const wurzel_edge_descriptor &e, edges){
+			const wurzel_vertex_descriptor& s = source(e,g);
+			const wurzel_vertex_descriptor& t = target(e,g);
+
+			mark_map[s] = false;
+			mark_map[t] = false;
+
+			if(out_degree(s,g)+in_degree(s,g)!=2) { ends.push_back(s); }
+			if(out_degree(t,g)+in_degree(t,g)!=2) { ends.push_back(t); }
+		}
+		if(ends.size() != 2){
+			std::cout << "#  Weeeeeeeird segment!"<<std::endl;
+			return;
+		}
+		foreach(const wurzel_edge_descriptor &e, edges){
+			const wurzel_vertex_descriptor& s = source(e,g);
+			const wurzel_vertex_descriptor& t = target(e,g);
+
+			foreach(const wurzel_vertex_descriptor& v, ends){
+				double ds = voxdist(pos_map[s].begin(),pos_map[v].begin()); // assumed to be in mm here!!
+				double dt = voxdist(pos_map[t].begin(),pos_map[v].begin()); // assumed to be in mm here!!
+				if(ds>2) mark_map[s]=true;
+				if(dt>2) mark_map[t]=true;
+			}
+		}
+		
+		medstat_t stats;
+		foreach(const wurzel_edge_descriptor &e, edges){
+			const wurzel_vertex_descriptor& s = source(e,g);
+			const wurzel_vertex_descriptor& t = target(e,g);
+			if(mark_map[s]) stats(radius_map[s]);
+			if(mark_map[t]) stats(radius_map[t]);
+		}
+		foreach(const wurzel_edge_descriptor &e, edges){
+			const wurzel_vertex_descriptor& s = source(e,g);
+			const wurzel_vertex_descriptor& t = target(e,g);
+			if(count(stats)>0){
+				bool set_s=false;
+				bool set_t=false;
+				foreach(const wurzel_vertex_descriptor& v, ends){
+					if(v==s){
+						radius_map[s] = std::max((double)radius_map[s], (double)mean(stats));
+						set_s = true;
+					}
+					if(v==t){
+						radius_map[t] = std::max((double)radius_map[t], (double)mean(stats));
+						set_t = true;
+					}
+				}
+				if(!set_s)
+					radius_map[s] = mean(stats);
+				if(!set_t)
+					radius_map[t] = mean(stats);
+			}
+		}
+	}
 	void average_mass_in_segment(wurzelgraph_t& g){
 		double edge_mass_sum = 0.0;
 		double total_len     = 0.0;
