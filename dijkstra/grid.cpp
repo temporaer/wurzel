@@ -554,6 +554,175 @@ determine_vertex_normals(wurzelgraph_t& wg, const T& acc){
 }
 
 /**
+ * a visitor which keeps a median statistic and stops when fixed amount of data
+ * collected
+ */
+template<class RawData>
+struct bfs_grid_threshold_visitor:public default_bfs_visitor {
+  bfs_grid_threshold_visitor(const RawData& wmap, int num, wmedstat_t* m)
+  :m_stats(m),m_map(wmap), m_num(num)
+  {
+  }
+  template < typename Vertex, typename Graph >
+  void discover_vertex(Vertex u, const Graph & g) 
+  {
+	  (*m_stats)(m_map[u]);
+	  if(count(*m_stats)==m_num){
+	          throw 0.0;
+	  }
+  }
+  wmedstat_t* m_stats;
+  const RawData& m_map;
+  unsigned int      m_num;
+};
+template<class RawData>
+bfs_grid_threshold_visitor<RawData> make_bfs_grid_threshold_visitor(const RawData& wm, int i, wmedstat_t* m){
+	return bfs_grid_threshold_visitor<RawData>(wm, i, m);
+}
+
+template<class Vertex>
+struct implicit_bfs_grid_node{
+	Vertex v;
+	double cost;
+	implicit_bfs_grid_node():cost(0){ }
+	implicit_bfs_grid_node(const Vertex& me):v(me),cost(0){ }
+	implicit_bfs_grid_node(const Vertex& me, const implicit_bfs_grid_node<Vertex>& pred){ 
+		v = me;
+
+		vox2arr<float_grid>& sato = *g_sato;
+		double d = voxdist(v.begin(),pred.v.begin());
+		double c = exp( - 100.0 * (sato[v] + sato[pred.v]) );
+	       	cost = pred.cost + d*c; 
+	}
+	bool operator==(const implicit_bfs_grid_node& o){ return v==o.v; }
+	bool operator<(const implicit_bfs_grid_node& o)const{ return cost>o.cost; } // priority is LESS if cost ics GREATER
+};
+
+template<bool direction,class Visitor, class GridGraph, class Vertex, class PredMap>
+void implicit_bfs_on_grid(Visitor visit, GridGraph& g, Vertex start, const PredMap& pmap){
+	typedef implicit_bfs_grid_node<Vertex> node;
+	typedef std::priority_queue<node, std::vector<node> > implicit_bfs_pqueue;
+	implicit_bfs_pqueue  queue;
+	std::map<Vertex, bool> closed;
+	queue.push(node(start));
+	while(!queue.empty()){
+		node v = queue.top();
+		queue.pop();
+		if(closed.find(v.v)!=closed.end())
+			continue;
+		if(v.v != start) // count start node once outside this function, since we start twice from here!
+			visit.discover_vertex(v.v, g); 
+		closed[v.v]=1;
+
+		typename boost::graph_traits<GridGraph>::out_edge_iterator      oei,oeend;
+		tie(oei,oeend)   = out_edges(v.v,g);
+		for(; oei!=oeend; oei++){
+			const typename boost::graph_traits<GridGraph>::vertex_descriptor adj       = target(*oei,g);
+			const typename boost::graph_traits<GridGraph>::vertex_descriptor& pred_v   = pmap[v.v];
+			const typename boost::graph_traits<GridGraph>::vertex_descriptor& pred_oei = pmap[adj];
+			//std::cout << "         " << V(adj)<< std::endl;
+			if( direction && pred_v==adj   && closed.find(adj)==closed.end()) // go towards the shoot of the plant
+				queue.push(node(adj,v));
+			if(!direction && pred_oei==v.v && closed.find(adj)==closed.end()) // go away from shoot of the plant
+				queue.push(node(adj,v));
+		}
+	}
+}
+
+template<class GridGraph, class RawData, class ResultData, class PredMap>
+void is_part_of_root(ResultData& res, GridGraph& g, const RawData& raw, const PredMap& pmap, const float start_thresh, const float flow_thresh){
+
+	bool use_edge_detector = false;
+	if(use_edge_detector){
+		unsigned int smooth = 10;
+		//unsigned int cnt=0;
+		//foreach(const voxel_vertex_descriptor& v, vertices(g)){
+		tbb::parallel_for_each(vertices(g).first,vertices(g).second,[&](voxel_vertex_descriptor& v){
+
+				wmedstat_t s_median1;
+				wmedstat_t s_median2;
+				if(raw[v] < start_thresh)
+				return;
+				try{ implicit_bfs_on_grid<1>(make_bfs_grid_threshold_visitor(raw,  smooth,&s_median1), g, v, pmap); // towards shoot
+				}catch(double m){}
+				if(count(s_median1)!=smooth) return;// return from /lambda/
+				try{ implicit_bfs_on_grid<0>(make_bfs_grid_threshold_visitor(raw,  smooth,&s_median2), g, v, pmap); // away from shoot
+				}catch(double m){}
+				if(count(s_median2)!=smooth) return;// return from /lambda/
+				//s_median(raw[v]); // results in odd number of observations: v decides if tied!
+				if(median(s_median1)/median(s_median2)>flow_thresh){
+				res[v[0]][v[1]][v[2]] = 1;
+				}
+				//if(count(s_median)>=(unsigned int)(2*smooth) && median(s_median)>flow_thresh){
+				//        res[v[0]][v[1]][v[2]] = 1;
+				//}
+				});
+		//};
+	}else{
+		unsigned int smooth = 10;
+		//unsigned int cnt=0;
+		//foreach(const voxel_vertex_descriptor& v, vertices(g)){
+		tbb::parallel_for_each(vertices(g).first,vertices(g).second,[&](voxel_vertex_descriptor& v){
+				//std::cout << "," << std::flush;
+
+				wmedstat_t s_median;
+				if(raw[v] < start_thresh)
+				return;
+				try{ implicit_bfs_on_grid<1>(make_bfs_grid_threshold_visitor(raw,  smooth,&s_median), g, v, pmap); // towards shoot
+				}catch(double m){}
+				try{ implicit_bfs_on_grid<0>(make_bfs_grid_threshold_visitor(raw,  smooth,&s_median), g, v, pmap); // away from shoot
+				}catch(double m){}
+				if(count(s_median)<2*smooth) return;// return from /lambda/
+
+				s_median(raw[v]); // results in odd number of observations: v decides if tied!
+
+				if(median(s_median)>flow_thresh){
+					res[v[0]][v[1]][v[2]] = 1;
+				}
+				});
+		//};
+	}
+}
+
+/**
+ * a visitor which keeps a median statistic and stops when fixed amount of data
+ * collected
+ */
+template<class WidthMap, class WeightMap>
+struct bfs_scale_averager_visitor:public default_bfs_visitor {
+  bfs_scale_averager_visitor(const WidthMap& wmap, const WeightMap& weights, int num, wmedstat_t* m, double dummy_scale, double weight_thresh)
+  :m_stats(m),m_map(wmap), m_weights(weights), m_num(num), m_dummy_scale(dummy_scale), m_weight_thresh(weight_thresh)
+  {
+  }
+  template < typename Vertex, typename Graph >
+  void discover_vertex(Vertex u, const Graph & g) 
+  {
+	  property_map<wurzelgraph_t,vertex_position_t>::const_type pos_map  = get(vertex_position, g);
+
+	  double width  = m_map[pos_map[u]];
+	  double w      = m_weights[pos_map[u]];
+	  if(w<m_weight_thresh)
+		 width = m_dummy_scale;
+
+	  (*m_stats)(width);
+	  //(*m_stats)( width, weight=w);
+	  //std::cout << V(count(*m_stats))<<V(median(*m_stats))<<std::endl;
+	  if(count(*m_stats)==m_num){
+	          throw median(*m_stats);
+	  }
+  }
+  wmedstat_t* m_stats;
+  const WidthMap& m_map;
+  const WeightMap& m_weights;
+  unsigned int      m_num;
+  double m_dummy_scale, m_weight_thresh;
+};
+template<class WidthMap, class WeightMap>
+bfs_scale_averager_visitor<WidthMap, WeightMap> make_bfs_scale_averager_visitor(const WidthMap& wm, WeightMap weights, int i, wmedstat_t* m, double dummy_scale, double weight_thresh){
+	return bfs_scale_averager_visitor<WidthMap, WeightMap>(wm, weights,i, m,dummy_scale, weight_thresh);
+}
+
+/**
  * estimate the root radius for each vertex using the scale at which it was maximal
  * @param wg   the graph with the vertices
  * @param acc  an (interpolated) accessor to an array which contains the sigmas=scale where vesselness was maximal
