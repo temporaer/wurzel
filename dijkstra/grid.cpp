@@ -52,6 +52,25 @@ typedef shared_array_property_map<voxel_vertex_descriptor,
 typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > stat_t;
+/*
+ * Dijkstra Early Stopping
+ */
+
+class dijkstra_finish : public std::exception { };
+
+template<class DMap>
+class maxdist_visitor : public default_dijkstra_visitor {
+public:
+    maxdist_visitor(const DMap &d_, double m) : d(d_),maxdist(m) {}
+    template <typename Vertex, typename Graph>
+        void finish_vertex(const Vertex& u, const Graph& g) {
+            if (d[u]> maxdist) throw dijkstra_finish();
+        }
+private:
+    const DMap &d;
+    const double maxdist;
+};
+
 
 
 /**
@@ -198,6 +217,14 @@ void find_shortest_paths(const std::string& base,
 
 	  voxel_edge_weight_map wt(graph);
 
+	  maxdist_visitor<distance_map_t> vis(d_map, 20.0);
+	  try{
+		  dijkstra_shortest_paths(graph, strunk
+				  ,predecessor_map(p_map)
+				  .distance_map(d_map)
+				  .visitor(vis)
+				  );
+	  } catch(const dijkstra_finish&) {}
 	  dijkstra_shortest_paths(graph, strunk
 			 ,predecessor_map(p_map)
 			 .distance_map(d_map)
