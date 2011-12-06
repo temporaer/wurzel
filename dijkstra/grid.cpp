@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <queue>
+#include <list>
 #include <iterator>
 #include <fstream>
 #include <map>
@@ -13,10 +15,13 @@
 #include <boost/array.hpp>
 //#include <boost/range/irange.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <boost/graph/reverse_graph.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
+#include <boost/accumulators/statistics/variance.hpp>
+#include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
 #include <boost/math/special_functions/erf.hpp>
@@ -44,6 +49,7 @@ using namespace boost::accumulators;
 namespace fs = boost::filesystem;
 using boost::optional;
 
+typedef boost::multi_array_ref<double, 3> double_grid;
 typedef boost::multi_array_ref<float, 3> float_grid;
 typedef boost::multi_array_ref<unsigned char, 3> uc_grid;
 
@@ -52,6 +58,12 @@ typedef shared_array_property_map<voxel_vertex_descriptor,
 typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > stat_t;
+typedef accumulator_set< double, features< tag::median, tag::count > > wmedstat_t;
+//typedef accumulator_set< double,
+       //features< tag::weighted_median(with_p_square_cumulative_distribution), tag::count >,double > 
+       //wmedstat_t;
+
+
 /*
  * Dijkstra Early Stopping
  */
@@ -71,6 +83,16 @@ private:
     const double maxdist;
 };
 
+//int main() {
+//        vector<unsigned> dists(num_edges(g));
+//        MyVisitor(dists);
+
+//        try {
+       
+//dijkstra_shortest_paths(g,source_vertex,weight_map(get(&Distance::d,g)).distance_map(make_iterator_property_map(dists.begin(),get(vertex_index,g))).visitor(vis2));
+//        } catch(const dijkstra_finish&) {}
+
+//} 
 
 
 /**
@@ -114,6 +136,12 @@ operator<<(std::ostream& o, const voxelg_traits::vertex_descriptor& vertex_to_pr
     ", " << vertex_to_print[2] << ")";
   return o;
 }
+
+//bool
+//operator==(const voxelg_traits::vertex_descriptor& v,
+//           const voxelg_traits::vertex_descriptor& w){
+//        return v[0]==w[0]  && v[1]==w[1]  && v[2]==w[2];
+//           }
 
 /**
  * For a given vertex, print all its neighbors to std::cout,
@@ -726,22 +754,44 @@ bfs_scale_averager_visitor<WidthMap, WeightMap> make_bfs_scale_averager_visitor(
  * @param max_radius_mm  not used
  * @param wi   contains scale so that radius can be determined in mm
  */
-template<class T>
+template<class T, class U>
 void
-determine_radius_from_scales(wurzelgraph_t& wg, const T& acc, const double& max_radius_mm, const wurzel_info& wi){
-	//std::cout << "Determining vertex normals..."<<std::flush;
+determine_radius_from_scales(wurzelgraph_t& wg, const T& scale_acc, const U& sato_acc, const double& max_radius_mm, const wurzel_info& wi){
 	property_map<wurzelgraph_t,vertex_name_t>::type name_map         = get(vertex_name, wg);
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map      = get(vertex_position, wg);
 	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map     = get(vertex_normal, wg);
 	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
+	property_map<wurzelgraph_t,vertex_radius_t>::type radius_map     = get(vertex_radius, wg);
 
+	double dummy_scale = 0.02; min(voxel_stats(sato_acc.A)); // TODO: this should be set to the smallest expected diameter in voxels
+	accumulator_set< double, features< tag::variance > > stats;
 	foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
-		//double scale     = acc[name_map[wv]];
-		double scale     = acc[pos_map[wv]];
-		eigenval_map[wv][1] = scale*wi.scale;
-		eigenval_map[wv][2] = scale*wi.scale;
+		stats(sato_acc[pos_map[wv]]);
 	}
-	//std::cout << "done."<<std::endl;
+	double weight_thresh = mean(stats)-sqrt(variance(stats));
+	std::cout << V(mean(stats)) << V(sqrt(variance(stats)))<<std::endl;
+	std::cout << V(dummy_scale) << V(weight_thresh)<<std::endl;
+
+
+	int smooth = 2;
+
+	//foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
+	tbb::parallel_for_each(vertices(wg).first,vertices(wg).second,[&](wurzel_vertex_descriptor& wv){
+		std::map<wurzel_vertex_descriptor,default_color_type> vertex2color;
+		boost::associative_property_map< std::map<wurzel_vertex_descriptor, default_color_type> >
+			cmap(vertex2color);
+		wmedstat_t s_median;
+		try{ breadth_first_visit(wg, wv,
+				visitor(make_bfs_scale_averager_visitor(scale_acc,sato_acc, smooth, &s_median, dummy_scale, weight_thresh)).
+				color_map(cmap));
+		}catch(double m){}
+		try{ breadth_first_visit(make_reverse_graph(wg), wv,
+				visitor(make_bfs_scale_averager_visitor(scale_acc,sato_acc,  2*smooth, &s_median,dummy_scale, weight_thresh)).
+				color_map(cmap));
+		}catch(double m){}
+		//radius_map[wv] = median(s_median);
+		radius_map[wv] = scale_acc[pos_map[wv]];
+	});
 }
 
 /**
@@ -1098,19 +1148,26 @@ int main(int argc, char* argv[]) {
 	boost::array<vidx_t, 3> strunk   // locate the stem
 		=  locate_stem(lengths, info.spross_intensity, make_vox2arr(Raw), info.stem_plane, info.stem_axis); //{ { 109, 129,  24 } };
 
-	//std::cout << "Barley settings!!!"<<std::endl;
-	//info.spross_intensity = 425000;
-	std::cout << "Lupine settings!!!"<<std::endl;
-	info.spross_intensity = 0.9;
+
+	if(base.find("Gerste") != std::string::npos){
+		std::cout << "Barley settings!!!"<<std::endl;
+		//info.spross_intensity = 425000;
+	}
+	if(base.find("maize" ) != std::string::npos){
+		std::cout << "Maize settings!!!"<<std::endl;
+		info.spross_intensity = 1.0 * 256.0 / sqrt(info.read_XYZ / Y); 
+	}
+	std::cout << "Spross intensity set to "<<info.spross_intensity << std::endl;
 
 	// read additional data: Vesselness measure and (if desired) eigenvalues and scales
 	float_grid Sato = read3darray<float>(getfn(base,"sato","dat"),X,Y,Z); g_sato = new vox2arr<float_grid>(Sato);
 	//float_grid ev10 = read3darray<float>(getfn(base,"","ev10"),X,Y,Z); g_ev10 = new vox2arr<float_grid>(ev10);
 	//float_grid ev11 = read3darray<float>(getfn(base,"","ev11"),X,Y,Z); g_ev11 = new vox2arr<float_grid>(ev11);
 	//float_grid ev12 = read3darray<float>(getfn(base,"","ev12"),X,Y,Z); g_ev12 = new vox2arr<float_grid>(ev12);
-	float_grid scales = read3darray<float>(getfn(base,"scales","dat"),X,Y,Z); 
+	double_grid scales = read3darray<double>(getfn(base,"scales","dat"),X,Y,Z); 
 
 	std::cout << "Sato stats in file: " << voxel_stats(graph,make_vox2arr(Sato)) <<std::endl;
+	std::cout << "Scalestats in file: " << voxel_stats(graph,make_vox2arr(scales)) <<std::endl;
 
 	g_strunk = strunk; // ugh. ugly: use global variable.
 
@@ -1118,11 +1175,6 @@ int main(int argc, char* argv[]) {
 	unsigned char* paths = new unsigned char[XYZ];
 	std::fill(paths, paths+XYZ, (unsigned char) 0);
 	uc_grid Paths(paths,boost::extents[X][Y][Z]);
-
-	// allocate helper arrays: ranks
-	unsigned char* ranks = new unsigned char[XYZ];
-	std::fill(ranks, ranks+XYZ, (unsigned char) 255);
-	uc_grid Ranks(ranks,boost::extents[X][Y][Z]);
 
 	// allocate helper arrays: flow
 	float* flow = new float[XYZ];
@@ -1156,6 +1208,8 @@ int main(int argc, char* argv[]) {
 	}
 	std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
+	//exit(0);
+
 	std::cout << "Determining scaling factors..." <<std::endl;
 	stat_t s_allpaths = voxel_stats(graph,d_map);
 
@@ -1165,113 +1219,55 @@ int main(int argc, char* argv[]) {
 	 *
 	 * *****************************************************/
 	std::cout << "Tracing paths... " <<std::flush;
-	double start_threshold       = vm["start-threshold"].as<double>();
-	double total_len_perc_thresh = vm["total-len-frac"].as<double>();
-	double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
-	double min_flow_thresh       = vm["min-flow-thresh"].as<double>() * (info.XYZ/info.read_XYZ/2);
+	double start_threshold       = vm["start-threshold"].as<double>();//  * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!
+	//double total_len_perc_thresh = vm["total-len-frac"].as<double>();
+	//double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
+	double min_flow_thresh       = vm["min-flow-thresh"].as<double>();// * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!!
 	bool   no_gauss_fit          = vm.count("no-gauss-fit");
 	bool   no_subpix_pos         = vm.count("no-subpix-pos");
 
+	min_flow_thresh *= info.noise_cutoff;
 	start_threshold *= info.noise_cutoff;
+
+	std::cout << V(start_threshold)<< V(min_flow_thresh)<<std::endl;
 
 	voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
 	stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
 	vox2arr<float_grid> vox2raw(Raw);
 	vox2arr<float_grid> vox2sato(Sato);
 	{ boost::prof::profiler prof("Tracing");
-		foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-			// determine total path length statistic
-			//if(vox2sato[v] < start_threshold)
-			if(vox2raw[v]/info.spross_intensity < start_threshold)
-				continue;
-			s_pathlen(d_map[v]);
-		}
+		is_part_of_root(Flow, graph, vox2raw, p_map, start_threshold * info.spross_intensity, min_flow_thresh*info.spross_intensity);
 		std::cout << ". " <<std::flush;
 
 		property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
 		foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-			// determine avg path costs statistic
-			//if(vox2sato[v] < start_threshold)
-			if(vox2raw[v]/info.spross_intensity < start_threshold)
+			if(!Flow[v[0]][v[1]][v[2]])
 				continue;
-			if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
-				continue;
-			double vox_dist = 0.0;
 			voxel_vertex_descriptor v2 = v;
 			unsigned int cnt = 0;
-			float flow_add = vox2raw[v]/info.spross_intensity;
-			voxel_vertex_descriptor tmp;
-			while(cnt++<XYZ){ 
-				Flow[v2[0]][v2[1]][v2[2]] += flow_add;
-				//Paths[v2[0]][v2[1]][v2[2]] = 255;
+			unsigned int cnt_max = 2*std::max(X,std::max(Y,Z));
+			while(cnt++<cnt_max){ 
+				Flow[v2[0]][v2[1]][v2[2]] = 1;
+				Paths[v2[0]][v2[1]][v2[2]] = 1;
 				if(vertex_index_map[v2] == strunk_idx)
 					break;
-				tmp = p_map[v2];
-				vox_dist += voxdist(tmp.begin(), v2.begin());
-				v2 = tmp;
+				v2 = p_map[v2];
 			}
-			if(cnt>=XYZ){
-				std::cout << "endless loop!"<<std::endl;
-				exit(1);
+			if(cnt>=cnt_max){
+				//std::cout << "ENDLESS LOOP!!!!!!"<<std::endl;
+				//exit(1);
+				// this happens when dijkstra was stopped
+				// before reaching this node, which means
+				// that it is quite expensive to get here!
+				Flow[v[0]][v[1]][v[2]]  = 0; 
+				Paths[v[0]][v[1]][v[2]] = 0; 
+				continue;
 			}
-			s_cnt(vox_dist);
-			if(vox_dist>0)
-				s_avg_pathlen(d_map[v]/vox_dist);
 		}
 		std::cout << ". " <<std::flush;
-		//write_voxelgrid<unsigned char>(getfn(base,"paths1","dat"),graph,make_vox2arr(Paths));
-		//std::fill(paths, paths+XYZ, (unsigned char) 0);
-
-		foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-			// determine flow statistic
-			//if(vox2sato[v] < start_threshold)
-			if(vox2raw[v]/info.spross_intensity < start_threshold)
-				continue; // too weak at start
-			if(((d_map[v]-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
-				continue; // too long
-			s_flow(Flow[v[0]][v[1]][v[2]]);
-		}
 	} // profiling: Tracing
 
-	std::cout << "Total   Pathlens: "<< s_pathlen<<std::endl;
-	std::cout << "Average Pathlens: "<< s_avg_pathlen<<std::endl;
-	std::cout << "Hop     Pathlens: "<< s_cnt<<std::endl;
-
-	foreach (const voxel_vertex_descriptor& v0, vertices(graph)) {
-		//if(vox2sato[v0] < start_threshold)
-		if(vox2raw[v0]/info.spross_intensity < start_threshold)
-			continue;                  // weak signal at start point
-		float total_dist   = d_map[v0];
-		if(((total_dist-min(s_pathlen))/(max(s_pathlen)-min(s_pathlen))) > total_len_perc_thresh)
-			continue;                  // too long
-		float flow = Flow[v0[0]][v0[1]][v0[2]];
-		//if((flow-min(s_flow))/(max(s_flow)-min(s_flow)) < min_flow_thresh)
-		if(flow < min_flow_thresh * info.noise_cutoff)
-			continue;                  // not enough mass here
-		voxel_vertex_descriptor v = v0;
-		double vox_dist = 0.0;
-		while(1){ 
-			if(boost::get(vertex_index,graph,v) == strunk_idx)
-				break;
-			vox_dist += voxdist(p_map[v].begin(), v.begin());
-			v = p_map[v];
-		}
-		if(total_dist/vox_dist > max(s_avg_pathlen)*avg_len_perc_thresh)
-			continue;
-		v = v0;
-		while(1){ 
-			Paths[v[0]][v[1]][v[2]] = 255;
-			if(boost::get(vertex_index,graph,v) == strunk_idx)
-				break;
-			v = p_map[v];
-		}
-	}
-
-
-	// find local ranks
-	//rank_op(base,graph,make_vox2arr(Ranks),make_vox2arr(Sato),make_vox2arr(Paths));
-
-	const double maximum_radius_mm = 1;
+	const double maximum_radius_mm = 1.8;
 	wurzelgraph_t wgraph;
 	// transform voxelgrid to adjacency-list graph
 	{ 	boost::prof::profiler prof("voxelgraph-to-root-graph");
@@ -1288,7 +1284,7 @@ int main(int argc, char* argv[]) {
 	{ 	boost::prof::profiler prof("subpixel-positioning");
 		std::cout << "Finding subpixel vertex positions..."<<std::flush;
 		initialize_vertex_positions(wgraph);
-		if(!no_subpix_pos){
+		if(!no_subpix_pos && num_vertices(wgraph)<27000){
 			for(int i=0;i<30;i++){
 				determine_vertex_normals(wgraph, make_vox2arr_subpix(Sato));
 				move_vertex_in_plane(wgraph, make_vox2arr_subpix(Sato));
@@ -1300,13 +1296,13 @@ int main(int argc, char* argv[]) {
 	// locally fit gaussian functions to the root to determine its radius
 	{ 	boost::prof::profiler prof("gauss-fitting");
 		if(!no_gauss_fit)
-			wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), info.scale, maximum_radius_mm, info);
+			wurzel_thickness(wgraph, make_vox2arr_subpix(Raw), make_vox2arr_subpix(scales), info.scale, maximum_radius_mm, info);
 	}
 
 	// substitute covariance stuff with inertia tensor, for radius estimation!
-	{ 	boost::prof::profiler prof("inertia-tensor");
+	{ 	boost::prof::profiler prof("determine-radius-from-scales");
 		//determine_inertia_tensor(wgraph, make_vox2arr_subpix(Raw), maximum_radius_mm, info);
-		determine_radius_from_scales(wgraph, make_vox2arr_subpix(scales), maximum_radius_mm, info);
+		determine_radius_from_scales(wgraph, make_vox2arr_subpix(scales), make_vox2arr_subpix(Sato), maximum_radius_mm, info);
 	}
 
 	// reduce amount of nodes (good if the output needs to be passed on to another program)
@@ -1320,8 +1316,5 @@ int main(int argc, char* argv[]) {
 
 	//smooth_thickness(wgraph);
 
-
-	//remove_nonmax_nodes(wgraph,make_vox2arr(Ranks));
 	//write_voxelgrid<unsigned char>(getfn(base,"paths","dat"),graph,make_vox2arr(Paths));
-	//write_voxelgrid<unsigned char>(getfn(base,"ranks","dat"),graph,make_vox2arr(Ranks));
 }

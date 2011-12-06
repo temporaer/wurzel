@@ -24,6 +24,10 @@ struct vertex_eigenval_t{
 	typedef boost::vertex_property_tag kind;
 } vertex_eigenval;
 
+struct vertex_radius_t{
+	typedef boost::vertex_property_tag kind;
+} vertex_radius;
+
 struct marked_vertex_t{
 	typedef boost::vertex_property_tag kind;
 } marked_vertex;
@@ -53,8 +57,9 @@ typedef boost::adjacency_list<
 		        boost::property<vertex_eigenval_t,vec3_t,
 		  	     boost::property<root_stddev_t,double,
 		  	          boost::property<vertex_param0_t,double,
-			               boost::property<marked_vertex_t,bool
-	  > > > > > > >,
+			               boost::property<marked_vertex_t,bool,
+					       boost::property<vertex_radius_t,double
+	  > > > > > > > >,
 	boost::property<edge_mass_t,double>
 	> wurzelgraph_t;
 
