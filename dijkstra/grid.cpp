@@ -847,9 +847,9 @@ move_vertex_in_plane(wurzelgraph_t& wg, const T& acc){
  * @param max_radius_mm maximum radius of a root in mm
  * @param wi   additional root information
  */
-template<class T>
+template<class T, class U>
 void
-wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const double max_radius_mm, const wurzel_info& wi){
+wurzel_thickness(wurzelgraph_t& wg, const T& acc, const U& scale_acc, const double& scale, const double max_radius_mm, const wurzel_info& wi){
 	stat_t s_thickness;
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	property_map<wurzelgraph_t,vertex_normal_t>::type normal_map = get(vertex_normal, wg);
@@ -857,12 +857,12 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 	property_map<wurzelgraph_t,vertex_eigenval_t>::type eigenval_map = get(vertex_eigenval, wg);
 	property_map<wurzelgraph_t,vertex_param0_t>::type param0_map = get(vertex_param0, wg);
 	const double r = max_radius_mm/scale, step=0.5; // r and step in voxel
-	double sr      = r/5.0; // start radius for fitting
+	//double sr      = r/5.0; // start radius for fitting
 	std::cout << "Determining Wurzel thickness..."
 		<< V(max_radius_mm)
 		<< V(pow(2*r/step,2))
 		<<std::flush;
-	// foreach(wurzel_vertex_descriptor& wv, vertices(wg){
+	//foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
 	tbb::parallel_for_each(vertices(wg).first,vertices(wg).second,[=](wurzel_vertex_descriptor& wv){
 		covmat_t& m = normal_map[wv];
 		vec3_t&   p = pos_map[wv];
@@ -874,7 +874,8 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 
 		double centerval = acc( p[0], p[1], p[2])/wi.spross_intensity;
 		params[0] = centerval;
-		params[1] = 1.0/(2*sr*sr);
+		double sr_ = scale_acc(p[0],p[1],p[2]);
+		params[1] = 1.0/(2*sr_*sr_);
 		//params[2] = 0;
 		for(double z = -1; z <= 1; z+=1){
 			for(double i = -r; i <= r; i+=step){
@@ -914,7 +915,7 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 		     }
 		     grad /= values.size();
 		     static const int wd = 0.01; // weight decay
-		     grad[0] -= wd * (params[0]-0.08);
+		     grad[0] -= wd * (params[0]);
 		     grad[1] -= wd * (params[1]-0);
 		     //sqerrs.push_back(sqerr);
 		     rprop.update_irprop_plus(sqerr<last_sqerr ? RProp::ARPROP_DIR_OK : RProp::ARPROP_DIR_WRONG);
@@ -944,6 +945,7 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const double& scale, const dou
 		param0_map[wv] = params[0];
 		//s_thickness(stddev);
 	});
+	//};
 	//foreach(wurzel_vertex_descriptor& wv, vertices(wg)){
 	//        covmat_t& m = normal_map[wv];
 	//        vec3_t&   p = pos_map[wv];
