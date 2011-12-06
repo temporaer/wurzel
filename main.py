@@ -40,6 +40,14 @@ def loaddata(fn,slave=True):
     D = dataset("%s.dat"%fn,crop=False,upsample="zoom",remove_rohr=True,usepickled=slave)
     return D
 
+def parallel_run(args):
+        basename, sigma = args
+        import main
+        D = main.loaddata(basename)
+        res = main.vesselness(D,sigma)
+        sato = res['sato']
+        return sato
+
 if __name__ == "__main__":
     parallelize = False
     try:
@@ -54,98 +62,66 @@ if __name__ == "__main__":
 
     # when parallelizing over multiple computers, assure here that data is upsampled /exactly/ once!
     D = loaddata(basename,slave=[True,False][parallelize])
+    #D = loaddata(basename,slave=[True,True][parallelize])
 
     # ##########################################
     #  Determine set of scales
     # ##########################################
     # Barley
-    s = 1.20
-    sigma0 = 1.0
-    if basename.find("L2")>=0:
-        print "Lupine Scales selected!"
-        s = 1.30
-        sigma0 = 1.0
+    num_scales = 20
+    minimum_radius_mm = 0.08 / 2
+    maximum_radius_mm = 2.5  / 2
+    sigma0 = minimum_radius_mm
+    s      = (maximum_radius_mm/minimum_radius_mm)**(1./num_scales)
     sigmas = []
-    sigmas.extend([sigma0 * s**i for i in xrange(0,10)])
-    print "Sigmas: ", sigmas
-    sigmas = [x * 0.52 / D.info.scale for x in sigmas]  # 0.52 is the scale of the dataset which the params above were adjusted for
+    sigmas.extend([sigma0 * s**i for i in xrange(0,num_scales)])
+    print "Sigmas (mm) : ", sigmas
+    sigmas = [x / D.info.scale for x in sigmas] # convert from mm to vox
+    print "Sigmas (vox): ", sigmas
 
     # ##########################################
     #  Prepare remote systems (load data, ...)
     # ##########################################
     if parallelize:
-        from IPython.kernel import client
-        mec = client.MultiEngineClient()
-        mec.activate()
-        mec.flush()
-        print "running on ids ", mec.get_ids()
+        from IPython.parallel import Client
+        rc = Client(profile="wurzel_cluster")
+        #rc = Client(profile_dir="/home/VI/staff/schulz/.ipython/profile_default")
+        rc[:].execute("import os; os.chdir(\"%s\")" % os.getcwd())
+        lview = rc.load_balanced_view()
+        lview.block = True
+        
 
-        print "Importing on remote systems"
-        mec.block = True
-        print mec.execute("import os")
-        print mec.execute("os.system('rm -f /tmp/*.so')")
-        print mec.execute("os.chdir(\"%s\")"%os.path.realpath("."))
-        print mec.execute("from main import *")
-        print mec.execute("from wurzel.dataset import dataset")
-        print mec.execute("D = loaddata('%s')"%basename)
-        #print mec.push(dict(D=D))
 
-        print "Scattering sigmas"
-        mec.scatter('sigmas',   sigmas)
-
-    # ##########################################
-    #  Determine what is to be done on each host
-    # ##########################################
-    cmdl = ["res = [vesselness(D,s) for s in sigmas]",
-            "sato = [x['sato'] for x in res]",
-            #"ev10 = [x['ev10'] for x in res]",
-            #"ev11 = [x['ev11'] for x in res]",
-            #"ev12 = [x['ev12'] for x in res]",
-            ]
 
     # ##########################################
     #  Execute cmdl remotely or locally
     # ##########################################
     print "Executing..."
     if parallelize:
-        for c in cmdl:
-            print mec.execute(c)
-        print "Gathering..."
-        mec.block=True
-        sato = mec.gather("sato")
-        #ev10 = mec.gather("ev10")
-        #ev11 = mec.gather("ev11")
-        #ev12 = mec.gather("ev12")
+        print "in parallel..."
+        sato = lview.map(parallel_run, [(basename,s) for s in sigmas] )
+        print "done."
     else:
+        print "Sequential, and finding maxima"
         D = loaddata(basename)
-        for c in cmdl:
-            print "Executing ", c
-            c = compile(c, '<string>', 'exec')
-            eval(c,globals(), locals())
+        sato0 = None
+        for s in sigmas:
+            res  = vesselness(D,s)
+            sato = res['sato']
+            if sato0==None:
+                sato0  = sato.astype("float32")
+                scales = np.ones(sato.shape)*s
+                continue
+            arg         = sato0 < sato
+            sato0[arg]  = sato[arg]
+            scales[arg] = s
+            
 
-    # ##########################################
-    #  Find max and arg-max of sato data
-    # ##########################################
-    print "Finding maxima"
-    scales = np.zeros(sato[0].shape).astype("float32")
-    scales[:] = sigmas[0]
-    #import pdb; pdb.set_trace()
-    for s in xrange(1,len(sigmas)):
-        arg = sato[0] < sato[s]
-        sato[0][arg] = sato[s][arg]
-        scales[arg]  = sigmas[s]
-        #ev10[0][arg] = ev10[s][arg]
-        #ev11[0][arg] = ev11[s][arg]
-        #ev12[0][arg] = ev12[s][arg]
-    x = sato[0]
-    x -= x.min();
-    x /= x.max()
+    sato0 -= sato0.min();
+    sato0 /= sato0.max()
     basename = os.path.join(D.info.datapath, basename)
-    print "Saving to ", os.path.join(basename,"sato.dat"), "data range:", x.min(),x.max()
-    x.tofile(os.path.join(basename,"sato.dat"))
+    print "Saving to ", os.path.join(basename,"sato.dat"), "data range:", sato0.min(),sato0.max()
+    sato0.tofile(os.path.join(basename,"sato.dat"))
     scales.tofile(os.path.join(basename,"scales.dat"))
-    #ev10[0].tofile(basename+".ev10")
-    #ev11[0].tofile(basename+".ev11")
-    #ev12[0].tofile(basename+".ev12")
 
     print "Done"
