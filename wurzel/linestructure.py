@@ -16,7 +16,7 @@ def get_curve_3D(eig, alpha=0.25,g23=0.5,g12=0.5): # renumerated according to sa
     #return sato(eig,alpha,g23, g12)
     return frangi(eig)
 
-def frangi(eig):
+def frangi_memory_hungry(eig):
     print "Finding 3D curvilinear structures using Frangi et al..."
     l1     = eig["lambda1"]  # in fangi et al, we have |l1| <= |l2| <= |l3|
     l2     = eig["lambda2"]
@@ -28,6 +28,36 @@ def frangi(eig):
     S      = np.sqrt(l1**2+l2**2+l3**2)
     c      = np.max(S)/3.   # half of maximum frobenius norm of hessian says fangi et al.
     V      = (1-np.exp(RA**2)/(-2. * alpha**2)) * np.exp(RB**2/(-2. * beta**2)) * (1-np.exp(S**2/(-2. * c**2)))
+    P      = (l2 >= 0.) + (l3 >= 0.)
+    V[P]   = 0
+    V[V<0] = 0
+    print "done."
+    return V
+
+def frangi(eig):
+    print "Finding 3D curvilinear structures using Frangi et al..."
+    l1     = eig["lambda1"]  # in fangi et al, we have |l1| <= |l2| <= |l3|
+    l2     = eig["lambda2"]
+    l3     = eig["lambda3"]
+    alpha  = 0.5
+    beta   = 0.5
+    RB     = np.abs(l1)
+    RB    /= np.sqrt(np.abs(l2*l3))
+
+    RA     = np.abs(l2)
+    RA    /= np.abs(l3)
+
+    S      = l1.copy()
+    S    **=     2
+    S     += l2**2
+    S     += l3**2
+    np.sqrt(S,S)
+    c      = np.max(S)/3.   # half of maximum frobenius norm of hessian says fangi et al.
+    V      = 1-np.exp(RA**2)
+    V     /= -2. * alpha**2
+    V     *= np.exp(RB**2/(-2. * beta**2))
+    V     *= 1-np.exp(S**2/(-2. * c**2))
+    #V      = (1-np.exp(RA**2)/(-2. * alpha**2)) * np.exp(RB**2/(-2. * beta**2)) * (1-np.exp(S**2/(-2. * c**2)))
     P      = (l2 >= 0.) + (l3 >= 0.)
     V[P]   = 0
     V[V<0] = 0
