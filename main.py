@@ -22,7 +22,7 @@ def vesselness(d, sigma):
     print "Vesselness with sigma", sigma
     d           = d.get_smoothed(sigma)
     gc.collect()
-    eig         = img3dops.get_ev_of_hessian(d.D,sigma,gamma   = 1)
+    eig         = img3dops.get_ev_of_hessian(d.D,sigma,gamma   = 0.8)
     S           = linestructure.get_curve_3D(eig,0.25,0.5,0.5)
     res         = {}
     res["sato"] = S.astype("float32")
