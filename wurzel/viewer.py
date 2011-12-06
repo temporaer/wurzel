@@ -66,8 +66,8 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
     src = mlab.pipeline.scalar_field(D)
     #mlab.contour3d(D)
     #mlab.pipeline.volume(src, vmin=D.min()+0.2*D.ptp(),vmax=D.max()-0.2*D.ptp())
-    if fact.__class__ == float:
-        if normalize: c = fact * Dptp
+    if fact.__class__ in [float,int]:
+        if normalize: c = fact * D.mean()
         else:         c = fact - Dmin
         print "Thresholding at ", c
         mlab.pipeline.iso_surface(src, contours=[c, ], opacity=opacity, colormap=cm)
@@ -95,7 +95,7 @@ def xyz2pol_grid(L):
     cy = L.shape[1]/2
     cz = L.shape[2]/2
     G  = np.mgrid[0:L.shape[1],0:L.shape[2]]
-    G0 = np.mgrid[0:L.shape[1],0:L.shape[2]]
+    #G0 = np.mgrid[0:L.shape[1],0:L.shape[2]]
     G[0] -= cy
     G[1] -= cz
 
@@ -109,9 +109,47 @@ def xyz2pol_grid(L):
 
 
 
+def show_points_onefile(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True,dscale=1,what=3, opacity=1.0, dumb=False):
+    S = []
+    T = []
+    D = []
+    if scaled:
+        from dataset import WurzelInfo
+        info = WurzelInfo(fn)
+        print "Scale: ", info.scale
+    print "Show Point3D `%s'" % fn
+    with open("data/" + fn) as f:
+        for line in f.readlines():
+            line = line.split()
+            S.append([float(x) for x in line[:3]])  # 0..2: coordinate axes
+            T.append([float(x) for x in line[3:6]]) # 3..5: coordinate axes
+            D.append(float(line[-1]))              # diameter
+    S = np.array(S)
+    T = np.array(T)
+    if S.shape[0]<=0:
+        return
+    print "NumPoints: ", S.shape[0]
+    if scaled:
+        S /= info.scale  # L is in mm, now it matches raw data again
+        T /= info.scale  # L is in mm, now it matches raw data again
+    A = np.vstack((S,T))
+    A[:] += 0.5
+    pts = mlab.points3d(A[:,0],A[:,1],A[:,2],scale_factor=1,resolution="20",mode=mode,color=color)
+    pts.actor.visible=False
+    #import IPython; IPython.frontend.terminal.embed.embed()
+
+    E = np.ones((S.shape[0],2)).astype("int")
+    E[:,0] *= np.arange(S.shape[0])
+    E[:,1] *= np.arange(S.shape[0])+S.shape[0]
+    pts.mlab_source.dataset.lines = E
+    tube = mlab.pipeline.tube(pts,tube_sides=7,tube_radius=.5, name="root tubes")
+    tube.filter.capping     = True
+    #tube.filter.vary_radius = 'vary_radius_by_absolute_scalar'
+    mlab.pipeline.surface(tube,color=color)
+    print "Done."
 
 
-def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True,dscale=1,what=3):
+def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True,dscale=1,what=3, opacity=1.0, dumb=False):
     L = []
     S = []
     D = []
@@ -124,7 +162,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
         wireframe = True
         what = 3
     print "Show Point3D `%s'" % fn
-    with open(fn) as f:
+    with open("data/" + fn) as f:
         for line in f.readlines():
             line = line.split()
             #if len(line)<7:
@@ -140,6 +178,8 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
     print "NumPoints: ", L.shape[0]
     if scaled:
         L /= info.scale  # L is in mm, now it matches raw data again
+        if what==4:
+            S /= info.scale  # S is in mm, now it matches raw data again
     S *= dscale
     #S[S<0.5]=0.5
     #mlab.quiver3d(L[:,0],L[:,1],L[:,2], D[:,0],D[:,1],D[:,2], scale_factor=3.)
@@ -162,18 +202,26 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
 
     #pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.8,colormap=cm,scale_mode="none",resolution="20",mode=mode)
     #pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=0.1,colormap=cm,scale_mode="none",resolution="20",mode=mode)
-    pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=.01,colormap=cm,resolution="20",mode=mode,scale_mode='scalar')
+    assert np.isnan(S).sum()==0
+    if dumb:
+        pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=1,resolution="20",mode=mode,color=color)
+    else:
+        pts = mlab.points3d(L[:,0],L[:,1],L[:,2],S,scale_factor=1,colormap=cm,resolution="20",mode=mode,scale_mode='scalar')
+        pts.actor.visible=False
     print "Done."
     if None==fne: return
     print "Show Edges3D"
     E = []
     thresh = 100
-    with open(fne) as f:
+    with open("data/"+fne) as f:
         for line in f.readlines():
-            vec = line.split()
+            vec = line.split() 
             line = [int(x) for x in vec[:2]]
-            if np.linalg.norm(L[line[0],:] - L[line[1],:]) > thresh:
-               continue
+            try:
+                if np.linalg.norm(L[line[0],:] - L[line[1],:]) > thresh:
+                   continue
+            except:
+                pass
             E.append(line)
 
         E = np.vstack(E)
@@ -188,7 +236,8 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
         if color==None:
             color = (1,0,0) if gt else (0,1,0)
         #color = (0,1,0) if gt else (1,0,0)
-        mlab.pipeline.surface(tube,color=color)
+        res = mlab.pipeline.surface(tube,color=color)
+        res.actor.property.opacity = opacity
     print "Done."
 
 def show_laserpoints(L,cm="Blues",mode="2dtriangle",color=(0,0,0), ss=8):

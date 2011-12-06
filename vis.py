@@ -3,7 +3,7 @@
 # Copyright 2011 University of Bonn
 # Author: Hannes Schulz
 
-import sys
+import sys, os
 import numpy as np
 import wurzel.viewer as viewer
 from wurzel.dataset import dataset, WurzelInfo
@@ -11,27 +11,19 @@ from wurzel.dataset import dataset, WurzelInfo
 from enthought.mayavi import mlab
 #from scipy.ndimage.morphology import grey_closing
 #from scipy.ndimage.measurements import label
+#import IPython
 
 #@mlab.animate(delay=500, ui=False)
 def mkimg(fig,name):
-    scene = fig.scene
-    #print "Rendering..."
-    #scene.camera.position = [463.9984860311863, 1809.2988117125938, 109.73671134438729]
-    #scene.camera.focal_point = [421.51009012013674, 95.419905483722687, 94.895551919937134]
-    #scene.camera.view_angle = 30.0
-    #scene.camera.view_up = [0.99969286540503455, -0.02478022775248526, -0.00033936824643516789]
-    #scene.camera.clipping_range = [1482.2672553487132, 2010.9001920572837]
-    #scene.camera.compute_view_plane_normal()
-    #scene.render()
-    #mlab.savefig(name+"-plain.png",magnification=2)
-    scene.camera.position = [421.63833162281662, 0.41217041015625, -1602.0273769039982]
-    scene.camera.focal_point = [421.63833162281662, 0.41217041015625, 0.0]
-    scene.camera.view_angle = 30.0
-    scene.camera.view_up = [0.99991970691306742, -0.012672005637842045, 0.0]
-    scene.camera.clipping_range = [1574.0671031349582, 1641.0877875575584]
-    scene.camera.compute_view_plane_normal()
-    scene.render()
-    mlab.savefig(name+"-polar.png",magnification=2)
+    scene = fig
+    scene.scene.camera.position = [111.58714792682832, 509.05217371314114, -40.52978953059533]
+    scene.scene.camera.focal_point = [10.281192710643207, 445.46754443016596, 124.36301423212157]
+    scene.scene.camera.view_angle = 30.0
+    scene.scene.camera.view_up = [0.084694202542404673, 0.91110955015930073, 0.40336866470292765]
+    scene.scene.camera.clipping_range = [0.73702606876179377, 737.02606876179379]
+    scene.scene.camera.compute_view_plane_normal()
+    scene.scene.render()
+    mlab.savefig(os.path.join("plots", basename + "--" + name+".png"),magnification=2)
 
 
 if __name__ == "__main__":
@@ -48,145 +40,127 @@ if __name__ == "__main__":
       print "Usage: ",sys.argv[0],"[-o] [-d] [-t token] {basename}"
       sys.exit(1)
 
+  info = WurzelInfo(basename+".dat")
+  datapath = info.datapath
+
   if offscreen:
     mlab.options.offscreen = True
-  fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(2048,1792))
-  #fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(400,300))
+  #fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(2048,1792))
+  fig = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1), size=(500,500))
   fig.scene.anti_aliasing_frames=1
   mlab.clf()
-
-  #ev10  = dataset("data/L2_22aug.ev10", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
-  #ev11  = dataset("data/L2_22aug.ev11", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
-  #ev12  = dataset("data/L2_22aug.ev12", dz=256, dtype="float32", upsample=None, crop=False,usepickled=False,medianfilt=False).D
-
-  #Draw  = dataset(basename+".dat", upsample="zoom", crop=False,usepickled=True, remove_rohr=True).D
-  #Ddist1 = dataset(basename+"-paths1.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  #Ddist = dataset(basename+"-paths.dat", dz=256,upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  #Ddist = dataset(basename+"-d_map.dat", dz=256, dtype="float64", upsample=None, crop=False,usepickled=False,medianfilt=False).D.swapaxes(0,2)
-  Dsato = dataset(basename+".sato", upsample=None, crop=False,usepickled=False,medianfilt=False).D
-  Draw  = dataset(basename+"-upsampled.dat", upsample=None, crop=False,usepickled=False,medianfilt=False).D
-  #Draw  = np.fromfile("/home/local/cuv/build/nlmeanresult.dat", dtype="float32").reshape(410,192,192)
-  #dmin = Dsato.min()
-  #dptp = Dsato.ptp()
-  #minv = dmin+0.15*dptp
-  #Dsato[Dsato<minv]=0
-  #L, nf = label(Dsato)
-  #print "Number of connected components: ", nf
-
-  #viewer.show_points(basename+"-ranks.txt",cm="Spectral", mode="sphere")
-  #viewer.show_points(basename+"-vertices.txt", basename+"-edges.txt")
-  #viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt")
-  #viewer.show_iso(255.-Ddist, 1./26., "jet", 0.7)  
-  #viewer.show_iso(255-Ddist, [1/26.,2/26.], "RdGy", 0.2)
-  #viewer.show_iso(255-Ddist, 250., "Spectral", 0.7)
-  #viewer.show_volume(Dsato, "Spectral", 0.2, 0.40)
-  #if offscreen:
-  #  mkimg(fig, "path-ours")
-  #  #mlab.clf()
-
-  #viewer.show_points( "data/GersteLA_192x192x410_normal-vertices.txt", "data/GersteLA_192x192x410_normal-edges.txt")
-  #viewer.show_points( "data/GersteLA_128x128x410-vertices.txt", "data/GersteLA_128x128x410-edges.txt", color=(0,0,1))
-  if token == "raw":
-      viewer.show_iso(Draw, 0.015 , "bone", 0.15)
+  token = token.split("-")
+  if "raw" in token:
+      Draw  = np.load(os.path.join(datapath, basename, "upsampled.pickle"))
+      viewer.show_iso(Draw, 4 , "bone", 0.15)
       if offscreen:
         mkimg(fig, "raw")
         mlab.clf()
-  if token == "rawvol":
+
+  if "raw_before" in token:
+      Draw  = np.fromfile(os.path.join(datapath, basename + ".dat"),dtype="float32").reshape(256,832,256)
+      viewer.show_iso(Draw, 4 , "bone", 0.15)
+      if offscreen:
+        mkimg(fig, "raw")
+        mlab.clf()
+
+
+  if "rawvol" in token:
+      Draw  = np.load(os.path.join(datapath, basename, "upsampled.pickle"))
       viewer.show_volume(Draw, "bone", 0.01, 0.1)
       if offscreen:
         mkimg(fig, "rawvol")
         mlab.clf()
 
-  if token == "mass":
-      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=1,what=3)
+  if "mass" in token:
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=0.5,what="wireframe")
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=1,what=3)
       #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
       if offscreen:
         mkimg(fig, "mass")
         mlab.clf()
+  if "mass_cmp" in token:
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=4,what=3, color=(.1,.1,.8),opacity=0.3)
+      gt_name = basename.split("roots")[0]
+      viewer.show_points( gt_name+"/vertices.txt", gt_name+"/edges.txt", dscale=4,what=3,color=(.8,.3,.3), opacity=0.3)
+      if offscreen:
+        mkimg(fig, "mass_cmp")
+        mlab.clf()
 
-  if token == "scales":
+  if "scales" in token:
       info = WurzelInfo(basename+".scales")
       Dscales = np.fromfile(basename+".scales", dtype="float32").reshape(info.shape)
-      #viewer.show_iso(Dscales, 0.3, "bone", 0.15)
-      arg0=Dsato<0.01
-      Dscales[arg0] = 0
-      viewer.show_volume(Dscales, "bone", 0.01, 0.8)  # 0.03, 0.2 works well
       if offscreen:
         mkimg(fig, "scales")
         mlab.clf()
 
-  if token == "diameter":
-      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=1,what=4)
-      viewer.show_iso(Draw, 0.150 , "bone", 0.40)   # lupine
+  if "diameter" in token:
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=1,what=4)
       if offscreen:
         mkimg(fig, "diameter")
         mlab.clf()
 
-  if token == "wireframe":
-      viewer.show_points( basename+"-vertices.txt", basename+"-edges.txt", dscale=0.5,what="wireframe")
+  if "diameter_cmp" in token:
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=1,what=4, color=(.1,.1,.8),opacity=0.3)
+      gt_name = basename.split("roots")[0]
+      viewer.show_points( gt_name+"/vertices.txt", gt_name+"/edges.txt", dscale=1,what=4,color=(.8,.3,.3), opacity=0.3)
+      if offscreen:
+        mkimg(fig, "diameter_cmp")
+        mlab.clf()
+
+  if "wireframe_cmp" in token:
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=0.5,what="wireframe")
+      L = basename.split("roots")
+      viewer.show_points( L[0]+"/vertices.txt", L[0]+"/edges.txt", dscale=0.5,what="wireframe",color=(1,0,0))
+      if offscreen:
+        mkimg(fig, "wireframe_cmp")
+        mlab.clf()
+  if "wireframe" in token:
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=0.5,what="wireframe", color=(.1,.1,.8))
       #viewer.show_iso(Dsato, 0.002 , "bone", 0.1)
-      #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # barley
-      viewer.show_iso(Draw, 0.150 , "bone", 0.40)   # lupine
+      #Draw  = np.load(os.path.join(datapath, basename, "upsampled.pickle"))
+      #viewer.show_iso(Draw, 10, "bone", 0.40)
       #viewer.show_volume(Draw, "bone", 0.01, 0.1)  # 0.03, 0.2 works well
       if offscreen:
         mkimg(fig, "wireframe")
         mlab.clf()
 
-  if token == "satoiso":
-      viewer.show_iso(Dsato, 0.002 , "Spectral", 0.2)
+  if "wireframe_diff" in token:
+      gt_name = basename.split("roots")[0]
+      viewer.show_points( gt_name+"/vertices.txt", gt_name+"/edges.txt", dscale=0.5, what="wireframe", opacity=0.2,color=(0.8,0.3,0.3))
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=0.5*.85, what="wireframe", opacity=0.2,color=(0.1,0.1,0.8))
+      viewer.show_points_onefile( basename+"/toomuch.txt", dscale=0.5, what="wireframe", color=(.1,.1,1),dumb=True)
+      viewer.show_points_onefile( basename+"/missing.txt", dscale=0.5, what="wireframe", color=(1,.3,.3),dumb=True, opacity=0.3)
+      if offscreen:
+        mkimg(fig, "wireframe_diff")
+        mlab.clf()
+      
+
+  if "satoiso" in token:
+      Dsato = dataset(basename+"/sato.dat", upsample=None, crop=False,usepickled=False,medianfilt=False).D
+      viewer.show_iso(Dsato, 4, "Spectral", 0.2)
       if offscreen:
         mkimg(fig, "satoiso")
         mlab.clf()
 
-  if token == "satovol":
+  if "satovol" in token:
+      Dsato  = dataset(basename+"/sato.dat")
       #viewer.show_volume(Dsato, "bone", 0.00001, 0.01) # barley
       viewer.show_volume(Dsato, "bone", 0.01, 0.04) # lupine
       if offscreen:
         mkimg(fig, "satovol")
         mlab.clf()
 
-  #DReis = np.load("data/reispflanze_wurzeln-laser.npy")
-  #viewer.show_laserpoints(DReis);
+  if "dmap" in token:
+      info = WurzelInfo(basename+".dat")
+      dmap  = np.fromfile(os.path.join(datapath, basename, "d_map.dat")).reshape(info.shape)
+      #import pdb; pdb.set_trace()
+      viewer.show_iso(dmap, .003 , "bone", 0.15)
+      if offscreen:
+        mkimg(fig, "dmap")
+        mlab.clf()
 
-  #DReis = np.loadtxt("laser/rec_del.txt")
-  #viewer.show_laserpoints(DReis,"bone",ss=1,color=(1,0,0));
-  #DReis = np.loadtxt("laser/rec_out.txt")
-  #viewer.show_laserpoints(DReis,"bone",ss=1,color=(0,0,1));
-  #DReis = np.loadtxt("laser/rec.txt")
-  #viewer.show_laserpoints(DReis,"bone",ss=1,color=(0,1,0));
-  #DReis = np.loadtxt("laser/tube.txt")
-  #viewer.show_laserpoints(DReis,"Spectral",color=(0,0,1));
-
-  #viewer.show_iso(Draw, 0.19 , "bone", 0.1)   # need 0.2 to get rid of noise
-  #if offscreen:
-  #  mkimg(fig, "us-vs-ground")
-  #  mlab.clf()
-
-  #viewer.show_iso(Ddist1, 0.05 , "RdGy", 1.0)
-  #viewer.show_iso(Draw, 0.19 , "bone", 0.17)   # need 0.2 to get rid of noise
-  #if offscreen:
-  #  mkimg(fig, "rendered-paths1")
-  #  mlab.clf()
-
-  #viewer.show_iso(Ddist, 0.05 , "RdGy", 1.0)
-  #viewer.show_iso(Draw, 0.19 , "bone", 0.17)   # need 0.2 to get rid of noise
-  #if offscreen:
-  #  mkimg(fig, "rendered-paths")
-  #  mlab.clf()
-
-  #viewer.show_volume(Draw, "bone", 0.15,1.0)   # 0.13, 0.3 works well
-  #if offscreen:
-  #  mkimg(fig, "raw")
-  #  mlab.clf()
-
-  #viewer.show_iso(Dsato, 0.002 , "Spectral", 0.2)  
-  #if offscreen:
-  #   mkimg(fig, "sato-iso")
-  #   mlab.clf()
-
-  #viewer.show_volume(Dsato, "bone", 0.005, 0.2)  # 0.03, 0.2 works well
-  #if offscreen:
-  #  mkimg(fig, "sato-bone")
-  #  mlab.clf()
-
+#import pdb; pdb.set_trace()
+if not offscreen:
+    import IPython; IPython.frontend.terminal.embed.embed()
 

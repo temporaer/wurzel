@@ -28,6 +28,8 @@ def hessian(img, sigma,gamma=1):
     Dxz = grad(Dx, 2)
 
     Dyz = grad(Dy, 2)
+    if np.isnan(Dx+Dy+Dxx+Dyy+Dzz+Dxy+Dxz).sum() != 0:
+            raise RuntimeError("Hessian computation yields NaN!")
     D = {"Dxx": Dxx, "Dyy": Dyy, "Dzz": Dzz, "Dxy": Dxy, "Dxz": Dxz, "Dyz": Dyz}
     for k in D:
         v = D[k]
@@ -71,7 +73,13 @@ def eig3x3(hessian):
               A(1,2) = Dyz(i,j,k);
 
               //lapack::syev('V','U',A,lambda,lapack::optimal_workspace());  // V/N compute/donotcompute eigenvectors 
-                lapack::syev('N','U',A,lambda,lapack::workspace(work));
+                int info = lapack::syev('N','U',A,lambda,lapack::workspace(work));
+                if(info != 0){
+                    fill(lambda.begin(), lambda.end(), 0);
+                    A(0,idx)=0;
+                    A(1,idx)=0;
+                    A(2,idx)=0;
+                }
               idx = distance(lambda.begin(),min_element(lambda.begin(),lambda.end(), cmp_abs()));
               ev10(i,j,k)    = A(0,idx);
               ev11(i,j,k)    = A(1,idx);
@@ -122,9 +130,10 @@ def eig3x3(hessian):
                           '<cmath>'],
                  type_converters=converters.blitz,
                  libraries=["lapack"])
-    assert np.isnan(ev10).sum()==0
-    assert np.isnan(ev11).sum()==0
-    assert np.isnan(ev12).sum()==0
+    if np.isnan(ev10+ev11+ev12).sum() != 0:
+            raise RuntimeError("Eigenvectors contain NaN!")
+    if np.isnan(lambda1+lambda2+lambda3).sum() != 0:
+            raise RuntimeError("Eigenvalues contain NaN!")
     return {"lambda1":lambda1,"lambda2": lambda2, "lambda3":lambda3, "ev10": ev10, "ev11": ev11, "ev12": ev12}
 
 def get_ev_of_hessian(D,sigma,gamma=1):

@@ -22,8 +22,11 @@ class WurzelInfo:
         # remove extensions
         basename,ext = os.path.splitext(fn)
         # remove common suffixes
-        basename = basename.replace("-upsampled","")
-        basename = basename.replace("-vertices","")
+        basename = basename.replace("/upsampled","")
+        basename = basename.replace("/sato","")
+        basename = basename.replace("/vertices","")
+        basename = basename.replace("/toomuch","")
+        basename = basename.replace("/missing","")
         try:
             self.read_shape = cfg.read_shape(basename)
             self.shape      = cfg.shape(basename)
@@ -31,9 +34,7 @@ class WurzelInfo:
             self.has_rohr   = cfg.has_rohr(basename)
             self.scale      = cfg.scale(basename)
         except:
-            print "Could not find dataset `%s' in config!"%basename
-            import sys
-            sys.exit(1)
+            raise RuntimeError("Could not find dataset `%s' in config!"%basename)
 
         print "WurzelInfo: ", self.read_shape, self.shape, self.read_dtype, self.has_rohr
 
@@ -58,11 +59,15 @@ class dataset(object):
             return
         self.info = WurzelInfo(datafile)
         info = self.info
+        try:
+            os.mkdir(os.path.join(info.datapath, datafile.replace(".dat","")))
+        except OSError:pass
         if not info.has_rohr: remove_rohr = False
         if not info.has_rohr: medianfilt = False
 
         picklename = os.path.join(info.datapath, datafile.replace(".dat",""), "upsampled.pickle")
-        if usepickled and os.path.exists(picklename):
+        #if usepickled and os.path.exists(picklename):
+        if os.path.exists(picklename):
             self.load(picklename)
             if not all([x==y for x,y in zip(self.D.shape, info.shape )]):
                 print "After loading pickle, dimensions do not match: ", self.D.shape, info.shape
