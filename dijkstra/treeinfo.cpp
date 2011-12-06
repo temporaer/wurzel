@@ -4,6 +4,8 @@
 
 #include <boost/unordered_map.hpp>
 
+#include <boost/multi_array.hpp>
+
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
@@ -11,7 +13,9 @@
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
 #include <boost/accumulators/statistics/count.hpp>
+#include <boost/accumulators/statistics/covariance.hpp>
 #include <boost/accumulators/statistics/variance.hpp>
+#include <boost/accumulators/statistics/variates/covariate.hpp>
 
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/reverse_graph.hpp>
@@ -27,12 +31,15 @@
 #include "inc/wurzel_tree.hpp"
 #include "inc/treeinfo_config.hpp"
 
+#define V(X) #X<<":"<<(X)<<"  "
+
 namespace fs = boost::filesystem;
 using namespace boost::accumulators;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max, tag::variance, tag::count > > stat_t;
-typedef accumulator_set< double, features< tag::median, tag::count > > medstat_t;
+typedef accumulator_set< double, features< tag::median, tag::count, tag::mean > > medstat_t;
 
 std::map<void*,double> g_diameter;
+typedef boost::multi_array_ref<float, 3> float_grid;
 
 
 // (a2b3 − a3b2, a3b1 − a1b3, a1b2 − a2b1)
@@ -441,7 +448,7 @@ void graph_stats(wurzelgraph_t& g){
  */
 double total_mass(wurzelgraph_t& wg, const wurzel_info& wi){
 	double sum = 0.0;
-	double minpos = wi.scale * /*wi.stem_plane*/14 * wi.X/410.0; // TODO: make this work for other datasets!!
+	double minpos = /*wi.stem_plane*/14 * wi.X/410.0; // TODO: make this work for other datasets!!
 	property_map<wurzelgraph_t,vertex_position_t>::type  pos_map = get(vertex_position, wg);
 	property_map<wurzelgraph_t,root_stddev_t>::type   stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type       mass_map = get(edge_mass, wg);
@@ -929,21 +936,57 @@ void action_mass(std::vector<wurzel_info>& wis, std::vector<std::string>& bases,
  * print the distance btw two graphs (non-symmetric!!!)
  */
 void action_distance(std::vector<wurzel_info>& wis, std::vector<std::string>& bases, const po::variables_map& vm){
+	fs::path datadir = wis[0].directory;
 	std::string base1 = bases[0];
 	std::string base2 = bases[1];
 	double tolerance = vm["tolerance"].as<double>();
 
 	wurzelgraph_t g1, g2;
-	loadtree(base1, g1);
-	loadtree(base2, g2);
+	if(base1.find("snr")==std::string::npos) load_gt_tree((datadir/base1).string(),g1,wis[0]);
+	else                                        loadtree((datadir/base1).string(), g1);
+	if(base2.find("snr")==std::string::npos) load_gt_tree((datadir/base2).string(),g2,wis[1]);
+	else                                        loadtree((datadir/base2).string(), g2);
 
+	determine_mass_from_vol(bases[0],g1,wis[0]); // do this before scaling to mm!
+	determine_mass_from_raw(bases[1],g2,wis[1]); // do this before scaling to mm!
 	scale_to_mm(g1,wis[0]);
 	scale_to_mm(g2,wis[1]);
 
 	int n1 = num_vertices(g1);
 	int n2 = num_vertices(g2);
-	std::cout<<"Verticex count: "<<n1 << " vs "<< n2<<std::endl;
-	distance(g1,g2,tolerance, vm["verbose"].as<bool>());
+	std::cout<<"# Verticex count: "<<n1 << " vs "<< n2<<std::endl;
+	std::cout<<"# Tolerance     : "<<tolerance << std::endl;
+
+	property_map<wurzelgraph_t,marked_vertex_t>::type   mark_map  = get(marked_vertex, g1);
+	foreach (wurzel_vertex_descriptor& wd, vertices(g1))
+		mark_map[wd] = true; // use all data in ground truth for radius estimation
+
+	// estimate: avg in segments and convert to units/length
+	determine_nodes_far_away_from_crossings(g2,true,true); // use only things far away from crossings for radius estimation, average radius in segments
+	// ground truth: convert to units/length
+	{
+		auto pos_map  = get(vertex_position, g1);
+		auto mass_map = get(edge_mass, g1);
+		foreach(const wurzel_edge_descriptor &e, edges(g1)){
+			const wurzel_vertex_descriptor& s = source(e,g1);
+			const wurzel_vertex_descriptor& t = target(e,g1);
+			double len = ublas::norm_2(pos_map[s]-pos_map[t]);
+			mass_map[e] /= len; // converts mass to units per length(!)
+		}
+	}
+
+	{
+		// assume g1 is ground truth!
+		std::ofstream  ofs( (datadir/base2/"missing.txt").string().c_str() );
+		std::ofstream  scat( (datadir/base2/"missing_scatter.txt").string().c_str() );
+		distance("missing",ofs,scat, g1,g2,tolerance, vm["verbose"].as<bool>());
+	}
+	{
+		// assume g1 is ground truth!
+		std::ofstream  ofs( (datadir/base2/"toomuch.txt").string().c_str() );
+		std::ofstream  scat( (datadir/base2/"toomuch_scatter.txt").string().c_str() );
+		distance("toomuch",ofs,scat, g2,g1,tolerance, vm["verbose"].as<bool>());
+	}
 }
 
 /**
@@ -954,6 +997,7 @@ void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map,
 	std::ofstream ofs(name.c_str());
 	property_map<wurzelgraph_t,root_stddev_t>::type stddev_map = get(root_stddev, wg);
 	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
+	property_map<wurzelgraph_t,vertex_radius_t>::type radius_map = get(vertex_radius, wg);
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	foreach (const wurzel_edge_descriptor& e, edges(wg)){
 		const wurzel_vertex_descriptor& s = source(e,wg);
@@ -969,9 +1013,9 @@ void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map,
 		unsigned int  w = vidx_map[t];
 		//ofs << v[0]<<" "<<v[1]<<" "<<v[2]<<" "<<w[0]<<" "<<w[1]<<" "<<w[2]<<std::endl;
 		//double thickness = stddev_map[source(e,wg)]+stddev_map[target(e,wg)];
-		double thickness = mass_map[e]/length;
-		double mass      = mass_map[e]/length;
-		ofs << v <<" "<< w <<" "<<thickness<<" "<<mass<< " "<<ang <<" "<<0.5*(spos[0]+tpos[0])<<std::endl;
+		double diameter = 0.5 * (2*radius_map[s]+2*radius_map[t]);
+		double mass      = mass_map[e];
+		ofs << v <<" "<< w <<" "<<diameter<<" "<<mass<< " "<<ang <<" "<<0.5*(spos[0]+tpos[0])<<std::endl;
 	}
 	ofs.close();
 }
@@ -1015,27 +1059,32 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 	property_map<wurzelgraph_t,edge_mass_t>::type mass_map = get(edge_mass, wg);
 	property_map<wurzelgraph_t,vertex_position_t>::type pos_map  = get(vertex_position, wg);
 	property_map<wurzelgraph_t,vertex_eigenval_t>::type ev_map = get(vertex_eigenval, wg);
+	property_map<wurzelgraph_t,vertex_radius_t>::type radius_map = get(vertex_radius, wg);
 	foreach (wurzel_vertex_descriptor& wd, vertices(wg)){
 		voxel_vertex_descriptor  v = get(vertex_name,wg)[wd];
-		const vec3_t&            p = get(vertex_position,wg)[wd];
+		const vec3_t&            p = pos_map[wd];
 		vidx_map[wd] = idx++;
-		//unsigned int deg = out_degree(wd,wg);
-		double mass = 0, cnt = 0;
+		double mass=0.0;
+		double mass_radius = 0.0;
 		if(in_degree(wd,wg)>0){
 			wurzel_edge_descriptor e = *in_edges(wd,wg).first;
-			double l = voxdist(pos_map[source(e,wg)].begin(),pos_map[target(e,wg)].begin());
-			mass += mass_map[e]/l;
-			cnt ++;
-		}
-		if(out_degree(wd,wg)>0){
+
+			vec3_t s = pos_map[source(e,wg)];
+			vec3_t t = pos_map[target(e,wg)];
+
+			mass_radius = sqrt(mass_map[e] / M_PI); // has been divided by length already
+
+			mass        = mass_map[e];
+		}else if(out_degree(wd,wg)>0){
 			wurzel_edge_descriptor e = *out_edges(wd,wg).first;
-			double l = voxdist(pos_map[source(e,wg)].begin(),pos_map[target(e,wg)].begin());
-			mass += mass_map[*out_edges(wd,wg).first]/l;
-			cnt ++;
+
+			vec3_t s = pos_map[source(e,wg)];
+			vec3_t t = pos_map[target(e,wg)];
+
+			mass_radius = sqrt(mass_map[e] / M_PI); // has been divided by length already
+
+			mass        = mass_map[e];
 		}
-		if(cnt>0) mass /= cnt;
-		mass = std::max(mass, 0.05); // just for visualization!
-		mass = std::min(mass, 6.00); // just for visualization!
 		s_mass(mass);
 
 		//double d1 = pow(ev_map[wd][1], 2.00);
@@ -1047,7 +1096,7 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 		std::map<wurzel_vertex_descriptor,default_color_type> vertex2color;
 		boost::associative_property_map< std::map<wurzel_vertex_descriptor, default_color_type> >
 			    cmap(vertex2color);
-		int smooth = 16;
+		int smooth = 13;
 		try{ breadth_first_visit(wg, wd,
 				       	visitor(make_bfs_median_visitor(stddev_map,   smooth, &s_median)).
 				       	color_map(cmap));
@@ -1056,13 +1105,16 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 				       	visitor(make_bfs_median_visitor(stddev_map,  2*smooth, &s_median)).
 				       	color_map(cmap));
 		}catch(double m){}
-		d1 = d2 = 2.0 * median(s_median);
+		//d1 = d2 = 2.0 * median(s_median);
+
+		d1 = d2 = radius_map[wd] * 2;
 
 		//double d1 = pow(ev_map[wd][1], 0.25);
 		//double d2 = pow(ev_map[wd][2], 0.25);
 		//std::cout << "d1: "<<d1<< " d2: "<< d2<<std::endl;
-		double diameter = 0.5 * (d1+d2)    * 0.50;
-		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<mass<<" "<<diameter<<" "<<0<<" "<<0<<std::endl;
+		double diameter = 0.5 * (d1+d2);
+
+		ofs << p[0]<<" "<<p[1]<<" "<<p[2]<<" "<<mass_radius<<" "<<diameter<<" "<<0<<" "<<0<<std::endl;
 		g_diameter[wd]=diameter;
 		s_diameter(diameter);
 	}
@@ -1078,19 +1130,44 @@ void print_wurzel_vertices(const std::string& name, wurzelgraph_t& wg, T& vidx_m
 /**
  * print some interesting information about a graph
  */
-void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& bases, const po::variables_map& vm){
+void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& shortbases, const po::variables_map& vm){
   std::map<wurzel_vertex_descriptor,unsigned int> idx_map;
 
+  std::string base = (fs::path(wis[0].directory) / shortbases[0]).string();
+
   wurzelgraph_t g;
-  loadtree(bases[0], g);
+  bool is_ground_truth = base.find("snr")==std::string::npos && base.find("Gerste")==std::string::npos;
+  if(is_ground_truth)
+	  load_gt_tree(base,g,wis[0]);
+  else
+	  loadtree(base, g);
+
+  if (is_ground_truth)
+	  determine_mass_from_vol(shortbases[0],g,wis[0]);
+  else
+	  determine_mass_from_raw(shortbases[0],g,wis[0]);
 
   scale_to_mm(g,wis[0]);
+  if(!is_ground_truth){
+	  determine_nodes_far_away_from_crossings(g,true,true); // average /radii/ in segments
+  }
+  else{
+	// ground truth: convert to units/length
+	  auto pos_map  = get(vertex_position, g);
+	  auto mass_map = get(edge_mass, g);
+	  foreach(const wurzel_edge_descriptor &e, edges(g)){
+		  const wurzel_vertex_descriptor& s = source(e,g);
+		  const wurzel_vertex_descriptor& t = target(e,g);
+		  double len = ublas::norm_2(pos_map[s]-pos_map[t]);
+		  mass_map[e] /= len; // converts mass to units per length(!)
+	  }
+  }
   total_mass(g, wis[0]);
   total_length(g);
   avg_len_btw_splits(g);
-  print_wurzel_vertices(getfn(bases[0],"vertices","txt"),g,idx_map);
-  print_wurzel_edges(   getfn(bases[0],"edges","txt"),g,idx_map,wis[0]);
-  to_xml_forest(bases[0],g);
+  print_wurzel_vertices(getfn(base,"vertices","txt"),g,idx_map);
+  print_wurzel_edges(   getfn(base,"edges","txt"),g,idx_map,wis[0]);
+  to_xml_forest(base,g);
 }
 
 int main(int argc, char* argv[]){
@@ -1099,9 +1176,10 @@ int main(int argc, char* argv[]){
 	// read commandline params
 	po::variables_map vm = get_config(wis,argc,argv);
 	std::vector<std::string> actions = vm["action"].as<std::vector<std::string> >();
-	std::vector<std::string> bases   = vm["base"].as<std::vector<std::string> >();
+	std::vector<std::string> bases        = vm["base"].as<std::vector<std::string> >();
+	std::vector<std::string> shortbases   = vm["base"].as<std::vector<std::string> >();
 
-	for(int i=0;i<wis.size(); i++){
+	for(unsigned int i=0;i<wis.size(); i++){
 		bases[i] = (fs::path(wis[i].directory) / bases[i]).string();
 	}
 
@@ -1111,13 +1189,13 @@ int main(int argc, char* argv[]){
 	// select action
 	foreach(const std::string& a, actions){
 		if(a=="distance"){
-			action_distance(wis,bases,vm);
+			action_distance(wis,shortbases,vm);
 		}else if(a == "mass"){
 			action_mass(wis,bases,vm);
 		}else if(a == "length"){
 			action_length(wis,bases,vm);
 		}else if(a == "print"){
-			action_print(wis,bases,vm);
+			action_print(wis,shortbases,vm);
 		}
 	}
 	
