@@ -5,10 +5,23 @@
 	<datapath>/home/VI/staff/schulz/checkout/git/wurzel/data</datapath>
 	<datafiles>
 		<!-- ******************** -->
+		<!--      SimRoot         -->
+		<!-- ******************** -->
+		<datafile read-dtype="float32">
+			<base-name>simroot20</base-name>
+			<read-shape x="301" y="601" z="101"/>
+			<shape      x="301" y="601" z="101"/>
+			<stem-plane>300</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>1</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<!-- ******************** -->
 		<!--      Gerste          -->
 		<!-- ******************** -->
 		<datafile read-dtype="float32">
-			<base-name>GersteLA_64x64x410</base-name>
+			<base-name>GersteLA_64x64x410_noise0</base-name>
 			<read-shape x="410" y="64" z="64"/>
 			<shape      x="410" y="90" z="90"/>
 			<stem-plane>5</stem-plane>
@@ -18,7 +31,7 @@
 			<noise-cutoff>0.0133333333</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>GersteLA_96x96x410</base-name>
+			<base-name>GersteLA_96x96x410_noise0</base-name>
 			<read-shape x="410" y="96" z="96"/>
 			<shape      x="436" y="96" z="96"/>
 			<stem-plane>5</stem-plane>
@@ -28,7 +41,7 @@
 			<noise-cutoff>0.02</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>GersteLA_128x128x410</base-name>
+			<base-name>GersteLA_128x128x410_noise0</base-name>
 			<read-shape x="410" y="128" z="128"/>
 			<shape      x="582" y="128" z="128"/>
 			<stem-plane>5</stem-plane>
@@ -48,7 +61,7 @@
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>GersteLA_192x192x410_normal</base-name>
+			<base-name>GersteLA_192x192x410_noise0</base-name>
 			<read-shape x="410" y="192" z="192"/>
 			<shape      x="872" y="192" z="192"/>
 			<stem-plane>5</stem-plane>
@@ -58,7 +71,7 @@
 			<noise-cutoff>0.04</noise-cutoff>
 		</datafile>
 		<datafile read-dtype="float32">
-			<base-name>GersteLA_256x256x410</base-name>
+			<base-name>GersteLA_256x256x410_noise0</base-name>
 			<read-shape x="410" y="256" z="256"/>
 			<shape      x="1163" y="256" z="256"/>
 			<stem-plane>5</stem-plane>
@@ -187,6 +200,1009 @@
 			<has-rohr>true</has-rohr>
 			<scale>0.390625</scale>
 			<noise-cutoff>0.04</noise-cutoff>
+		</datafile>
+		<!-- ******************** -->
+		<!--      Maize           -->
+		<!-- ******************** -->
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_128,832,128,snr150</base-name>
+			<read-shape x="128" y="832" z="128"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_192,832,192,snr150</base-name>
+			<read-shape x="192" y="832" z="192"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_256,832,256,snr1</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_256,832,256,snr10</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_256,832,256,snr100</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_256,832,256,snr150</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_256,832,256,snr200</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_256,832,256,snr25</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_256,832,256,snr50</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_256,832,256,snr500</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_64,832,64,snr150</base-name>
+			<read-shape x="64" y="832" z="64"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_96,832,96,snr1</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_96,832,96,snr10</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_96,832,96,snr100</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_96,832,96,snr150</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_96,832,96,snr200</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_96,832,96,snr25</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_96,832,96,snr50</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep1roots015_96,832,96,snr500</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_128,832,128,snr150</base-name>
+			<read-shape x="128" y="832" z="128"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_192,832,192,snr150</base-name>
+			<read-shape x="192" y="832" z="192"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_256,832,256,snr1</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_256,832,256,snr10</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_256,832,256,snr100</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_256,832,256,snr150</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_256,832,256,snr200</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_256,832,256,snr25</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_256,832,256,snr50</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_256,832,256,snr500</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_64,832,64,snr150</base-name>
+			<read-shape x="64" y="832" z="64"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_96,832,96,snr1</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_96,832,96,snr10</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_96,832,96,snr100</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_96,832,96,snr150</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_96,832,96,snr200</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_96,832,96,snr25</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_96,832,96,snr50</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep2roots015_96,832,96,snr500</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_128,832,128,snr150</base-name>
+			<read-shape x="128" y="832" z="128"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_192,832,192,snr150</base-name>
+			<read-shape x="192" y="832" z="192"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_256,832,256,snr1</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_256,832,256,snr10</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_256,832,256,snr100</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_256,832,256,snr150</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_256,832,256,snr200</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_256,832,256,snr25</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_256,832,256,snr50</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_256,832,256,snr500</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_64,832,64,snr150</base-name>
+			<read-shape x="64" y="832" z="64"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_96,832,96,snr1</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_96,832,96,snr10</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_96,832,96,snr100</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_96,832,96,snr150</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_96,832,96,snr200</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_96,832,96,snr25</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_96,832,96,snr50</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep3roots015_96,832,96,snr500</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_128,832,128,snr150</base-name>
+			<read-shape x="128" y="832" z="128"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_192,832,192,snr150</base-name>
+			<read-shape x="192" y="832" z="192"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_256,832,256,snr1</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_256,832,256,snr10</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_256,832,256,snr100</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_256,832,256,snr150</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_256,832,256,snr200</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_256,832,256,snr25</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_256,832,256,snr50</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_256,832,256,snr500</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_64,832,64,snr150</base-name>
+			<read-shape x="64" y="832" z="64"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_96,832,96,snr1</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_96,832,96,snr10</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_96,832,96,snr100</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_96,832,96,snr150</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_96,832,96,snr200</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_96,832,96,snr25</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_96,832,96,snr50</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep4roots015_96,832,96,snr500</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_128,832,128,snr150</base-name>
+			<read-shape x="128" y="832" z="128"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_192,832,192,snr150</base-name>
+			<read-shape x="192" y="832" z="192"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_256,832,256,snr1</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_256,832,256,snr10</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_256,832,256,snr100</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_256,832,256,snr150</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_256,832,256,snr200</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_256,832,256,snr25</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_256,832,256,snr50</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_256,832,256,snr500</base-name>
+			<read-shape x="256" y="832" z="256"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_64,832,64,snr150</base-name>
+			<read-shape x="64" y="832" z="64"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_96,832,96,snr1</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_96,832,96,snr10</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.5</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_96,832,96,snr100</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.05</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_96,832,96,snr150</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.0333333333333333</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_96,832,96,snr200</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.025</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_96,832,96,snr25</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.2</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_96,832,96,snr50</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.1</noise-cutoff>
+		</datafile>
+		<datafile read-dtype="float32">
+			<base-name>maize_rep5roots015_96,832,96,snr500</base-name>
+			<read-shape x="96" y="832" z="96"/>
+			<shape x="256" y="832" z="256"/>
+			<stem-plane>800</stem-plane>
+			<stem-axis>1</stem-axis>
+			<has-rohr>false</has-rohr>
+			<scale>0.5</scale>
+			<noise-cutoff>0.01</noise-cutoff>
 		</datafile>
 	</datafiles>
 </config>
