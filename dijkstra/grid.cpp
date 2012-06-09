@@ -24,6 +24,7 @@
 #include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
+#include <boost/accumulators/statistics/sum_kahan.hpp>
 #include <boost/math/special_functions/erf.hpp>
 #include <boost/foreach.hpp>
 #include <boost/optional.hpp>
@@ -58,7 +59,7 @@ typedef shared_array_property_map<voxel_vertex_descriptor,
 typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > stat_t;
-typedef accumulator_set< double, features< tag::median, tag::count > > wmedstat_t;
+typedef accumulator_set< double, features< tag::median, tag::count, tag::sum_kahan > > wmedstat_t;
 //typedef accumulator_set< double,
        //features< tag::weighted_median(with_p_square_cumulative_distribution), tag::count >,double > 
        //wmedstat_t;
@@ -182,7 +183,7 @@ voxel_edge_weight_map::operator[](key_type e) const {
 	//double gd = ev10[s]*ev10[t] + ev11[s]*ev11[t] + ev12[s]*ev12[t];
 	//double  g = (1.0 + 30.0*exp(-10.0*gd*gd));
 
-	double v = exp( - 100.0 * (sato[t] + sato[s]) );
+	double v = exp( - 10.0 * (sato[t] + sato[s]) );
 
 	//double hs = voxdist(s.begin(),g_strunk.begin());
 	//double ht = voxdist(t.begin(),g_strunk.begin()); 
@@ -373,7 +374,7 @@ void rank_op(const std::string& base, voxelgraph_t& vg, T rankmap, const U& valu
 
 /**
  * Removes edge sequences starting at leafs from a wurzelgraph 
- * which are less than minlen steps or less than max_radius_mm long long
+ * which are less than minlen steps or less than max_radius_mm long
  * @param wg       the graph
  * @param scale    factor to get from voxel to mm
  * @param max_radius_mm  minimum length of a edge sequence
@@ -654,11 +655,42 @@ void implicit_bfs_on_grid(Visitor visit, GridGraph& g, Vertex start, const PredM
 	}
 }
 
-template<class GridGraph, class RawData, class ResultData, class PredMap>
-void is_part_of_root(ResultData& res, GridGraph& g, const RawData& raw, const PredMap& pmap, const float start_thresh, const float flow_thresh){
+/**
+ * mark leaf candidates.
+ * A leaf candidate is a node which is definitely part of the root, along with
+ * the complete (shortest) path from it to the root-node.
+ *
+ * @param res OUT all selected nodes are marked != 0 here.
+ */
+template<class GridGraph, class SubtreeWeightData, class RawData, class ResultData, class DistMap, class PredMap>
+void mark_leaf_candidates(ResultData& res, const SubtreeWeightData& subtree_weight, GridGraph& g, const RawData& raw, const DistMap& dmap, const PredMap& pmap, const float start_thresh, const float flow_thresh, const float total_len_thresh){
 
 	bool use_edge_detector = false;
-	if(use_edge_detector){
+
+    /// method for selecting leaf candidates
+    enum POR_METHOD={ 
+        /// a leaf candidate has 
+        /// - raw value > start_thresh
+        /// - total path len < total_len_thresh
+        /// - median(downstream) / median(upstream) > flow_thresh
+        /// This is the method described in the VISAPP Paper
+        POR_EDGE_DETECT, 
+
+        /// a leaf candidate has 
+        /// - raw value > start_thresh
+        /// - total path len < total_len_thresh
+        /// - median(downstream,downstream) > flow_thresh
+        POR_MEDIAN_RAW, 
+
+        /// a leaf candidate has 
+        /// - raw value > start_thresh
+        /// - total path len < total_len_thresh
+        /// - the subtree has at least weight flow_thresh
+        /// This is the method originally used for Barley
+        POR_SUBTREE_WEIGHT
+    } method = POR_SUBTREE_WEIGHT;
+
+	if(method == POR_EDGE_DETECT){
 		unsigned int smooth = 10;
 		//unsigned int cnt=0;
 		//foreach(const voxel_vertex_descriptor& v, vertices(g)){
@@ -666,8 +698,10 @@ void is_part_of_root(ResultData& res, GridGraph& g, const RawData& raw, const Pr
 
 				wmedstat_t s_median1;
 				wmedstat_t s_median2;
-				if(raw[v] < start_thresh)
-				return;
+                if(raw[v] < start_thresh)
+                return;
+                if(dmap[v] > total_len_thresh)
+                return;
 				try{ implicit_bfs_on_grid<1>(make_bfs_grid_threshold_visitor(raw,  smooth,&s_median1), g, v, pmap); // towards shoot
 				}catch(double m){}
 				if(count(s_median1)!=smooth) return;// return from /lambda/
@@ -683,7 +717,7 @@ void is_part_of_root(ResultData& res, GridGraph& g, const RawData& raw, const Pr
 				//}
 				});
 		//};
-	}else{
+	}else if(method == POR_MEDIAN_RAW){
 		unsigned int smooth = 10;
 		//unsigned int cnt=0;
 		//foreach(const voxel_vertex_descriptor& v, vertices(g)){
@@ -693,9 +727,11 @@ void is_part_of_root(ResultData& res, GridGraph& g, const RawData& raw, const Pr
 				wmedstat_t s_median;
 				if(raw[v] < start_thresh)
 				return;
-				try{ implicit_bfs_on_grid<1>(make_bfs_grid_threshold_visitor(raw,  smooth,&s_median), g, v, pmap); // towards shoot
+                if(dmap[v] > total_len_thresh)
+                return;
+				try{ implicit_bfs_on_grid<1>(make_bfs_grid_threshold_visitor(raw,    smooth,&s_median), g, v, pmap); // towards shoot
 				}catch(double m){}
-				try{ implicit_bfs_on_grid<0>(make_bfs_grid_threshold_visitor(raw,  smooth,&s_median), g, v, pmap); // away from shoot
+				try{ implicit_bfs_on_grid<0>(make_bfs_grid_threshold_visitor(raw,  2*smooth,&s_median), g, v, pmap); // away from shoot
 				}catch(double m){}
 				if(count(s_median)<2*smooth) return;// return from /lambda/
 
@@ -706,7 +742,18 @@ void is_part_of_root(ResultData& res, GridGraph& g, const RawData& raw, const Pr
 				}
 				});
 		//};
-	}
+	}else if(method == POR_SUBTREE_WEIGHT){
+		tbb::parallel_for_each(vertices(g).first,vertices(g).second,[&](voxel_vertex_descriptor& v){
+                unsigned int smooth = INT_MAX;
+				if(raw[v] < start_thresh)
+				return;
+                if(dmap[v] > total_len_thresh)
+                return;
+				if(subtree_weight[v] > flow_thresh){
+					res[v[0]][v[1]][v[2]] = 1;
+				}
+				});
+    }
 }
 
 /**
@@ -1169,7 +1216,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Sato stats in file: " << voxel_stats(graph,make_vox2arr(Sato)) <<std::endl;
 	std::cout << "Scalestats in file: " << voxel_stats(graph,make_vox2arr(scales)) <<std::endl;
 
-	g_strunk = strunk; // ugh. ugly: use global variable.
+	g_strunk = strunk; // ugh. ugly: uses global variable.
 
 	// allocate helper arrays: Path
 	unsigned char* paths = new unsigned char[XYZ];
@@ -1179,7 +1226,7 @@ int main(int argc, char* argv[]) {
 	// allocate helper arrays: flow
 	float* flow = new float[XYZ];
 	std::fill(flow, flow+XYZ, (float) 0);
-	float_grid Flow(flow,boost::extents[X][Y][Z]);
+	float_grid SubtreeWeight(flow,boost::extents[X][Y][Z]);
 
 
 	// normalize vesselness such that it is >=0 and max is 1
@@ -1220,7 +1267,7 @@ int main(int argc, char* argv[]) {
 	 * *****************************************************/
 	std::cout << "Tracing paths... " <<std::flush;
 	double start_threshold       = vm["start-threshold"].as<double>();//  * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!
-	//double total_len_perc_thresh = vm["total-len-frac"].as<double>();
+	double total_len_thresh      = vm["total-len-thresh"].as<double>();
 	//double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
 	double min_flow_thresh       = vm["min-flow-thresh"].as<double>();// * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!!
 	bool   no_gauss_fit          = vm.count("no-gauss-fit");
@@ -1235,32 +1282,73 @@ int main(int argc, char* argv[]) {
 	stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
 	vox2arr<float_grid> vox2raw(Raw);
 	vox2arr<float_grid> vox2sato(Sato);
+	vox2arr<float_grid> vox2subtreew(SubtreeWeight);
 	{ boost::prof::profiler prof("Tracing");
-		is_part_of_root(Flow, graph, vox2raw, p_map, start_threshold * info.spross_intensity, min_flow_thresh*info.spross_intensity);
+
+
+        // calculate `flow' array, which contains at each position the mass in the subtree below
+
+        foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
+            // determine avg path costs statistic
+            //if(vox2sato[v] < start_threshold)
+            if(vox2raw[v] < start_threshold)
+                continue;
+            if( dmap[v] > total_len_thresh)
+                continue;
+            if( dmap[v] > INT_MAX) // dijkstra did not even get here
+                continue;
+
+            double vox_dist = 0.0;
+            voxel_vertex_descriptor v2 = v;
+            unsigned int cnt = 0;
+            float flow_add = vox2raw[v];
+            voxel_vertex_descriptor tmp;
+            while(cnt++ < XYZ){ 
+                SubtreeWeight[v2[0]][v2[1]][v2[2]] += flow_add;
+                if(vertex_index_map[v2] == strunk_idx)
+                    break;
+                tmp = p_map[v2];
+                vox_dist += voxdist(tmp.begin(), v2.begin());
+                v2 = tmp;
+            }
+            if(cnt>=XYZ){
+                std::cout << "endless loop!"<<std::endl;
+                exit(1);
+            }
+            s_cnt(vox_dist);
+            if(vox_dist>0)
+                s_avg_pathlen(d_map[v]/vox_dist);
+        }
+
+
+		mark_leaf_candidates(Paths, vox2subtreew, graph, vox2raw, d_map, p_map, 
+                start_threshold  * info.spross_intensity,
+                min_flow_thresh  * info.spross_intensity,
+                total_len_thresh * info.spross_intensity);
 		std::cout << ". " <<std::flush;
 
+        // now mark the paths from the leaves in Paths to the root-node as also
+        // belonging to the root!
 		property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
 		foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-			if(!Flow[v[0]][v[1]][v[2]])
+			if(!Paths[v[0]][v[1]][v[2]])
 				continue;
+            if( dmap[v] > INT_MAX)
+				// this happens when dijkstra was stopped
+				// before reaching this node, which means
+				// that it is quite expensive to get here!
+                continue;
 			voxel_vertex_descriptor v2 = v;
 			unsigned int cnt = 0;
 			unsigned int cnt_max = 2*std::max(X,std::max(Y,Z));
 			while(cnt++<cnt_max){ 
-				Flow[v2[0]][v2[1]][v2[2]] = 1;
 				Paths[v2[0]][v2[1]][v2[2]] = 1;
 				if(vertex_index_map[v2] == strunk_idx)
 					break;
 				v2 = p_map[v2];
 			}
 			if(cnt>=cnt_max){
-				//std::cout << "ENDLESS LOOP!!!!!!"<<std::endl;
-				//exit(1);
-				// this happens when dijkstra was stopped
-				// before reaching this node, which means
-				// that it is quite expensive to get here!
-				Flow[v[0]][v[1]][v[2]]  = 0; 
-				Paths[v[0]][v[1]][v[2]] = 0; 
+                std::cout << "endless loop!?"<<std::endl;
 				continue;
 			}
 		}
