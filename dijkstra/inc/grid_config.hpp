@@ -31,7 +31,7 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			("stem-plane", po::value<int>(),"plane index in which to search for stem")
 			("stem-axis",  po::value<int>(),"the axis of stem-plane")
 			("start-threshold,s", po::value<double>()->default_value(0.1),    "minimum raw value to start tracking")
-			("total-len-frac,t", po::value<double>()->default_value(1.0),     "maximal total length fraction")
+			("total-len-thresh,t", po::value<double>()->default_value(1E9),   "maximal total length")
 			("avg-len-frac,a", po::value<double>()->default_value(0.20),      "maximal average length fraction")
 			("min-flow-thresh,f", po::value<double>()->default_value(0.0001), "minimal flow fraction")
 			("no-gauss-fit",  "save some time")
