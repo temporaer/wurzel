@@ -30,7 +30,7 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True, normali
 
     v = mlab.pipeline.volume(src, vmin=R[0],vmax=R[1])
 
-    if False and not (cm == "Spectral"):
+    if not (cm == "Spectral"):
         ctf = ColorTransferFunction()
         ctf.range = R
         ctf.add_rgb_point(mind, 1,1,1)
@@ -55,11 +55,15 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True, normali
         v._otf = otf
         v._volume_property.set_scalar_opacity(otf)
         v.update_ctf = True
+        v.volume_mapper.cropping_region_planes = np.array([ 0.,  1.,  0.,  1.,  0.,  1.])
+        v.volume_mapper.lock_sample_distance_to_input_spacing = True
+
+
 
     
     print "done"
 
-def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
+def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True, absolutethresh=False):
     print "Show Iso"
     Dmin = D.min()
     D -= Dmin
@@ -68,8 +72,11 @@ def show_iso(D,fact=0.2, cm="bone",opacity=0.5,visible=True,normalize=True):
     #mlab.contour3d(D)
     #mlab.pipeline.volume(src, vmin=D.min()+0.2*D.ptp(),vmax=D.max()-0.2*D.ptp())
     if fact.__class__ in [float,int]:
-        if normalize: c = fact * D.mean()
-        else:         c = fact - Dmin
+        if absolutethresh:
+            c = fact
+        else:
+            if normalize: c = fact * D.mean()
+            else:         c = fact - Dmin
         print "Thresholding at ", c
         mlab.pipeline.iso_surface(src, contours=[c, ], opacity=opacity, colormap=cm)
     else:

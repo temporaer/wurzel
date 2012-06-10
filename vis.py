@@ -17,6 +17,15 @@ from mayavi import mlab
 #@mlab.animate(delay=500, ui=False)
 def mkimg(fig,name):
     scene = fig
+    scene.scene.camera.position = [-296.99079988325883, 407.90377529750242, -1481.1370972660488]
+    scene.scene.camera.focal_point = [128.50921821594238, 421.38778924942017, 127.63644504547119]
+    scene.scene.camera.view_angle = 30.0
+    scene.scene.camera.view_up = [-0.0014367787462688198, 0.99996695718867323, -0.0080012622541963223]
+    scene.scene.camera.clipping_range = [1391.5929806947984, 2011.2498060590401]
+    scene.scene.camera.compute_view_plane_normal()
+    scene.scene.render()
+    mlab.savefig(os.path.join("plots", basename + "--" + name+"-1.png"),magnification=2)
+
     scene.scene.camera.position = [111.58714792682832, 509.05217371314114, -40.52978953059533]
     scene.scene.camera.focal_point = [10.281192710643207, 445.46754443016596, 124.36301423212157]
     scene.scene.camera.view_angle = 30.0
@@ -24,7 +33,17 @@ def mkimg(fig,name):
     scene.scene.camera.clipping_range = [0.73702606876179377, 737.02606876179379]
     scene.scene.camera.compute_view_plane_normal()
     scene.scene.render()
-    mlab.savefig(os.path.join("plots", basename + "--" + name+".png"),magnification=2)
+    mlab.savefig(os.path.join("plots", basename + "--" + name+"-0.png"),magnification=2)
+
+    scene.scene.camera.position = [23.11240194582102, 682.93747207629042, -317.94910456889863]
+    scene.scene.camera.focal_point = [139.60023362585179, 686.62894911692354, 122.47988165121504]
+    scene.scene.camera.view_angle = 30.0
+    scene.scene.camera.view_up = [-0.0014367787462688198, 0.99996695718867323, -0.0080012622541963223]
+    scene.scene.camera.clipping_range = [195.12015622774646, 784.56302137817386]
+    scene.scene.camera.compute_view_plane_normal()
+    scene.scene.render()
+    mlab.savefig(os.path.join("plots", basename + "--" + name+"-2.png"),magnification=2)
+
 
 
 if __name__ == "__main__":
@@ -67,18 +86,28 @@ if __name__ == "__main__":
 
 
   if "rawvol" in token:
+      import re
+      snr   = re.search(r'snr(\d+)', basename).group(1)
       Draw  = np.load(os.path.join(datapath, basename, "upsampled.pickle"))
-      viewer.show_volume(Draw, "bone", 0.01, 0.1)
+      #viewer.show_volume(Draw, "bone", 0.004, 0.1)
+      viewer.show_volume(Draw, "bone", 0.004*500./float(snr), 0.1)
       if offscreen:
         mkimg(fig, "rawvol")
         mlab.clf()
 
   if "mass" in token:
-      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=0.5,what="wireframe")
-      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=1,what=3)
+      #viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=0.5,what="wireframe")
+      #viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=1,what=3)
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=4,what=3, color=(.1,.1,.8),opacity=0.3)
       #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
       if offscreen:
         mkimg(fig, "mass")
+        mlab.clf()
+  if "mass_gt" in token:
+      gt_name = basename.split("roots")[0]
+      viewer.show_points( gt_name+"/vertices.txt", gt_name+"/edges.txt", dscale=4,what=3,color=(.8,.3,.3), opacity=0.3)
+      if offscreen:
+        mkimg(fig, "mass_gt")
         mlab.clf()
   if "mass_cmp" in token:
       viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=4,what=3, color=(.1,.1,.8),opacity=0.3)
@@ -116,6 +145,14 @@ if __name__ == "__main__":
       if offscreen:
         mkimg(fig, "wireframe_cmp")
         mlab.clf()
+
+  if "wireframe_gt" in token:
+      gt_name = basename.split("roots")[0]
+      viewer.show_points( gt_name+"/vertices.txt", gt_name+"/edges.txt", dscale=0.5,what="wireframe", color=(.8,.3,.3))
+      if offscreen:
+          mkimg(fig, "wireframe_gt")
+          mlab.clf()
+
   if "wireframe" in token:
       viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=0.5,what="wireframe", color=(.1,.1,.8))
       #viewer.show_iso(Dsato, 0.002 , "bone", 0.1)
@@ -164,4 +201,6 @@ if __name__ == "__main__":
 #import pdb; pdb.set_trace()
 if not offscreen:
     import IPython; IPython.frontend.terminal.embed.embed()
+else:
+    mlab.show()
 

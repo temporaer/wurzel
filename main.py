@@ -9,6 +9,9 @@ from wurzel import linestructure
 from wurzel import img3dops
 from wurzel.dataset import dataset
 import numpy as np
+#try:
+    #from IPython.parallel import require
+#except:pass
 
 
 #from mpi4py import MPI
