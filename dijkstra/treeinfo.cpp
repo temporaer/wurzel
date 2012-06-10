@@ -131,7 +131,7 @@ void determine_mass_from_vol(std::string basename,wurzelgraph_t& g, const wurzel
 void determine_mass_from_raw(std::string basename,wurzelgraph_t& g, const wurzel_info& info){
 	// NOTE: this assumes that the root has VOXEL coordinates, NOT mm!
 	static const unsigned int X=info.X,Y=info.Y,Z=info.Z;
-	boost::array<vidx_t, 3> lengths = { { X, Y, Z } };
+	//boost::array<vidx_t, 3> lengths = { { X, Y, Z } };
 
 	fs::path datadir = info.directory;
 	float_grid Raw  = read3darray<float>(getfn((datadir / basename).string(),"upsampled","dat"),X,Y,Z);
