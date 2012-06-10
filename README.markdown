@@ -72,6 +72,9 @@ For each raw data file, put a section like this in the config file:
 
 # Parameters you can choose
 
+- *Note* that when running everything through `make` commands as suggested above,
+  you need to adjust the `dijkstra/grid` parameters in the `Makefile`.
+
 - vesselness measure: You can mainly configure the scales at which the measure
   is calculated. Have a look at `main.py` for that purpose.
 
@@ -125,9 +128,6 @@ For each raw data file, put a section like this in the config file:
         the weights above threshold must be larger than `min-flow-thresh`.
       - `median_raw` In a limited depth breadth first search towards the root,
         the median of the visited values must at least be `min-flow-thresh`.
-
-- Note that when running everything through `make` commands as suggested above,
-  you need to adjust the `dijkstra/grid` parameters in the `Makefile`.
 
 
 # Notes

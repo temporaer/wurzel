@@ -1276,7 +1276,6 @@ int main(int argc, char* argv[]) {
 	 * *****************************************************/
 	double start_threshold       = vm["start-threshold"].as<double>();//  * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!
 	double total_len_thresh      = vm["total-len-thresh"].as<double>();
-	//double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
 	double min_flow_thresh       = vm["min-flow-thresh"].as<double>();// * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!!
 	bool   no_gauss_fit          = vm.count("no-gauss-fit");
 	bool   no_subpix_pos         = vm.count("no-subpix-pos");
