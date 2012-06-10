@@ -217,12 +217,13 @@ void write_voxelgrid(const std::string& name, voxelgraph_t& graph, const T& map)
  * @param strunk the position from which we start the search
  * @param p_map  predecessor-map
  * @param d_map  distance to strunk map
+ * @param dijkstra_thresh stop dijkstra when this value reached
  * @param force  force recomputing, even when cached d_map/p_map found
  */
 void find_shortest_paths(const std::string& base, 
 		voxelgraph_t& graph, 
 		voxel_vertex_descriptor& strunk,
-		predecessor_map_t&p_map, distance_map_t& d_map, bool force=false){
+		predecessor_map_t&p_map, distance_map_t& d_map, float dijkstra_thresh, bool force=false){
 
   bool read_p=false, read_d=false;
   if(fs::exists(getfn(base,"p_map","dat")) && !force){
@@ -245,7 +246,7 @@ void find_shortest_paths(const std::string& base,
 
 	  voxel_edge_weight_map wt(graph);
 
-	  maxdist_visitor<distance_map_t> vis(d_map, 20.0);
+	  maxdist_visitor<distance_map_t> vis(d_map, 10000.0);
 	  try{
 		  dijkstra_shortest_paths(graph, strunk
 				  ,predecessor_map(p_map)
@@ -664,10 +665,8 @@ void implicit_bfs_on_grid(Visitor visit, GridGraph& g, Vertex start, const PredM
 template<class GridGraph, class SubtreeWeightData, class RawData, class ResultData, class DistMap, class PredMap>
 void mark_leaf_candidates(ResultData& res, const SubtreeWeightData& subtree_weight, GridGraph& g, const RawData& raw, const DistMap& dmap, const PredMap& pmap, const float start_thresh, const float flow_thresh, const float total_len_thresh){
 
-	bool use_edge_detector = false;
-
     /// method for selecting leaf candidates
-    enum POR_METHOD={ 
+    enum POR_METHOD{ 
         /// a leaf candidate has 
         /// - raw value > start_thresh
         /// - total path len < total_len_thresh
@@ -743,7 +742,6 @@ void mark_leaf_candidates(ResultData& res, const SubtreeWeightData& subtree_weig
 		//};
 	}else if(method == POR_SUBTREE_WEIGHT){
 		tbb::parallel_for_each(vertices(g).first,vertices(g).second,[&](voxel_vertex_descriptor& v){
-                unsigned int smooth = INT_MAX;
 				if(raw[v] < start_thresh)
 				return;
                 if(dmap[v] > total_len_thresh)
@@ -1175,6 +1173,39 @@ locate_stem(boost::array<vidx_t,3>& dims, double& spross_intensity, const T& acc
 	return arg_max_val;
 }
 
+template<class SubtreeWeight, class PredMap, class DistMap, class RawData, class Iter, class Graph>
+double determine_subtree_weights(
+        SubtreeWeight& weights, const DistMap& d_map, const PredMap& p_map, const RawData& raw, Graph& g, Iter& it){
+    double sum = raw[it];
+    foreach(Iter n, adjacent_vertices(it, g)){
+        if(p_map[n] != it)
+            continue;
+        if(d_map[n] > INT_MAX)
+            // dijkstra did not even get here.
+            continue;
+        sum += determine_subtree_weights(weights,d_map,p_map,raw,g,n);
+    }
+    weights[it[0]][it[1]][it[2]] = sum;
+    return sum;
+}
+
+template<class Path, class PredMap, class DistMap, class Iter, class Graph>
+bool trace_leafs_to_root(
+        Path& path, const DistMap& d_map, const PredMap& p_map, Graph& g, Iter& it){
+    bool is_in_root = path[it[0]][it[1]][it[2]];
+
+    foreach(Iter n, adjacent_vertices(it, g)){
+        if(p_map[n] != it)
+            continue;
+        if(d_map[n] > INT_MAX)
+            // dijkstra did not even get here.
+            continue;
+        is_in_root |= trace_leafs_to_root(path,d_map,p_map,g,n);
+    }
+    path[it[0]][it[1]][it[2]] = is_in_root;
+    return is_in_root;
+}
+
 
 int main(int argc, char* argv[]) {
 	wurzel_info info;
@@ -1239,7 +1270,8 @@ int main(int argc, char* argv[]) {
 		float& g = Raw[v[0]][v[1]][v[2]];
 		//f *= 1.0f+2.0f*g;
 		//      g  = (g-min(s_raw))/(max(s_raw)-min(s_raw));
-		f += std::max(g,0.f)/max(s_raw);
+		//f += std::max(g,0.f)/max(s_raw);
+		f += std::max(g,0.f)/info.spross_intensity;
 	}
 	stat_t s_sato = voxel_stats(graph, make_vox2arr(Sato));
 	std::cout << "Raw:  " << s_raw <<std::endl;
@@ -1250,7 +1282,7 @@ int main(int argc, char* argv[]) {
 
 	// Run dijkstra to find shortest paths
 	{       boost::prof::profiler prof("Dijkstra");
-		find_shortest_paths(base,graph,strunk,p_map,d_map,force_recompute_dijkstra);
+		find_shortest_paths(base,graph,strunk,p_map,d_map,1E9,force_recompute_dijkstra);
 	}
 	std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
@@ -1272,86 +1304,38 @@ int main(int argc, char* argv[]) {
 	bool   no_gauss_fit          = vm.count("no-gauss-fit");
 	bool   no_subpix_pos         = vm.count("no-subpix-pos");
 
-	min_flow_thresh *= info.noise_cutoff;
-	start_threshold *= info.noise_cutoff;
+	min_flow_thresh     *= info.noise_cutoff;
+	start_threshold     *= info.noise_cutoff;
 
 	std::cout << V(start_threshold)<< V(min_flow_thresh)<<std::endl;
 
-	voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
+	//voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
 	stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
 	vox2arr<float_grid> vox2raw(Raw);
 	vox2arr<float_grid> vox2sato(Sato);
 	vox2arr<float_grid> vox2subtreew(SubtreeWeight);
 	{ boost::prof::profiler prof("Tracing");
+		property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
 
 
         // calculate `flow' array, which contains at each position the mass in the subtree below
+		std::cout << "flow" <<std::flush;
 
-        foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-            // determine avg path costs statistic
-            //if(vox2sato[v] < start_threshold)
-            if(vox2raw[v] < start_threshold)
-                continue;
-            if( dmap[v] > total_len_thresh)
-                continue;
-            if( dmap[v] > INT_MAX) // dijkstra did not even get here
-                continue;
+        determine_subtree_weights(SubtreeWeight, d_map, p_map, vox2raw, graph, strunk);
 
-            double vox_dist = 0.0;
-            voxel_vertex_descriptor v2 = v;
-            unsigned int cnt = 0;
-            float flow_add = vox2raw[v];
-            voxel_vertex_descriptor tmp;
-            while(cnt++ < XYZ){ 
-                SubtreeWeight[v2[0]][v2[1]][v2[2]] += flow_add;
-                if(vertex_index_map[v2] == strunk_idx)
-                    break;
-                tmp = p_map[v2];
-                vox_dist += voxdist(tmp.begin(), v2.begin());
-                v2 = tmp;
-            }
-            if(cnt>=XYZ){
-                std::cout << "endless loop!"<<std::endl;
-                exit(1);
-            }
-            s_cnt(vox_dist);
-            if(vox_dist>0)
-                s_avg_pathlen(d_map[v]/vox_dist);
-        }
+		std::cout << ". mark" <<std::flush;
 
 
 		mark_leaf_candidates(Paths, vox2subtreew, graph, vox2raw, d_map, p_map, 
                 start_threshold  * info.spross_intensity,
                 min_flow_thresh  * info.spross_intensity,
                 total_len_thresh * info.spross_intensity);
-		std::cout << ". " <<std::flush;
+		std::cout << ". trace" <<std::flush;
 
         // now mark the paths from the leaves in Paths to the root-node as also
         // belonging to the root!
-		property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
-		foreach (const voxel_vertex_descriptor& v, vertices(graph)) {
-			if(!Paths[v[0]][v[1]][v[2]])
-				continue;
-            if( dmap[v] > INT_MAX)
-				// this happens when dijkstra was stopped
-				// before reaching this node, which means
-				// that it is quite expensive to get here!
-                continue;
-			voxel_vertex_descriptor v2 = v;
-			unsigned int cnt = 0;
-			unsigned int cnt_max = 2*std::max(X,std::max(Y,Z));
-			while(cnt++<cnt_max){ 
-				Paths[v2[0]][v2[1]][v2[2]] = 1;
-				if(vertex_index_map[v2] == strunk_idx)
-					break;
-				v2 = p_map[v2];
-			}
-			if(cnt>=cnt_max){
-                std::cout << "endless loop!?"<<std::endl;
-				continue;
-			}
-		}
-		std::cout << ". " <<std::flush;
+        trace_leafs_to_root(Paths, d_map, p_map, graph, strunk);
+		std::cout << ". " <<std::endl;
 	} // profiling: Tracing
 
 	const double maximum_radius_mm = 1.8;
