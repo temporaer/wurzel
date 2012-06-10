@@ -190,6 +190,9 @@ void determine_mass_from_raw(std::string basename,wurzelgraph_t& g, const wurzel
 					pr[0] += 0.5;
 					pr[1] += 0.5;
 					pr[2] += 0.5;
+                    pr[0]  = std::max(0.0, std::min(X-1.0, pr[0]));
+                    pr[1]  = std::max(0.0, std::min(Y-1.0, pr[1]));
+                    pr[2]  = std::max(0.0, std::min(Z-1.0, pr[2]));
 					float& r = Raw[(unsigned int)pr[0]][(unsigned int)pr[1]][(unsigned int)pr[2]];
 					edgemass_sum += r;
 					r = 0;
