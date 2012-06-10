@@ -220,7 +220,7 @@ void load_gt_tree(std::string basename, wurzelgraph_t& g, const wurzel_info& wi)
 
 	fs::path p(basename);
 
-	std::string fn = std::string("../data/") + p.leaf() +"/rootsegmentdata.dat";
+	std::string fn = (p / std::string("rootsegmentdata.dat")).string();
 	std::cout << "# reading data from "<<fn<<std::endl;
 	std::ifstream ifs(fn.c_str());
 	char str[512];
