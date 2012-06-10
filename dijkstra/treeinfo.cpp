@@ -276,7 +276,7 @@ void load_gt_tree(std::string basename, wurzelgraph_t& g, const wurzel_info& wi)
 	}
 	for (index_t::iterator it = index_map.begin(); it != index_map.end(); ++it)
 	{
-		int current_idx = it->first;
+		//int current_idx = it->first;
 		wurzel_vertex_descriptor current_v = it->second;
 		if(!current_v)
 			continue;
