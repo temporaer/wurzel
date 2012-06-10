@@ -1005,7 +1005,7 @@ void print_wurzel_edges(const std::string& name, wurzelgraph_t& wg, T& vidx_map,
 	foreach (const wurzel_edge_descriptor& e, edges(wg)){
 		const wurzel_vertex_descriptor& s = source(e,wg);
 		const wurzel_vertex_descriptor& t = target(e,wg);
-		double length = voxdist(pos_map[s].begin(),pos_map[t].begin()); // assumed to be in mm here!!
+		//double length = voxdist(pos_map[s].begin(),pos_map[t].begin()); // assumed to be in mm here!!
 
 		const vec3_t &spos = pos_map[s];
 		const vec3_t &tpos = pos_map[t];
