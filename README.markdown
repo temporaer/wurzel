@@ -119,12 +119,12 @@ For each raw data file, put a section like this in the config file:
   - `leaf-select-method`:
     a voxel is considered to be a leaf node if it is above `start-threshold` *and*
     its distance to the root node is less than `total-len-thresh` *and*
-    - `edge_detect` is the method used in the VISAPP paper for maize.
-      it is true if the upstream/downstream ratio is above `min-flow-thresh`.
-    - `subtree_weight`: In the subtree defined by the current node, the sum of
-      the weights above threshold must be larger than `min-flow-thresh`.
-    - `median_raw` In a limited depth breadth first search towards the root,
-      the median of the visited values must at least be `min-flow-thresh`.
+      - `edge_detect` is the method used in the VISAPP paper for maize.
+        it is true if the upstream/downstream ratio is above `min-flow-thresh`.
+      - `subtree_weight`: In the subtree defined by the current node, the sum of
+        the weights above threshold must be larger than `min-flow-thresh`.
+      - `median_raw` In a limited depth breadth first search towards the root,
+        the median of the visited values must at least be `min-flow-thresh`.
 
 - Note that when running everything through `make` commands as suggested above,
   you need to adjust the `dijkstra/grid` parameters in the `Makefile`.
