@@ -2,11 +2,8 @@
 
 This project was created to analyze 3D MRI root data.
 
-Sample images:
-
-- ![Raw MRI image of barley root](images/barley-raw.jpg "Raw MRI image of barley root")
-- ![Constructed model of barley root](images/barley-model.jpg "Constructed model of barley root")
-
+<img width="100" src="https://github.com/temporaer/wurzel/raw/master/images/barley-raw.jpg"/>
+<img width="100" src="https://github.com/temporaer/wurzel/raw/master/images/barley-model.jpg"/>
 
 # Guide to the files
 
