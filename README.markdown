@@ -52,24 +52,23 @@ For each raw data file, put a section like this in the config file:
 
 - `Makefile` contains targets to run all steps separately.
 
-	make BASE=GersteLA_96x96x410_normal sato
+  `make BASE=GersteLA_96x96x410_normal sato`
 
   upsamples `data/GersteLA_96x96x410_normal` and computes vesselness
 
-	make BASE=GersteLA_96x96x410_normal grid
+  `make BASE=GersteLA_96x96x410_normal grid`
 
   given vesselness and upsampled raw data from previous step, find the root tree (in the graph-theoretical sense ^^)
 
-	make BASE=GersteLA_96x96x410_normal treeinfo
+  `make BASE=GersteLA_96x96x410_normal treeinfo`
 
   output some stats about the found root tree
 
 - `Makefile` has targets for running a dataset through the whole process, e.g.
-	
-	make BASE=GersteLA_96x96x410_normal
 
-  upsamples `data/L2_6aug.dat', computes vesselness, finds root tree and outputs statistics about it.
-  BASE should be the relative path without extention to the raw .dat file.
+  `make BASE=GersteLA_96x96x410_normal`
+
+  does all of the above steps.
 
 # Parameters you can choose
 
