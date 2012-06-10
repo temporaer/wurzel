@@ -663,31 +663,7 @@ void implicit_bfs_on_grid(Visitor visit, GridGraph& g, Vertex start, const PredM
  * @param res OUT all selected nodes are marked != 0 here.
  */
 template<class GridGraph, class SubtreeWeightData, class RawData, class ResultData, class DistMap, class PredMap>
-void mark_leaf_candidates(ResultData& res, const SubtreeWeightData& subtree_weight, GridGraph& g, const RawData& raw, const DistMap& dmap, const PredMap& pmap, const float start_thresh, const float flow_thresh, const float total_len_thresh){
-
-    /// method for selecting leaf candidates
-    enum POR_METHOD{ 
-        /// a leaf candidate has 
-        /// - raw value > start_thresh
-        /// - total path len < total_len_thresh
-        /// - median(downstream) / median(upstream) > flow_thresh
-        /// This is the method described in the VISAPP Paper
-        POR_EDGE_DETECT, 
-
-        /// a leaf candidate has 
-        /// - raw value > start_thresh
-        /// - total path len < total_len_thresh
-        /// - median(downstream,downstream) > flow_thresh
-        POR_MEDIAN_RAW, 
-
-        /// a leaf candidate has 
-        /// - raw value > start_thresh
-        /// - total path len < total_len_thresh
-        /// - the subtree has at least weight flow_thresh
-        /// This is the method originally used for Barley
-        POR_SUBTREE_WEIGHT
-    } method = POR_SUBTREE_WEIGHT;
-
+void mark_leaf_candidates(POR_METHOD method, ResultData& res, const SubtreeWeightData& subtree_weight, GridGraph& g, const RawData& raw, const DistMap& dmap, const PredMap& pmap, const float start_thresh, const float flow_thresh, const float total_len_thresh){
 	if(method == POR_EDGE_DETECT){
 		unsigned int smooth = 10;
 		//unsigned int cnt=0;
@@ -1298,7 +1274,6 @@ int main(int argc, char* argv[]) {
 	 * Trace paths to determine what is soil/noise and what is root
 	 *
 	 * *****************************************************/
-	std::cout << "Tracing paths... " <<std::flush;
 	double start_threshold       = vm["start-threshold"].as<double>();//  * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!
 	double total_len_thresh      = vm["total-len-thresh"].as<double>();
 	//double avg_len_perc_thresh   = vm["avg-len-frac"].as<double>();
@@ -1307,17 +1282,26 @@ int main(int argc, char* argv[]) {
 	bool   no_subpix_pos         = vm.count("no-subpix-pos");
 	const double maximum_radius_mm = vm["max-radius"].as<double>();
 
+    POR_METHOD por_method = POR_SUBTREE_WEIGHT;
+    std::string por_meth_str = vm["leaf-select-method"].as<std::string>();
+    if(por_meth_str == "median_raw")
+        por_method = POR_MEDIAN_RAW;
+    else if(por_meth_str == "subtree_weight")
+        por_method = POR_SUBTREE_WEIGHT;
+    else if(por_meth_str == "edge_detect")
+        por_method = POR_EDGE_DETECT;
+    else
+        throw std::runtime_error("unknown leaf-select-method specified!");
+
 	min_flow_thresh     *= info.noise_cutoff;
 	start_threshold     *= info.noise_cutoff;
-
-	std::cout << V(start_threshold)<< V(min_flow_thresh)<<std::endl;
 
 	//voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
 	stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
 	vox2arr<float_grid> vox2raw(Raw);
 	vox2arr<float_grid> vox2sato(Sato);
 	vox2arr<float_grid> vox2subtreew(SubtreeWeight);
-	{ boost::prof::profiler prof("Tracing");
+	{ boost::prof::profiler prof("Tracing paths");
 		property_map<voxelgraph_t,vertex_index_t>::type vertex_index_map = get(vertex_index, graph);
 
 
@@ -1328,7 +1312,7 @@ int main(int argc, char* argv[]) {
 
         // mark leaf candidates according to some criterion
 		std::cout << ". mark" <<std::flush;
-		mark_leaf_candidates(Paths, vox2subtreew, graph, vox2raw, d_map, p_map, 
+		mark_leaf_candidates(por_method, Paths, vox2subtreew, graph, vox2raw, d_map, p_map, 
                 start_threshold  * info.spross_intensity,
                 min_flow_thresh  * info.spross_intensity,
                 total_len_thresh * info.spross_intensity);

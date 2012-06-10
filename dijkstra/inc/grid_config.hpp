@@ -16,6 +16,29 @@
 
 namespace po = boost::program_options;
 
+/// method for selecting leaf candidates
+enum POR_METHOD{ 
+    /// a leaf candidate has 
+    /// - raw value > start_thresh
+    /// - total path len < total_len_thresh
+    /// - median(downstream) / median(upstream) > flow_thresh
+    /// This is the method described in the VISAPP Paper
+    POR_EDGE_DETECT, 
+
+    /// a leaf candidate has 
+    /// - raw value > start_thresh
+    /// - total path len < total_len_thresh
+    /// - median(downstream,downstream) > flow_thresh
+    POR_MEDIAN_RAW, 
+
+    /// a leaf candidate has 
+    /// - raw value > start_thresh
+    /// - total path len < total_len_thresh
+    /// - the subtree has at least weight flow_thresh
+    /// This is the method originally used for Barley
+    POR_SUBTREE_WEIGHT
+};
+
 po::variables_map
 get_config(wurzel_info& wi, int argc, char* argv[]){
 	po::variables_map vm;
@@ -35,6 +58,7 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			("total-len-thresh,t", po::value<double>()->default_value(1E9),   "maximal total length")
 			("dijkstra-stop-val,d", po::value<double>()->default_value(1E9),   "stop dijkstra when paths longer than this (decreases dijkstr runtime)")
 			("avg-len-frac,a", po::value<double>()->default_value(0.20),      "maximal average length fraction")
+            ("leaf-select-method,l", po::value<std::string>()->default_value("median_raw"), "method for selecting leaf candidates [edge_detect,median_raw,subtree_weight]")
 			("min-flow-thresh,f", po::value<double>()->default_value(0.0001), "minimal flow fraction")
 			("no-gauss-fit",  "save some time")
 			("no-subpix-pos", "save some time")
