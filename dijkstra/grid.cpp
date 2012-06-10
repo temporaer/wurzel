@@ -1227,7 +1227,7 @@ int main(int argc, char* argv[]) {
 
 
 	if(base.find("Gerste") != std::string::npos){
-		std::cout << "Barley settings!!!"<<std::endl;
+		//std::cout << "Barley settings!!!"<<std::endl;
 		//info.spross_intensity = 425000;
 	}
 	if(base.find("maize" ) != std::string::npos){
@@ -1253,10 +1253,10 @@ int main(int argc, char* argv[]) {
 	std::fill(paths, paths+XYZ, (unsigned char) 0);
 	uc_grid Paths(paths,boost::extents[X][Y][Z]);
 
-	// allocate helper arrays: flow
-	float* flow = new float[XYZ];
-	std::fill(flow, flow+XYZ, (float) 0);
-	float_grid SubtreeWeight(flow,boost::extents[X][Y][Z]);
+	// allocate helper arrays: subtree_weights
+	float* subtree_weights = new float[XYZ];
+	std::fill(subtree_weights, subtree_weights+XYZ, (float) 0);
+	float_grid SubtreeWeight(subtree_weights,boost::extents[X][Y][Z]);
 
 
 	// normalize vesselness such that it is >=0 and max is 1
@@ -1281,7 +1281,8 @@ int main(int argc, char* argv[]) {
 	distance_map_t            d_map(num_vertices(graph), get(vertex_index, graph)); 
 
 	// Run dijkstra to find shortest paths
-	{       boost::prof::profiler prof("Dijkstra");
+	{   boost::prof::profiler prof("Dijkstra");
+        const double dijkstra_stop_val = vm["dijkstra-stop-val"].as<double>();
 		find_shortest_paths(base,graph,strunk,p_map,d_map,
                 dijkstra_stop_val,force_recompute_dijkstra);
 	}
@@ -1321,21 +1322,20 @@ int main(int argc, char* argv[]) {
 
 
         // calculate `flow' array, which contains at each position the mass in the subtree below
-		std::cout << "flow" <<std::flush;
+		std::cout << "subtree_weights" <<std::flush;
 
         determine_subtree_weights(SubtreeWeight, d_map, p_map, vox2raw, graph, strunk);
 
+        // mark leaf candidates according to some criterion
 		std::cout << ". mark" <<std::flush;
-
-
 		mark_leaf_candidates(Paths, vox2subtreew, graph, vox2raw, d_map, p_map, 
                 start_threshold  * info.spross_intensity,
                 min_flow_thresh  * info.spross_intensity,
                 total_len_thresh * info.spross_intensity);
-		std::cout << ". trace" <<std::flush;
 
         // now mark the paths from the leaves in Paths to the root-node as also
         // belonging to the root!
+		std::cout << ". trace" <<std::flush;
         trace_leafs_to_root(Paths, d_map, p_map, graph, strunk);
 		std::cout << ". " <<std::endl;
 	} // profiling: Tracing
