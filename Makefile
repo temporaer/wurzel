@@ -3,7 +3,7 @@ DATAPATH=$(shell cat config.xml|grep datapath|perl -npe '($$_)=/>(.*)</')
 BASE ?= L2_17aug
 FILE  = $(DATAPATH)/$(BASE)
 WHAT ?= mass
-all: sato
+all: sato grid treeinfo
 grid: $(FILE)/d_map.dat
 sato: $(FILE)/sato.dat
 
@@ -14,12 +14,12 @@ $(FILE)/upsampled.dat $(FILE)/sato.dat: $(FILE).dat
 
 # calculate distance map, predecessor map, serialized graph
 $(FILE)/d_map.dat $(FILE)/p_map.dat $(FILE)/wgraph.ser: $(FILE)/sato.dat $(FILE)/upsampled.dat
-	cd dijkstra && LD_LIBRARY_PATH=boost_1_45_0/stage/lib ./grid $(BASE) --cfg=../config.xml -s 2 -f 1 --no-gauss-fit # Maize
+	cd dijkstra && ./grid $(BASE) --cfg=../config.xml -s 2 -f 1 --no-gauss-fit # Maize
 
 # print some info about the graph
 treeinfo: $(FILE)/wgraph.ser
 	make -C dijkstra treeinfo
-	cd dijkstra && LD_LIBRARY_PATH=boost_1_45_0/stage/lib ./treeinfo -b $(BASE) -c ../config.xml -a print
+	cd dijkstra && ./treeinfo -b $(BASE) -c ../config.xml -a print
 
 vis:
 	ipython -wthread vis.py $(BASE)

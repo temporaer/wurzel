@@ -50,12 +50,64 @@ For each raw data file, put a section like this in the config file:
 
 ## Run everything at once
 
+- `Makefile` contains targets to run all steps separately.
+
+	make BASE=GersteLA_96x96x410_normal sato
+
+  upsamples `data/GersteLA_96x96x410_normal` and computes vesselness
+
+	make BASE=GersteLA_96x96x410_normal grid
+
+  given vesselness and upsampled raw data from previous step, find the root tree (in the graph-theoretical sense ^^)
+
+	make BASE=GersteLA_96x96x410_normal treeinfo
+
+  output some stats about the found root tree
+
 - `Makefile` has targets for running a dataset through the whole process, e.g.
 	
-	make BASE=data/L2_6aug
+	make BASE=GersteLA_96x96x410_normal
 
-  upsamples data/L2_6aug.dat, computes vesselness, finds root tree and outputs statistics about it.
+  upsamples `data/L2_6aug.dat', computes vesselness, finds root tree and outputs statistics about it.
   BASE should be the relative path without extention to the raw .dat file.
+
+# Parameters you can choose
+
+- vesselness measure: You can mainly configure the scales at which the measure
+  is calculated. Have a look at `main.py` for that purpose.
+
+- root tree extraction: The `grid` program is configurable using command line parameters.
+  Try running `grid --help` to find out more, e.g.
+
+	Allowed options:
+	  --help                                produce help message
+	  --base                                the base name of the dataset
+	  -c [ --cfg ] arg (=config.xml)        the config-file containing dataset
+	                                        descriptions (XML)
+	  --force                               force recomputation of dijkstra
+	                                        algorithm
+	  --stem-plane arg                      plane index in which to search for stem
+	  --stem-axis arg                       the axis of stem-plane
+	  -r [ --max-radius ] arg (=1.8)        maximum root radius (in mm)
+	  -s [ --start-threshold ] arg (=0.1)
+	                                        minimum raw value to start tracking
+	  -t [ --total-len-thresh ] arg (=1000000000)
+	                                        maximal total length
+	  -d [ --dijkstra-stop-val ] arg (=1000000000)
+	                                        stop dijkstra when paths longer than
+	                                        this (decreases dijkstr runtime)
+	  -a [ --avg-len-frac ] arg (=0.2)
+	                                        maximal average length fraction
+	  -l [ --leaf-select-method ] arg (=median_raw)
+	                                        method for selecting leaf candidates
+	                                        [edge_detect,median_raw,subtree_weight]
+	  -f [ --min-flow-thresh ] arg (=0.0001)
+	                                        minimal flow fraction
+	  --no-gauss-fit                        save some time
+	  --no-subpix-pos                       save some time
+
+- Note that when running everything through `make` commands as suggested above,
+  you need to adjust the `dijkstra/grid` parameters in the `Makefile`.
 
 
 # Notes
