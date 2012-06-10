@@ -566,9 +566,9 @@ struct wurzel_segment{
 			total_len     += voxdist(pos_map[s].begin(),pos_map[t].begin());
 		}
 		foreach(const wurzel_edge_descriptor &e, edges){
-			const wurzel_vertex_descriptor& s = source(e,g);
-			const wurzel_vertex_descriptor& t = target(e,g);
-			double len = voxdist(pos_map[s].begin(),pos_map[t].begin());
+			//const wurzel_vertex_descriptor& s = source(e,g);
+			//const wurzel_vertex_descriptor& t = target(e,g);
+			//double len = voxdist(pos_map[s].begin(),pos_map[t].begin());
 			//mass_map[e] = edge_mass_sum / total_len * len;
 			mass_map[e] = edge_mass_sum / total_len; // converts mass to units per length(!)
 		}
