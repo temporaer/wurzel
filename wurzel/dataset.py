@@ -45,7 +45,7 @@ class WurzelInfo:
             self.read_dtype = "float32"
 
 class dataset(object):
-    def __init__(self,datafile,crop=False,usepickled=True,upsample=None,medianfilt=True,remove_rohr=False):
+    def __init__(self,datafile,crop=False,usepickled=True,upsample=None,medianfilt=False,remove_rohr=False,dtype=None):
         """
         Loads and stores the actual data and info about it.
         @param crop         shape to crop this to (if you want to try algorithm a lot, make dataset smaller to reduce time)
@@ -74,8 +74,12 @@ class dataset(object):
                 import sys
                 sys.exit(1)
         else:
-            with open(os.path.join(info.datapath, datafile)) as fd:
-                self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
+            try:
+                with open(os.path.join(info.datapath, datafile)) as fd:
+                    self.D = np.fromfile(file=fd, dtype=info.read_dtype).reshape(info.read_shape).astype("float32")
+            except:
+                with open(os.path.join(info.datapath, datafile)) as fd:
+                    self.D = np.fromfile(file=fd, dtype=dtype).reshape(info.shape).astype("float32")
             if info.read_dtype in [np.uint8, "uint8"]:
                 self.D /= 255.0
             if medianfilt:  self.median_filter()

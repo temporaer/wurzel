@@ -4,8 +4,9 @@
 # Author: Hannes Schulz
 
 import numpy as np
-from enthought.mayavi import mlab
-from enthought.tvtk.util.ctf import ColorTransferFunction
+#from enthought.mayavi import mlab
+from mayavi import mlab
+#from enthought.tvtk.util.ctf import ColorTransferFunction
 
 def show_vectorfield(S, U,V,W):
     print "Show Vectors"

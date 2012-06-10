@@ -8,7 +8,8 @@ import numpy as np
 import wurzel.viewer as viewer
 from wurzel.dataset import dataset, WurzelInfo
 #from enthought import mayavi 
-from enthought.mayavi import mlab
+#from enthought.mayavi import mlab
+from mayavi import mlab
 #from scipy.ndimage.morphology import grey_closing
 #from scipy.ndimage.measurements import label
 #import IPython
@@ -144,7 +145,7 @@ if __name__ == "__main__":
         mlab.clf()
 
   if "satovol" in token:
-      Dsato  = dataset(basename+"/sato.dat")
+      Dsato  = dataset(basename+"/sato.dat",dtype=np.float32).D
       #viewer.show_volume(Dsato, "bone", 0.00001, 0.01) # barley
       viewer.show_volume(Dsato, "bone", 0.01, 0.04) # lupine
       if offscreen:
@@ -153,9 +154,9 @@ if __name__ == "__main__":
 
   if "dmap" in token:
       info = WurzelInfo(basename+".dat")
-      dmap  = np.fromfile(os.path.join(datapath, basename, "d_map.dat")).reshape(info.shape)
-      #import pdb; pdb.set_trace()
-      viewer.show_iso(dmap, .003 , "bone", 0.15)
+      dmap  = np.fromfile(os.path.join(datapath, basename, "d_map.dat")).reshape(info.shape[::-1])
+      dmap  = np.rollaxis(dmap, 2, 0)
+      viewer.show_iso(dmap, 90, "bone", 0.15, normalize=False)
       if offscreen:
         mkimg(fig, "dmap")
         mlab.clf()
