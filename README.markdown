@@ -2,6 +2,9 @@
 
 This project was created to analyze 3D MRI root data.
 
+![Raw MRI image of barley root](images/barley-raw.jpg)
+![Constructed model of barley root](images/barley-model.jpg)
+
 
 # Guide to the files
 
