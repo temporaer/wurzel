@@ -803,7 +803,7 @@ void distance(const std::string& ident, std::ofstream& ofs, std::ofstream& scat,
 			double radius2        = 1E6;
 			bool use_radius2      = false;
 			double mass_radius2          = 1E6;
-			wurzel_edge_descriptor best_e2;
+			wurzel_edge_descriptor best_e2 = *edges(g2).first;
 			foreach(const wurzel_edge_descriptor& e2, edges(g2)){
 				const vec3_t& pe2s = pos_map2[source(e2,g2)];
 				const vec3_t& pe2t = pos_map2[target(e2,g2)];
