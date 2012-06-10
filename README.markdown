@@ -78,33 +78,33 @@ For each raw data file, put a section like this in the config file:
 - root tree extraction: The `grid` program is configurable using command line parameters.
   Try running `grid --help` to find out more, e.g.
 
-	Allowed options:
-		--help                                produce help message
-		--base                                the base name of the dataset
-		-c [ --cfg ] arg (=config.xml)        the config-file containing dataset
-		                                      descriptions (XML)
-		--force                               force recomputation of dijkstra
-		                                      algorithm
-		--stem-plane arg                      plane index in which to search for stem
-		--stem-axis arg                       the axis of stem-plane
-		-r [ --max-radius ] arg (=1.8)        maximum root radius (in mm)
-		-s [ --start-threshold ] arg (=0.1)
-		                                      minimum raw value to start tracking
-		-t [ --total-len-thresh ] arg (=1000000000)
-		                                      maximal total length
-		-d [ --dijkstra-stop-val ] arg (=1000000000)
-		                                      stop dijkstra when paths longer than
-		                                      this (decreases dijkstr runtime)
-		-a [ --avg-len-frac ] arg (=0.2)
-		                                      maximal average length fraction
-		-l [ --leaf-select-method ] arg (=median_raw)
-		                                      method for selecting leaf candidates
-		                                      [edge_detect,median_raw,subtree_weight]
-		-f [ --min-flow-thresh ] arg (=0.0001)
-		                                      minimal flow fraction
-		--no-gauss-fit                        save some time
-		--no-subpix-pos                       save some time
-
+		Allowed options:
+			--help                                produce help message
+			--base                                the base name of the dataset
+			-c [ --cfg ] arg (=config.xml)        the config-file containing dataset
+			                                      descriptions (XML)
+			--force                               force recomputation of dijkstra
+			                                      algorithm
+			--stem-plane arg                      plane index in which to search for stem
+			--stem-axis arg                       the axis of stem-plane
+			-r [ --max-radius ] arg (=1.8)        maximum root radius (in mm)
+			-s [ --start-threshold ] arg (=0.1)
+			                                      minimum raw value to start tracking
+			-t [ --total-len-thresh ] arg (=1000000000)
+			                                      maximal total length
+			-d [ --dijkstra-stop-val ] arg (=1000000000)
+			                                      stop dijkstra when paths longer than
+			                                      this (decreases dijkstr runtime)
+			-a [ --avg-len-frac ] arg (=0.2)
+			                                      maximal average length fraction
+			-l [ --leaf-select-method ] arg (=median_raw)
+			                                      method for selecting leaf candidates
+			                                      [edge_detect,median_raw,subtree_weight]
+			-f [ --min-flow-thresh ] arg (=0.0001)
+			                                      minimal flow fraction
+			--no-gauss-fit                        save some time
+			--no-subpix-pos                       save some time
+	
 - Note that when running everything through `make` commands as suggested above,
   you need to adjust the `dijkstra/grid` parameters in the `Makefile`.
 
