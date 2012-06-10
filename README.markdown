@@ -86,7 +86,9 @@ For each raw data file, put a section like this in the config file:
 			--force                               force recomputation of dijkstra
 			                                      algorithm
 			--stem-plane arg                      plane index in which to search for stem
+			                                      (read from config-file if not given)
 			--stem-axis arg                       the axis of stem-plane
+			                                      (read from config-file if not given)
 			-r [ --max-radius ] arg (=1.8)        maximum root radius (in mm)
 			-s [ --start-threshold ] arg (=0.1)
 			                                      minimum raw value to start tracking
@@ -95,8 +97,6 @@ For each raw data file, put a section like this in the config file:
 			-d [ --dijkstra-stop-val ] arg (=1000000000)
 			                                      stop dijkstra when paths longer than
 			                                      this (decreases dijkstr runtime)
-			-a [ --avg-len-frac ] arg (=0.2)
-			                                      maximal average length fraction
 			-l [ --leaf-select-method ] arg (=median_raw)
 			                                      method for selecting leaf candidates
 			                                      [edge_detect,median_raw,subtree_weight]
@@ -105,6 +105,27 @@ For each raw data file, put a section like this in the config file:
 			--no-gauss-fit                        save some time
 			--no-subpix-pos                       save some time
 	
+- Note to some of the parameters:
+
+  - `force`: after Dijkstra algorithm has been executed, the result is written
+    to files `d_map.dat` and `p_map.dat`. When you re-run `grid`, these files
+    will be loaded instead of re-running Dijkstra. After changing scales in the
+    vesselness measure or `dijkstra-stop-val`, you have to use this parameter to 
+    ensure that the distance/predecessor maps are updated.
+  - `dijskstra-stop-val`: 
+    Most of the MRI image volume does not belong to the root. You can avoid
+    determining its connectivity (which takes a lot of time) by choosing a maximum
+    distance from the root you want to explore.
+  - `leaf-select-method`:
+    a voxel is considered to be a leaf node if it is above `start-threshold` /and/
+    its distance to the root node is less than `total-len-thresh` /and/
+    - `edge_detect` is the method used in the VISAPP paper for maize.
+      it is true if the upstream/downstream ratio is above `min-flow-thresh`.
+    - `subtree_weight`: In the subtree defined by the current node, the sum of
+      the weights above threshold must be larger than `min-flow-thresh`.
+    - `median_raw` In a limited depth breadth first search towards the root,
+      the median of the visited values must at least be `min-flow-thresh`.
+
 - Note that when running everything through `make` commands as suggested above,
   you need to adjust the `dijkstra/grid` parameters in the `Makefile`.
 
