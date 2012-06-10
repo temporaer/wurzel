@@ -24,7 +24,6 @@
 #include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
-#include <boost/accumulators/statistics/sum_kahan.hpp>
 #include <boost/math/special_functions/erf.hpp>
 #include <boost/foreach.hpp>
 #include <boost/optional.hpp>
@@ -59,7 +58,7 @@ typedef shared_array_property_map<voxel_vertex_descriptor,
 typedef shared_array_property_map<double,
 						property_map<voxelgraph_t, vertex_index_t>::const_type> distance_map_t;
 typedef accumulator_set< double, features< tag::min, tag::mean, tag::max > > stat_t;
-typedef accumulator_set< double, features< tag::median, tag::count, tag::sum_kahan > > wmedstat_t;
+typedef accumulator_set< double, features< tag::median, tag::count> > wmedstat_t;
 //typedef accumulator_set< double,
        //features< tag::weighted_median(with_p_square_cumulative_distribution), tag::count >,double > 
        //wmedstat_t;
