@@ -1282,7 +1282,8 @@ int main(int argc, char* argv[]) {
 
 	// Run dijkstra to find shortest paths
 	{       boost::prof::profiler prof("Dijkstra");
-		find_shortest_paths(base,graph,strunk,p_map,d_map,1E9,force_recompute_dijkstra);
+		find_shortest_paths(base,graph,strunk,p_map,d_map,
+                dijkstra_stop_val,force_recompute_dijkstra);
 	}
 	std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
@@ -1303,6 +1304,7 @@ int main(int argc, char* argv[]) {
 	double min_flow_thresh       = vm["min-flow-thresh"].as<double>();// * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!!
 	bool   no_gauss_fit          = vm.count("no-gauss-fit");
 	bool   no_subpix_pos         = vm.count("no-subpix-pos");
+	const double maximum_radius_mm = vm["max-radius"].as<double>();
 
 	min_flow_thresh     *= info.noise_cutoff;
 	start_threshold     *= info.noise_cutoff;
@@ -1338,7 +1340,6 @@ int main(int argc, char* argv[]) {
 		std::cout << ". " <<std::endl;
 	} // profiling: Tracing
 
-	const double maximum_radius_mm = 1.8;
 	wurzelgraph_t wgraph;
 	// transform voxelgrid to adjacency-list graph
 	{ 	boost::prof::profiler prof("voxelgraph-to-root-graph");
