@@ -945,9 +945,9 @@ void action_distance(std::vector<wurzel_info>& wis, std::vector<std::string>& ba
 	double tolerance = vm["tolerance"].as<double>();
 
 	wurzelgraph_t g1, g2;
-	if(base1.find("snr")==std::string::npos) load_gt_tree((datadir/base1).string(),g1,wis[0]);
+	if(0 && base1.find("snr")==std::string::npos) load_gt_tree((datadir/base1).string(),g1,wis[0]);
 	else                                        loadtree((datadir/base1).string(), g1);
-	if(base2.find("snr")==std::string::npos) load_gt_tree((datadir/base2).string(),g2,wis[1]);
+	if(0 && base2.find("snr")==std::string::npos) load_gt_tree((datadir/base2).string(),g2,wis[1]);
 	else                                        loadtree((datadir/base2).string(), g2);
 
 	determine_mass_from_vol(bases[0],g1,wis[0]); // do this before scaling to mm!
@@ -1139,7 +1139,7 @@ void action_print(std::vector<wurzel_info>& wis, std::vector<std::string>& short
   std::string base = (fs::path(wis[0].directory) / shortbases[0]).string();
 
   wurzelgraph_t g;
-  bool is_ground_truth = base.find("snr")==std::string::npos && base.find("Gerste")==std::string::npos;
+  bool is_ground_truth = false && base.find("snr")==std::string::npos && base.find("Gerste")==std::string::npos;
   if(is_ground_truth)
 	  load_gt_tree(base,g,wis[0]);
   else
