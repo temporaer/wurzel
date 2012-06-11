@@ -55,6 +55,7 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			("stem-axis",  po::value<int>(),"the axis of stem-plane (if not given, read from config-file)")
 			("max-radius,r", po::value<double>()->default_value(1.8),    "maximum root radius (in mm)")
 			("start-threshold,s", po::value<double>()->default_value(0.1),    "minimum raw value to start tracking")
+			("max-void-dist,v", po::value<double>()->default_value(5),    "maximum consecutive distance (in mm) traveled through below-noiselevel data (use this to get rid of weed not connected to root)")
 			("total-len-thresh,t", po::value<double>()->default_value(1E9),   "maximal total length")
 			("dijkstra-stop-val,d", po::value<double>()->default_value(1E9),   "stop dijkstra when paths longer than this (decreases dijkstr runtime)")
             ("leaf-select-method,l", po::value<std::string>()->default_value("median_raw"), "method for selecting leaf candidates [edge_detect,median_raw,subtree_weight]")

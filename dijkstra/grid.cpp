@@ -1182,6 +1182,66 @@ bool trace_leafs_to_root(
     return is_in_root;
 }
 
+template<class Path, class PredMap, class DistMap, class Iter, class Graph>
+void clear_subtree(
+        Path& path, const DistMap& d_map, const PredMap& p_map, Graph& g, Iter& it){
+
+    if(path[it[0]][it[1]][it[2]] == 0)
+        return;
+
+    path[it[0]][it[1]][it[2]] = 0;
+
+    foreach(Iter n, adjacent_vertices(it, g)){
+        if(p_map[n] != it)
+            continue;
+        if(d_map[n] > INT_MAX)
+            // dijkstra did not even get here.
+            continue;
+        clear_subtree(path,d_map,p_map,g,n);
+    }
+}
+
+/// @return whether we can delete this branch
+template<class Path, class PredMap, class RawData, class DistMap, class Iter, class Graph>
+bool find_consecutive_voids(
+        Path& path, const DistMap& d_map, const PredMap& p_map, const RawData& raw, Graph& g, Iter& it, double length_thresh, double void_thresh, double void_length=0.0){
+
+    bool this_node_below_noise = raw[it] < void_thresh;
+    //std::cout << "this_node_below_noise:" << this_node_below_noise << std::endl;
+    //std::cout << "raw[it]:" << raw[it] << " void_thresh:" << void_thresh << std::endl;
+    //std::cout << "length_thresh:" << length_thresh << " void_length:" << void_length << std::endl;
+
+    // reset void_length if we are above noise level
+    double len = this_node_below_noise 
+        ? void_length + voxdist(it.begin(), p_map[it].begin()) 
+        : 0.0;
+
+    // this means everything below should be deleted.
+    bool delete_this_branch = void_length > length_thresh;
+
+    if(!delete_this_branch){
+        bool all_children_want_deletion = true;
+        foreach(Iter n, adjacent_vertices(it, g)){
+            if(p_map[n] != it)
+                continue;
+            if(d_map[n] > INT_MAX)
+                // dijkstra did not even get here.
+                continue;
+            bool delete_child = find_consecutive_voids(path,d_map,p_map,raw,g,n,length_thresh, void_thresh, len);
+            all_children_want_deletion &= delete_child;
+            if(delete_child)
+                // set path to zero as we move up
+                path[n[0]][n[1]][n[2]] = 0;
+        }
+        return this_node_below_noise && all_children_want_deletion;
+    }
+    if(delete_this_branch){
+        clear_subtree(path,d_map,p_map,g,it);
+        return true;
+    }
+    return false;
+}
+
 
 int main(int argc, char* argv[]) {
 	wurzel_info info;
@@ -1280,6 +1340,7 @@ int main(int argc, char* argv[]) {
 	bool   no_gauss_fit          = vm.count("no-gauss-fit");
 	bool   no_subpix_pos         = vm.count("no-subpix-pos");
 	const double maximum_radius_mm = vm["max-radius"].as<double>();
+    const double max_void_dist   = vm["max-void-dist"].as<double>(); // in mm
 
     POR_METHOD por_method = POR_SUBTREE_WEIGHT;
     std::string por_meth_str = vm["leaf-select-method"].as<std::string>();
@@ -1320,6 +1381,10 @@ int main(int argc, char* argv[]) {
         // belonging to the root!
 		std::cout << ". trace" <<std::flush;
         trace_leafs_to_root(Paths, d_map, p_map, graph, strunk);
+
+		std::cout << ". consecutive" <<std::flush;
+        find_consecutive_voids(Paths, d_map, p_map, vox2raw,graph,strunk, max_void_dist / info.scale /*mm->vox*/, start_threshold * info.spross_intensity);
+
 		std::cout << ". " <<std::endl;
 	} // profiling: Tracing
 

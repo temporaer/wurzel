@@ -94,6 +94,10 @@ For each raw data file, put a section like this in the config file:
 			                                      (read from config-file if not given)
 			--stem-axis arg                       the axis of stem-plane
 			                                      (read from config-file if not given)
+			-v [ --max-void-dist ] arg (=5)       maximum consecutive distance (in mm) 
+			                                      traveled through below-noiselevel data 
+			                                      (use this to get rid of weed not 
+			                                      connected to root)
 			-r [ --max-radius ] arg (=1.8)        maximum root radius (in mm)
 			-s [ --start-threshold ] arg (=0.1)
 			                                      minimum raw value to start tracking
@@ -121,6 +125,10 @@ For each raw data file, put a section like this in the config file:
     Most of the MRI image volume does not belong to the root. You can avoid
     determining its connectivity (which takes a lot of time) by choosing a maximum
     distance from the root you want to explore.
+  - `max-void-dist`: Cut off branches where you need to cross this many
+    millimeters of below-noise-level space. E.g. if you have underground weed
+    that is not connected to the root, but the root is largely connected,
+    you can use this parameter to remove the weed.
   - `leaf-select-method`:
     a voxel is considered to be a leaf node if it is above `start-threshold` *and*
     its distance to the root node is less than `total-len-thresh` *and*
@@ -162,3 +170,11 @@ Care has been taken to parallelize as many operations as possible:
   Intel Thread Building blocks. It automatically makes use of all available
   cores. The side-effect free action objects are implemented using
   C++0X lambda functions, which are available in `gcc` version >=4.5.
+
+# Citing
+
+If you use this code, please cite our publication
+
+	Hannes Schulz, Johannes Postma, Dagmar van Dusschoten, Hanno Scharr, and Sven Behnke:
+	3D Reconstruction of Plant Roots from MRI Images
+	In Proceedings of International Conference on Computer Vision Theory and Applications (VISAPP), Rome, February 2012.
