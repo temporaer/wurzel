@@ -128,8 +128,9 @@ For each raw data file, put a section like this in the config file:
         it is true if the upstream/downstream ratio is above `min-flow-thresh`.
       - `subtree_weight`: In the subtree defined by the current node, the sum of
         the weights above threshold must be larger than `min-flow-thresh`.
-      - `median_raw` In a limited depth breadth first search towards the root,
-        the median of the visited values must at least be `min-flow-thresh`.
+      - `median_raw` In a breadth first search towards the root, and away from
+        it (with same number of steps, respectively) the median of the visited
+        raw-values must at least be `min-flow-thresh`.
 
 
 # Notes
