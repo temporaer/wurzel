@@ -217,24 +217,24 @@ void write_voxelgrid(const std::string& name, voxelgraph_t& graph, const T& map)
  * @param strunk the position from which we start the search
  * @param p_map  predecessor-map
  * @param d_map  distance to strunk map
- * @param dijkstra_thresh stop dijkstra when this value reached
+ * @param max_dijkstra_cost stop dijkstra when this value reached
  * @param force  force recomputing, even when cached d_map/p_map found
  */
 void find_shortest_paths(const std::string& base, 
 		voxelgraph_t& graph, 
 		voxel_vertex_descriptor& strunk,
-		predecessor_map_t&p_map, distance_map_t& d_map, float dijkstra_thresh, bool force=false){
+		predecessor_map_t&p_map, distance_map_t& d_map, float max_dijkstra_cost, bool force=false){
 
   bool read_p=false, read_d=false;
   if(fs::exists(getfn(base,"p_map","dat")) && !force){
-	  std::cout << "Reading predecessor map from file..."<<std::endl;
+	  std::cout << "- Reading predecessor map from file..."<<std::endl;
 	  std::ifstream ifs(getfn(base,"p_map","dat").c_str());
 	  foreach (const voxel_vertex_descriptor& v, vertices(graph))
 		  ifs.read((char*)&p_map[v], sizeof(voxel_vertex_descriptor));
 	  read_p = true;
   }
   if(fs::exists(getfn(base,"d_map","dat")) && !force){
-	  std::cout << "Reading distance map from file..."<<std::endl;
+	  std::cout << "- Reading distance map from file..."<<std::endl;
 	  std::ifstream ifs(getfn(base,"d_map", "dat").c_str());
 	  foreach (const voxel_vertex_descriptor& v, vertices(graph))
 		  ifs.read((char*)&d_map[v], sizeof(double));
@@ -242,11 +242,11 @@ void find_shortest_paths(const std::string& base,
   }
 
   if(!read_p || !read_d){
-	  std::cout << "Running Dijkstra..." <<std::endl;
+	  std::cout << "- Running Dijkstra..." <<std::endl;
 
 	  voxel_edge_weight_map wt(graph);
 
-	  maxdist_visitor<distance_map_t> vis(d_map, 10000.0);
+	  maxdist_visitor<distance_map_t> vis(d_map, max_dijkstra_cost);
 	  try{
 		  dijkstra_shortest_paths(graph, strunk
 				  ,predecessor_map(p_map)
@@ -663,7 +663,7 @@ void implicit_bfs_on_grid(Visitor visit, GridGraph& g, Vertex start, const PredM
  * @param res OUT all selected nodes are marked != 0 here.
  */
 template<class GridGraph, class SubtreeWeightData, class RawData, class ResultData, class DistMap, class PredMap>
-void mark_leaf_candidates(POR_METHOD method, ResultData& res, const SubtreeWeightData& subtree_weight, GridGraph& g, const RawData& raw, const DistMap& dmap, const PredMap& pmap, const float start_thresh, const float flow_thresh, const float total_len_thresh){
+void mark_leaf_candidates(POR_METHOD method,  ResultData& res, const SubtreeWeightData& subtree_weight, GridGraph& g, const RawData& raw, const DistMap& dmap, const PredMap& pmap, float spross_intensity, const float start_thresh, const float flow_thresh, const float max_total_path_cost){
 	if(method == POR_EDGE_DETECT){
 		unsigned int smooth = 10;
 		//unsigned int cnt=0;
@@ -672,9 +672,9 @@ void mark_leaf_candidates(POR_METHOD method, ResultData& res, const SubtreeWeigh
 
 				wmedstat_t s_median1;
 				wmedstat_t s_median2;
-                if(raw[v] < start_thresh)
+                if(raw[v] < start_thresh * spross_intensity)
                 return;
-                if(dmap[v] > total_len_thresh)
+                if(dmap[v] > max_total_path_cost)
                 return;
 				try{ implicit_bfs_on_grid<1>(make_bfs_grid_threshold_visitor(raw,  smooth,&s_median1), g, v, pmap); // towards shoot
 				}catch(double m){}
@@ -683,7 +683,7 @@ void mark_leaf_candidates(POR_METHOD method, ResultData& res, const SubtreeWeigh
 				}catch(double m){}
 				if(count(s_median2)!=smooth) return;// return from /lambda/
 				//s_median(raw[v]); // results in odd number of observations: v decides if tied!
-				if(median(s_median1)/median(s_median2)>flow_thresh){
+				if(median(s_median1)/median(s_median2) > flow_thresh){
 				res[v[0]][v[1]][v[2]] = 1;
 				}
 				//if(count(s_median)>=(unsigned int)(2*smooth) && median(s_median)>flow_thresh){
@@ -699,9 +699,9 @@ void mark_leaf_candidates(POR_METHOD method, ResultData& res, const SubtreeWeigh
 				//std::cout << "," << std::flush;
 
 				wmedstat_t s_median;
-				if(raw[v] < start_thresh)
+				if(raw[v] < start_thresh * spross_intensity)
 				return;
-                if(dmap[v] > total_len_thresh)
+                if(dmap[v] > max_total_path_cost)
                 return;
 				try{ implicit_bfs_on_grid<1>(make_bfs_grid_threshold_visitor(raw,    smooth,&s_median), g, v, pmap); // towards shoot
 				}catch(double m){}
@@ -711,18 +711,18 @@ void mark_leaf_candidates(POR_METHOD method, ResultData& res, const SubtreeWeigh
 
 				s_median(raw[v]); // results in odd number of observations: v decides if tied!
 
-				if(median(s_median)>flow_thresh){
+				if(median(s_median) > flow_thresh * spross_intensity){
 					res[v[0]][v[1]][v[2]] = 1;
 				}
 				});
 		//};
 	}else if(method == POR_SUBTREE_WEIGHT){
 		tbb::parallel_for_each(vertices(g).first,vertices(g).second,[&](voxel_vertex_descriptor& v){
-				if(raw[v] < start_thresh)
+				if(raw[v] < start_thresh * spross_intensity)
 				return;
-                if(dmap[v] > total_len_thresh)
+                if(dmap[v] > max_total_path_cost)
                 return;
-				if(subtree_weight[v] > flow_thresh){
+				if(subtree_weight[v] > flow_thresh * spross_intensity){
 					res[v[0]][v[1]][v[2]] = 1;
 				}
 				});
@@ -1318,9 +1318,9 @@ int main(int argc, char* argv[]) {
 
 	// Run dijkstra to find shortest paths
 	{   boost::prof::profiler prof("Dijkstra");
-        const double dijkstra_stop_val = vm["dijkstra-stop-val"].as<double>();
+        const double max_dijkstra_cost = vm["max-dijkstra-cost"].as<double>();
 		find_shortest_paths(base,graph,strunk,p_map,d_map,
-                dijkstra_stop_val,force_recompute_dijkstra);
+                max_dijkstra_cost,force_recompute_dijkstra);
 	}
 	std::cout << "Dmap: " << voxel_stats(graph,d_map) <<std::endl;
 
@@ -1335,8 +1335,8 @@ int main(int argc, char* argv[]) {
 	 *
 	 * *****************************************************/
 	double start_threshold       = vm["start-threshold"].as<double>();//  * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!
-	double total_len_thresh      = vm["total-len-thresh"].as<double>();
-	double min_flow_thresh       = vm["min-flow-thresh"].as<double>();// * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!!
+	double max_total_path_cost   = vm["max-total-path-cost"].as<double>();
+	double leaf_select_param     = vm["leaf-select-param"].as<double>();// * sqrt(info.XYZ/info.read_XYZ); // TODO this factor needs to somehow go into the .xml!!!
 	bool   no_gauss_fit          = vm.count("no-gauss-fit");
 	bool   no_subpix_pos         = vm.count("no-subpix-pos");
 	const double maximum_radius_mm = vm["max-radius"].as<double>();
@@ -1353,7 +1353,7 @@ int main(int argc, char* argv[]) {
     else
         throw std::runtime_error("unknown leaf-select-method specified!");
 
-	min_flow_thresh     *= info.noise_cutoff;
+	leaf_select_param   *= info.noise_cutoff;
 	start_threshold     *= info.noise_cutoff;
 
 	//voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
@@ -1373,9 +1373,10 @@ int main(int argc, char* argv[]) {
         // mark leaf candidates according to some criterion
 		std::cout << ". mark" <<std::flush;
 		mark_leaf_candidates(por_method, Paths, vox2subtreew, graph, vox2raw, d_map, p_map, 
-                start_threshold  * info.spross_intensity,
-                min_flow_thresh  * info.spross_intensity,
-                total_len_thresh * info.spross_intensity);
+                info.spross_intensity,
+                start_threshold,
+                leaf_select_param,
+                max_total_path_cost );
 
         // now mark the paths from the leaves in Paths to the root-node as also
         // belonging to the root!
@@ -1383,7 +1384,7 @@ int main(int argc, char* argv[]) {
         trace_leafs_to_root(Paths, d_map, p_map, graph, strunk);
 
 		std::cout << ". consecutive" <<std::flush;
-        find_consecutive_voids(Paths, d_map, p_map, vox2raw,graph,strunk, max_void_dist / info.scale /*mm->vox*/, start_threshold * info.spross_intensity);
+        find_consecutive_voids(Paths, d_map, p_map, vox2raw,graph,strunk, max_void_dist / info.scale /*mm->vox*/, 2 * start_threshold * info.spross_intensity);
 
 		std::cout << ". " <<std::endl;
 	} // profiling: Tracing

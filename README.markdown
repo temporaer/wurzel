@@ -101,16 +101,17 @@ For each raw data file, put a section like this in the config file:
 			-r [ --max-radius ] arg (=1.8)        maximum root radius (in mm)
 			-s [ --start-threshold ] arg (=0.1)
 			                                      minimum raw value to start tracking
-			-t [ --total-len-thresh ] arg (=1000000000)
-			                                      maximal total length
+							      is start-threshold times noise (from XML)
+			-t [ --total-path-cost ] arg (=1000000000)
+			                                      maximal path cost
 			-d [ --dijkstra-stop-val ] arg (=1000000000)
-			                                      stop dijkstra when paths longer than
-			                                      this (decreases dijkstr runtime)
+			                                      stop Dijkstra when paths costs higher than
+			                                      this (decreases Dijkstr runtime)
 			-l [ --leaf-select-method ] arg (=median_raw)
 			                                      method for selecting leaf candidates
-			                                      [edge_detect,median_raw,subtree_weight]
-			-f [ --min-flow-thresh ] arg (=0.0001)
-			                                      minimal flow fraction
+			                                      [`edge_detect`,`median_raw`,`subtree_weight`]
+			-f [ --leaf-select-param ] arg (=0.0001)
+			                                      parameter of the leaf selection
 			--no-gauss-fit                        save some time
 			--no-subpix-pos                       save some time
 	
@@ -138,7 +139,7 @@ For each raw data file, put a section like this in the config file:
         the weights above threshold must be larger than `min-flow-thresh`.
       - `median_raw` In a breadth first search towards the root, and away from
         it (with same number of steps, respectively) the median of the visited
-        raw-values must at least be `min-flow-thresh`.
+        raw-values must at least be `min-flow-thresh*noiselevel`.
 
 
 # Notes

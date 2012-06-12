@@ -53,15 +53,15 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			("force", "force recomputation of dijkstra algorithm")
 			("stem-plane", po::value<int>(),"plane index in which to search for stem (if not given, read from config-file)")
 			("stem-axis",  po::value<int>(),"the axis of stem-plane (if not given, read from config-file)")
-			("max-radius,r", po::value<double>()->default_value(1.8),    "maximum root radius (in mm)")
-			("start-threshold,s", po::value<double>()->default_value(0.1),    "minimum raw value to start tracking")
-			("max-void-dist,v", po::value<double>()->default_value(5),    "maximum consecutive distance (in mm) traveled through below-noiselevel data (use this to get rid of weed not connected to root)")
-			("total-len-thresh,t", po::value<double>()->default_value(1E9),   "maximal total length")
-			("dijkstra-stop-val,d", po::value<double>()->default_value(1E9),   "stop dijkstra when paths longer than this (decreases dijkstr runtime)")
+			("max-radius,r", po::value<double>()->default_value(2.5),    "maximum root radius (in mm)")
+			("start-threshold,s", po::value<double>()->default_value(2), "minimum raw value to start tracking is start-threshold*noiselevel(from XML)")
+			("max-void-dist,v", po::value<double>()->default_value(5),   "maximum consecutive distance (in mm) traveled through below-noiselevel data (use this to get rid of weed not connected to root)")
+			("max-total-path-cost,t", po::value<double>()->default_value(1E9),   "maximal total path cost (you'll have to play around with this, effective value is probably around 2)")
+			("max-dijkstra-cost,d", po::value<double>()->default_value(1E9),   "stop Dijkstra when paths longer than this (decreases Dijkstra runtime)")
             ("leaf-select-method,l", po::value<std::string>()->default_value("median_raw"), "method for selecting leaf candidates [edge_detect,median_raw,subtree_weight]")
-			("min-flow-thresh,f", po::value<double>()->default_value(0.0001), "minimal flow fraction")
-			("no-gauss-fit",  "save some time")
-			("no-subpix-pos", "save some time")
+			("leaf-select-param,f", po::value<double>()->default_value(2), "parameter for leaf selection method, see README.markdown for details")
+			("no-gauss-fit",  "save some time by not estimating the radius")
+			("no-subpix-pos", "save some time by not finding subpixel positions")
 			;
 		po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
 		po::notify(vm);
