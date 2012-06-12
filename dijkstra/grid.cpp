@@ -1207,9 +1207,6 @@ bool find_consecutive_voids(
         Path& path, const DistMap& d_map, const PredMap& p_map, const RawData& raw, Graph& g, Iter& it, double length_thresh, double void_thresh, double void_length=0.0){
 
     bool this_node_below_noise = raw[it] < void_thresh;
-    //std::cout << "this_node_below_noise:" << this_node_below_noise << std::endl;
-    //std::cout << "raw[it]:" << raw[it] << " void_thresh:" << void_thresh << std::endl;
-    //std::cout << "length_thresh:" << length_thresh << " void_length:" << void_length << std::endl;
 
     // reset void_length if we are above noise level
     double len = this_node_below_noise 
@@ -1389,7 +1386,7 @@ int main(int argc, char* argv[]) {
         trace_leafs_to_root(Paths, d_map, p_map, graph, strunk);
 
 		std::cout << ". consecutive" <<std::flush;
-        find_consecutive_voids(Paths, d_map, p_map, vox2raw,graph,strunk, max_void_dist / info.scale /*mm->vox*/, 2 * start_threshold * info.spross_intensity);
+        find_consecutive_voids(Paths, d_map, p_map, vox2raw,graph,strunk, max_void_dist / info.scale /*mm->vox*/, info.noise_cutoff * info.spross_intensity);
 
 		std::cout << ". " <<std::endl;
 	} // profiling: Tracing
