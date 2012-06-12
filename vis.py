@@ -87,10 +87,10 @@ if __name__ == "__main__":
 
   if "rawvol" in token:
       import re
-      snr   = re.search(r'snr(\d+)', basename).group(1)
+      #snr   = re.search(r'snr(\d+)', basename).group(1)
       Draw  = np.load(os.path.join(datapath, basename, "upsampled.pickle"))
-      #viewer.show_volume(Draw, "bone", 0.004, 0.1)
-      viewer.show_volume(Draw, "bone", 0.004*500./float(snr), 0.1)
+      viewer.show_volume(Draw, "bone", 0.020, 0.1)
+      #viewer.show_volume(Draw, "bone", 0.004*500./float(snr), 0.1)
       if offscreen:
         mkimg(fig, "rawvol")
         mlab.clf()
@@ -98,7 +98,7 @@ if __name__ == "__main__":
   if "mass" in token:
       #viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=0.5,what="wireframe")
       #viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=1,what=3)
-      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=4,what=3, color=(.1,.1,.8),opacity=0.3)
+      viewer.show_points( basename+"/vertices.txt", basename+"/edges.txt", dscale=.01,what=3, color=(.1,.1,.8),opacity=0.3)
       #viewer.show_iso(Draw, 0.015 , "bone", 0.15)   # need 0.2 to get rid of noise
       if offscreen:
         mkimg(fig, "mass")
