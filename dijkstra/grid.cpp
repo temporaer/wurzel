@@ -1217,7 +1217,7 @@ bool find_consecutive_voids(
         : 0.0;
 
     // this means everything below should be deleted.
-    bool delete_this_branch = void_length > length_thresh;
+    bool delete_this_branch = len > length_thresh;
 
     if(!delete_this_branch){
         bool all_children_want_deletion = true;
@@ -1227,11 +1227,16 @@ bool find_consecutive_voids(
             if(d_map[n] > INT_MAX)
                 // dijkstra did not even get here.
                 continue;
+            if(path[n[0]][n[1]][n[2]] == 0)
+                continue;
+
+            // `n' is a child node of `it' now.
             bool delete_child = find_consecutive_voids(path,d_map,p_map,raw,g,n,length_thresh, void_thresh, len);
             all_children_want_deletion &= delete_child;
-            if(delete_child)
+            if(delete_child) {
                 // set path to zero as we move up
                 path[n[0]][n[1]][n[2]] = 0;
+            }
         }
         return this_node_below_noise && all_children_want_deletion;
     }
