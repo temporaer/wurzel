@@ -30,7 +30,7 @@ def show_volume(D, cm="Spectral", minfact=0.1, maxfact=0.9,visible=True, normali
 
     v = mlab.pipeline.volume(src, vmin=R[0],vmax=R[1])
 
-    if not (cm == "Spectral"):
+    if False and not (cm == "Spectral"):
         ctf = ColorTransferFunction()
         ctf.range = R
         ctf.add_rgb_point(mind, 1,1,1)
@@ -157,7 +157,7 @@ def show_points_onefile(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap
     print "Done."
 
 
-def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,scaled=True,dscale=1,what=3, opacity=1.0, dumb=False):
+def show_points(fn,fne=None,cm="Blues",mode="point",color=None,swap=True,scaled=True,dscale=1,what=3, opacity=1.0, dumb=False):
     L = []
     S = []
     D = []
@@ -170,7 +170,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
         wireframe = True
         what = 3
     print "Show Point3D `%s'" % fn
-    with open("data/" + fn) as f:
+    with open(info.datapath+"/" + fn) as f:
         for line in f.readlines():
             line = line.split()
             #if len(line)<7:
@@ -221,7 +221,7 @@ def show_points(fn,fne=None,cm="Blues",mode="2dtriangle",color=None,swap=True,sc
     print "Show Edges3D"
     E = []
     thresh = 100
-    with open("data/"+fne) as f:
+    with open(info.datapath+"/"+fne) as f:
         for line in f.readlines():
             vec = line.split() 
             line = [int(x) for x in vec[:2]]
