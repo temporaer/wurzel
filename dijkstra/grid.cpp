@@ -663,7 +663,7 @@ void implicit_bfs_on_grid(Visitor visit, GridGraph& g, Vertex start, const PredM
  * @param res OUT all selected nodes are marked != 0 here.
  */
 template<class GridGraph, class SubtreeWeightData, class RawData, class ResultData, class DistMap, class PredMap>
-void mark_leaf_candidates(POR_METHOD method,  ResultData& res, const SubtreeWeightData& subtree_weight, GridGraph& g, const RawData& raw, const DistMap& dmap, const PredMap& pmap, float spross_intensity, const float start_thresh, const float flow_thresh, const float max_total_path_cost){
+void mark_leaf_candidates(POR_METHOD method,  ResultData& res, const SubtreeWeightData& subtree_weight, GridGraph& g, const RawData& raw, const DistMap& dmap, const PredMap& pmap, float noise_cutoff, const float start_thresh, const float leaf_param, const float max_total_path_cost){
 	if(method == POR_EDGE_DETECT){
 		unsigned int smooth = 10;
 		//unsigned int cnt=0;
@@ -672,7 +672,7 @@ void mark_leaf_candidates(POR_METHOD method,  ResultData& res, const SubtreeWeig
 
 				wmedstat_t s_median1;
 				wmedstat_t s_median2;
-                if(raw[v] < start_thresh * spross_intensity)
+                if(raw[v] < start_thresh)
                 return;
                 if(dmap[v] > max_total_path_cost)
                 return;
@@ -683,7 +683,7 @@ void mark_leaf_candidates(POR_METHOD method,  ResultData& res, const SubtreeWeig
 				}catch(double m){}
 				if(count(s_median2)!=smooth) return;// return from /lambda/
 				//s_median(raw[v]); // results in odd number of observations: v decides if tied!
-				if(median(s_median1)/median(s_median2) > flow_thresh){
+				if(median(s_median1)/median(s_median2) > leaf_param){
 				res[v[0]][v[1]][v[2]] = 1;
 				}
 				//if(count(s_median)>=(unsigned int)(2*smooth) && median(s_median)>flow_thresh){
@@ -699,7 +699,7 @@ void mark_leaf_candidates(POR_METHOD method,  ResultData& res, const SubtreeWeig
 				//std::cout << "," << std::flush;
 
 				wmedstat_t s_median;
-				if(raw[v] < start_thresh * spross_intensity)
+				if(raw[v] < start_thresh)
 				return;
                 if(dmap[v] > max_total_path_cost)
                 return;
@@ -711,18 +711,18 @@ void mark_leaf_candidates(POR_METHOD method,  ResultData& res, const SubtreeWeig
 
 				s_median(raw[v]); // results in odd number of observations: v decides if tied!
 
-				if(median(s_median) > flow_thresh * spross_intensity){
+				if(median(s_median) > leaf_param * noise_cutoff){
 					res[v[0]][v[1]][v[2]] = 1;
 				}
 				});
 		//};
 	}else if(method == POR_SUBTREE_WEIGHT){
 		tbb::parallel_for_each(vertices(g).first,vertices(g).second,[&](voxel_vertex_descriptor& v){
-				if(raw[v] < start_thresh * spross_intensity)
+				if(raw[v] < start_thresh)
 				return;
                 if(dmap[v] > max_total_path_cost)
                 return;
-				if(subtree_weight[v] > flow_thresh * spross_intensity){
+				if(subtree_weight[v] > leaf_param *  noise_cutoff){
 					res[v[0]][v[1]][v[2]] = 1;
 				}
 				});
@@ -942,7 +942,7 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const U& scale_acc, const doub
 		coors .reserve(2*r/step*2*r/step*3);
 		ublas::vector<double> params(2);
 
-		double centerval = acc( p[0], p[1], p[2])/wi.spross_intensity;
+		double centerval = acc( p[0], p[1], p[2]);
 		params[0] = centerval;
 		double sr_ = scale_acc(p[0],p[1],p[2]);
 		params[1] = 1.0/(2*sr_*sr_);
@@ -954,7 +954,7 @@ wurzel_thickness(wurzelgraph_t& wg, const T& acc, const U& scale_acc, const doub
 					double val = acc(
 							p[0] + z*m(0,0) + i*m(0,1) + j*m(0,2),
 							p[1] + z*m(1,0) + i*m(1,1) + j*m(1,2),
-							p[2] + z*m(2,0) + i*m(2,1) + j*m(2,2))/wi.spross_intensity;
+							p[2] + z*m(2,0) + i*m(2,1) + j*m(2,2));
 					values.push_back(std::max(0.0,val-wi.noise_cutoff/4));
 					//values.push_back(val<wi.noise_cutoff ? 0.0 : val);
 					//values.push_back(val);
@@ -1355,8 +1355,10 @@ int main(int argc, char* argv[]) {
     else
         throw std::runtime_error("unknown leaf-select-method specified!");
 
-	leaf_select_param   *= info.noise_cutoff;
 	start_threshold     *= info.noise_cutoff;
+
+    std::cout << "start_threshold:" << start_threshold << std::endl;
+    std::cout << "leaf_select_param:" << leaf_select_param << std::endl;
 
 	//voxelg_traits::vertices_size_type strunk_idx = boost::get(vertex_index, graph, strunk);
 	stat_t s_avg_pathlen, s_pathlen, s_cnt, s_flow;
@@ -1375,7 +1377,7 @@ int main(int argc, char* argv[]) {
         // mark leaf candidates according to some criterion
 		std::cout << ". mark" <<std::flush;
 		mark_leaf_candidates(por_method, Paths, vox2subtreew, graph, vox2raw, d_map, p_map, 
-                info.spross_intensity,
+                info.noise_cutoff,
                 start_threshold,
                 leaf_select_param,
                 max_total_path_cost );
@@ -1386,7 +1388,7 @@ int main(int argc, char* argv[]) {
         trace_leafs_to_root(Paths, d_map, p_map, graph, strunk);
 
 		std::cout << ". consecutive" <<std::flush;
-        find_consecutive_voids(Paths, d_map, p_map, vox2raw,graph,strunk, max_void_dist / info.scale /*mm->vox*/, info.noise_cutoff * info.spross_intensity);
+        find_consecutive_voids(Paths, d_map, p_map, vox2raw,graph,strunk, max_void_dist / info.scale /*mm->vox*/, info.noise_cutoff);
 
 		std::cout << ". " <<std::endl;
 	} // profiling: Tracing

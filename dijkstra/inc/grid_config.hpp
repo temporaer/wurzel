@@ -54,7 +54,7 @@ get_config(wurzel_info& wi, int argc, char* argv[]){
 			("stem-plane", po::value<int>(),"plane index in which to search for stem (if not given, read from config-file)")
 			("stem-axis",  po::value<int>(),"the axis of stem-plane (if not given, read from config-file)")
 			("max-radius,r", po::value<double>()->default_value(2.5),    "maximum root radius (in mm)")
-			("start-threshold,s", po::value<double>()->default_value(2), "minimum raw value to start tracking is start-threshold*noiselevel(from XML)")
+			("start-threshold,s", po::value<double>()->default_value(1), "minimum raw value to start tracking is start-threshold*noiselevel(from XML)")
 			("max-void-dist,v", po::value<double>()->default_value(5),   "maximum consecutive distance (in mm) traveled through below-noiselevel data (use this to get rid of weed not connected to root)")
 			("max-total-path-cost,t", po::value<double>()->default_value(1E9),   "maximal total path cost (you'll have to play around with this, effective value is probably around 2)")
 			("max-dijkstra-cost,d", po::value<double>()->default_value(1E9),   "stop Dijkstra when paths longer than this (decreases Dijkstra runtime)")
